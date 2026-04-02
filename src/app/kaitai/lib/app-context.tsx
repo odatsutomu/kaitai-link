@@ -289,7 +289,10 @@ const AppContext = createContext<AppContextType>({
 export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedSite, setSelectedSite] = useState<SelectedSite>(null);
   const [authSiteId,   setAuthSiteId]   = useState<string | null>(null);
-  const [authLevel,    setAuthLevelRaw] = useState<AuthLevel>("worker");
+  const [authLevel,    setAuthLevelRaw] = useState<AuthLevel>(() => {
+    if (typeof window === "undefined") return "worker";
+    try { return (sessionStorage.getItem("kaitai_auth_level") as AuthLevel) || "worker"; } catch { return "worker"; }
+  });
   const [company,      setCompanyRaw]   = useState<Company>(loadCompany);
   const [operationLog, setOperationLog] = useState<OperationLog[]>([]);
   const [clients,      setClients]      = useState<Client[]>(SEED_CLIENTS);
@@ -305,10 +308,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // setAdminMode wrapper keeps nav unchanged
   const setAdminMode = useCallback((v: boolean) => {
-    setAuthLevelRaw(v ? "admin" : "worker");
+    const level = v ? "admin" : "worker";
+    try { sessionStorage.setItem("kaitai_auth_level", level); } catch {}
+    setAuthLevelRaw(level);
   }, []);
 
   const setAuthLevel = useCallback((level: AuthLevel) => {
+    try { sessionStorage.setItem("kaitai_auth_level", level); } catch {}
     setAuthLevelRaw(level);
   }, []);
 
