@@ -3,13 +3,22 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, MapPin, Calendar, ChevronRight,
+  MapPin, Calendar, ChevronRight,
   Building2, Zap, Droplets, Flame, AlertTriangle,
   Truck, FileText, Camera, Upload, X, Check,
   Clock, Edit3, Plus, Info, ChevronDown,
 } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
 import type { LineItem } from "../../lib/doc-types";
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+const C = {
+  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
+  border: "#E2E8F0", card: "#FFFFFF", bg: "#F8FAFC",
+  amber: "#F59E0B", amberDk: "#D97706",
+  red: "#EF4444", green: "#10B981",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,15 +82,15 @@ const WASTE_ESTIMATE: Record<StructureType, number> = {
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
   const tabs = ["基本・スケジュール", "契約・お金", "現場環境・リスク", "見積明細"];
   return (
-    <div className="flex" style={{ borderBottom: "2px solid #F1F5F9" }}>
+    <div className="flex" style={{ borderBottom: `2px solid ${C.border}` }}>
       {tabs.map((label, i) => (
         <button
           key={i}
           onClick={() => onChange(i)}
           className="flex-1 py-3 text-xs font-bold transition-all"
           style={{
-            color: active === i ? "#EA580C" : "#94A3B8",
-            borderBottom: active === i ? "2px solid #EA580C" : "2px solid transparent",
+            color: active === i ? C.amber : C.muted,
+            borderBottom: active === i ? `2px solid ${C.amber}` : "2px solid transparent",
             marginBottom: -2,
             background: "transparent",
           }}
@@ -93,11 +102,22 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="text-[11px] font-bold tracking-widest uppercase mb-3"
+      style={{ color: C.amber }}
+    >
+      {children}
+    </p>
+  );
+}
+
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <p className="text-xs font-bold mb-1.5" style={{ color: "#475569" }}>
+    <p className="text-xs font-bold mb-1.5" style={{ color: C.sub }}>
       {children}
-      {required && <span className="ml-1 text-red-500">*</span>}
+      {required && <span className="ml-1" style={{ color: C.red }}>*</span>}
     </p>
   );
 }
@@ -114,11 +134,11 @@ function InputField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all ${className}`}
+      className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all ${className}`}
       style={{
-        background: "#F8FAFC",
-        border: `1.5px solid ${highlight ? "#EA580C" : "#E2E8F0"}`,
-        color: "#1E293B",
+        background: C.card,
+        border: `1.5px solid ${highlight ? C.red : C.border}`,
+        color: C.text,
         fontFamily: "inherit",
       }}
     />
@@ -134,21 +154,36 @@ function AmountInput({
     <div className="relative">
       <span
         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold"
-        style={{ color: "#64748B" }}
+        style={{ color: C.sub }}
       >¥</span>
       <input
         type="number"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-8 pr-3.5 py-3 rounded-xl text-sm outline-none"
+        className="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-sm outline-none"
         style={{
-          background: "#F8FAFC",
-          border: `1.5px solid ${highlight ? "#EA580C" : "#E2E8F0"}`,
-          color: "#1E293B",
+          background: C.card,
+          border: `1.5px solid ${highlight ? C.red : C.border}`,
+          color: C.text,
           fontFamily: "inherit",
         }}
       />
+    </div>
+  );
+}
+
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`rounded-2xl p-5 ${className}`}
+      style={{
+        background: C.card,
+        border: `1px solid ${C.border}`,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+      }}
+    >
+      {children}
     </div>
   );
 }
@@ -223,7 +258,7 @@ export default function SiteNewPage() {
   const totalBudget  = wasteBNum + laborBNum + subBNum + otherBNum;
   const profit       = totalExTax - totalBudget;
   const profitPct    = contractNum > 0 ? Math.round((profit / totalExTax) * 100) : 0;
-  const profitColor  = profitPct >= 25 ? "#16A34A" : profitPct >= 10 ? "#D97706" : "#DC2626";
+  const profitColor  = profitPct >= 25 ? "#16A34A" : profitPct >= 10 ? C.amberDk : "#DC2626";
 
   // Items totals
   const itemsTotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
@@ -290,29 +325,18 @@ export default function SiteNewPage() {
   const canSave = name.trim().length > 0;
 
   return (
-    // Override dark layout background with light mode
-    <div
-      className="max-w-md mx-auto min-h-screen flex flex-col"
-      style={{ background: "#FFFFFF", color: "#1E293B" }}
-    >
-      {/* ── Header ── */}
-      <header
-        className="px-5 pt-10 pb-4 flex-shrink-0"
-        style={{ borderBottom: "1px solid #F1F5F9", background: "#FFFFFF" }}
+    <div style={{ background: C.bg, color: C.text, minHeight: "100vh" }}>
+      {/* ── Page header ── */}
+      <div
+        className="px-4 md:px-8 py-5"
+        style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}
       >
-        <Link
-          href="/kaitai"
-          className="inline-flex items-center gap-1.5 mb-3 text-sm"
-          style={{ color: "#94A3B8" }}
-        >
-          <ArrowLeft size={15} /> 現場一覧
-        </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#1E293B" }}>
+            <h1 className="text-xl font-bold" style={{ color: C.text }}>
               現場登録
             </h1>
-            <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
+            <p className="text-xs mt-0.5" style={{ color: C.muted }}>
               ※ 必須項目（*）以外は後から入力できます
             </p>
           </div>
@@ -328,919 +352,1086 @@ export default function SiteNewPage() {
             {status}
           </button>
         </div>
-      </header>
+      </div>
 
       {/* ── Tab bar ── */}
-      <div className="flex-shrink-0 px-0" style={{ background: "#FFFFFF" }}>
-        <TabBar active={tab} onChange={setTab} />
+      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}>
+        <div className="px-4 md:px-8">
+          <TabBar active={tab} onChange={setTab} />
+        </div>
       </div>
 
       {/* ── Tab content ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
+      <div className="px-4 md:px-8 py-6 pb-8">
 
         {/* ════════════════════════════════════════
             TAB 0 — 基本・スケジュール
         ════════════════════════════════════════ */}
         {tab === 0 && (
-          <>
-            {/* Site name */}
-            <div>
-              <FieldLabel required>現場名</FieldLabel>
-              <InputField
-                value={name}
-                onChange={setName}
-                placeholder="例：山田邸解体工事"
-                highlight={!name.trim() && saved}
-              />
-              {!name.trim() && saved && (
-                <p className="text-xs mt-1 text-red-500">現場名は必須です</p>
-              )}
-            </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left: main form */}
+            <div className="flex-1 flex flex-col gap-5">
 
-            {/* 元請け */}
-            <div>
-              <FieldLabel>元請け</FieldLabel>
-              {/* Type toggle */}
-              <div className="flex gap-1.5 mb-2">
-                {([["none", "元請け未設定"], ["registered", "元請けあり"], ["direct", "直接依頼"]] as const).map(([v, label]) => (
-                  <button
-                    key={v}
-                    onClick={() => setClientType(v)}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
-                    style={clientType === v
-                      ? { background: "#EA580C", color: "#FFF" }
-                      : { background: "#F8FAFC", color: "#94A3B8", border: "1.5px solid #E2E8F0" }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {clientType === "registered" && (
-                <div className="relative">
-                  <Building2 size={14} color="#94A3B8" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                  <select
-                    value={clientId ?? ""}
-                    onChange={e => setClientId(e.target.value || null)}
-                    className="w-full rounded-xl outline-none appearance-none"
-                    style={{ height: 44, paddingLeft: 34, paddingRight: 36, fontSize: 14, background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: clientId ? "#1E293B" : "#94A3B8" }}
-                  >
-                    <option value="">元請けを選択</option>
-                    {clients.filter(c => !c.archived).map(c => (
-                      <option key={c.id} value={c.id}>{c.name}{c.contactName ? ` (${c.contactName})` : ""}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} color="#94A3B8" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                </div>
-              )}
-              {clientType === "direct" && (
-                <InputField
-                  value={directClientName}
-                  onChange={setDirectClientName}
-                  placeholder="依頼者名（任意）例：山田 太郎"
-                />
-              )}
-              {clientType === "none" && (
-                <p style={{ fontSize: 11, color: "#94A3B8" }}>直接依頼の場合も元請け未設定のままで登録できます</p>
-              )}
-            </div>
-
-            {/* Address */}
-            <div>
-              <FieldLabel>住所</FieldLabel>
-              <div className="flex gap-2">
-                <InputField
-                  value={address}
-                  onChange={setAddress}
-                  placeholder="例：東京都世田谷区豪徳寺2-14-5"
-                  className="flex-1"
-                />
-                <a
-                  href={address ? `https://www.google.com/maps/search/${encodeURIComponent(address)}` : "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-bold"
-                  style={{
-                    background: address ? "#FFF7ED" : "#F8FAFC",
-                    color: address ? "#EA580C" : "#CBD5E1",
-                    border: `1px solid ${address ? "#FED7AA" : "#E2E8F0"}`,
-                  }}
-                >
-                  <MapPin size={13} />
-                  地図
-                </a>
-              </div>
-            </div>
-
-            {/* Date range */}
-            <div>
-              <FieldLabel>工期</FieldLabel>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <p className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>着工日</p>
-                  <InputField
-                    type="date"
-                    value={startDate}
-                    onChange={setStartDate}
-                  />
-                </div>
-                <span className="text-sm font-bold" style={{ color: "#CBD5E1", paddingTop: 18 }}>〜</span>
-                <div className="flex-1">
-                  <p className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>
-                    完工予定日
-                    {extendedEnd && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700">
-                        延長中
-                      </span>
+              {/* Site name & client — 2-col */}
+              <Card>
+                <SectionLabel>基本情報</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Site name */}
+                  <div className="md:col-span-2">
+                    <FieldLabel required>現場名</FieldLabel>
+                    <InputField
+                      value={name}
+                      onChange={setName}
+                      placeholder="例：山田邸解体工事"
+                      highlight={!name.trim() && saved}
+                    />
+                    {!name.trim() && saved && (
+                      <p className="text-xs mt-1" style={{ color: C.red }}>現場名は必須です</p>
                     )}
-                  </p>
-                  <InputField
-                    type="date"
-                    value={extendedEnd || endDate}
-                    onChange={handleEndDateChange}
-                    highlight={!!extendedEnd}
-                  />
-                </div>
-              </div>
+                  </div>
 
-              {/* 工期延長 UI */}
-              {!showExtend ? (
-                <button
-                  onClick={() => setShowExtend(true)}
-                  className="mt-2 flex items-center gap-1.5 text-xs font-semibold"
-                  style={{ color: "#F97316" }}
-                >
-                  <Plus size={12} /> 工期延長を記録する
-                </button>
-              ) : (
-                <div
-                  className="mt-3 rounded-2xl p-4 flex flex-col gap-3"
-                  style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold" style={{ color: "#EA580C" }}>
-                      工期延長
+                  {/* Address */}
+                  <div className="md:col-span-2">
+                    <FieldLabel>住所</FieldLabel>
+                    <div className="flex gap-2">
+                      <InputField
+                        value={address}
+                        onChange={setAddress}
+                        placeholder="例：東京都世田谷区豪徳寺2-14-5"
+                        className="flex-1"
+                      />
+                      <a
+                        href={address ? `https://www.google.com/maps/search/${encodeURIComponent(address)}` : "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-bold"
+                        style={{
+                          background: address ? "#FFFBEB" : C.bg,
+                          color: address ? C.amberDk : "#CBD5E1",
+                          border: `1px solid ${address ? "#FDE68A" : C.border}`,
+                        }}
+                      >
+                        <MapPin size={13} />
+                        地図
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* 元請け */}
+                  <div className="md:col-span-2">
+                    <FieldLabel>元請け</FieldLabel>
+                    <div className="flex gap-1.5 mb-2">
+                      {([["none", "元請け未設定"], ["registered", "元請けあり"], ["direct", "直接依頼"]] as const).map(([v, label]) => (
+                        <button
+                          key={v}
+                          onClick={() => setClientType(v)}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                          style={clientType === v
+                            ? { background: "#FFFBEB", color: C.amberDk, border: `1.5px solid #FDE68A` }
+                            : { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}` }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {clientType === "registered" && (
+                      <div className="relative">
+                        <Building2 size={14} color={C.muted} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                        <select
+                          value={clientId ?? ""}
+                          onChange={e => setClientId(e.target.value || null)}
+                          className="w-full rounded-xl outline-none appearance-none"
+                          style={{ height: 40, paddingLeft: 34, paddingRight: 36, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: clientId ? C.text : C.muted }}
+                        >
+                          <option value="">元請けを選択</option>
+                          {clients.filter(c => !c.archived).map(c => (
+                            <option key={c.id} value={c.id}>{c.name}{c.contactName ? ` (${c.contactName})` : ""}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} color={C.muted} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                      </div>
+                    )}
+                    {clientType === "direct" && (
+                      <InputField
+                        value={directClientName}
+                        onChange={setDirectClientName}
+                        placeholder="依頼者名（任意）例：山田 太郎"
+                      />
+                    )}
+                    {clientType === "none" && (
+                      <p style={{ fontSize: 11, color: C.muted }}>直接依頼の場合も元請け未設定のままで登録できます</p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Schedule */}
+              <Card>
+                <SectionLabel>工期・スケジュール</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Date range */}
+                  <div>
+                    <FieldLabel>工期</FieldLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>着工日</p>
+                        <InputField
+                          type="date"
+                          value={startDate}
+                          onChange={setStartDate}
+                        />
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: C.border, paddingTop: 18 }}>〜</span>
+                      <div className="flex-1">
+                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>
+                          完工予定日
+                          {extendedEnd && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700">
+                              延長中
+                            </span>
+                          )}
+                        </p>
+                        <InputField
+                          type="date"
+                          value={extendedEnd || endDate}
+                          onChange={handleEndDateChange}
+                          highlight={!!extendedEnd}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 工期延長 UI */}
+                    {!showExtend ? (
+                      <button
+                        onClick={() => setShowExtend(true)}
+                        className="mt-2 flex items-center gap-1.5 text-xs font-semibold"
+                        style={{ color: C.amber }}
+                      >
+                        <Plus size={12} /> 工期延長を記録する
+                      </button>
+                    ) : (
+                      <div
+                        className="mt-3 rounded-2xl p-4 flex flex-col gap-3"
+                        style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold" style={{ color: C.amberDk }}>
+                            工期延長
+                          </p>
+                          <button onClick={() => { setShowExtend(false); setExtendedEnd(""); setExtendReason(""); }}>
+                            <X size={14} style={{ color: C.muted }} />
+                          </button>
+                        </div>
+                        <div>
+                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長後完工予定日</p>
+                          <InputField
+                            type="date"
+                            value={extendedEnd}
+                            onChange={setExtendedEnd}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長理由</p>
+                          <InputField
+                            value={extendReason}
+                            onChange={setExtendReason}
+                            placeholder="例：雨天による作業遅延"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <FieldLabel>ステータス</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {STATUS_LIST.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setStatus(s)}
+                          className="px-4 py-2 rounded-full text-xs font-bold transition-all"
+                          style={
+                            status === s
+                              ? {
+                                  background: STATUS_STYLE[s].bg,
+                                  color: STATUS_STYLE[s].color,
+                                  border: `2px solid ${STATUS_STYLE[s].color}`,
+                                }
+                              : {
+                                  background: C.bg,
+                                  color: C.muted,
+                                  border: `1.5px solid ${C.border}`,
+                                }
+                          }
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Tab advance button */}
+              <button
+                onClick={() => setTab(1)}
+                className="self-end flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+              >
+                <span>次へ：契約・お金</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Right sidebar: summary card */}
+            <div className="lg:w-80 flex flex-col gap-4">
+              <Card>
+                <SectionLabel>登録サマリー</SectionLabel>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>現場名</p>
+                    <p className="text-sm font-semibold" style={{ color: name ? C.text : C.muted }}>
+                      {name || "未入力"}
                     </p>
-                    <button onClick={() => { setShowExtend(false); setExtendedEnd(""); setExtendReason(""); }}>
-                      <X size={14} style={{ color: "#94A3B8" }} />
-                    </button>
                   </div>
-                  <div>
-                    <p className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>延長後完工予定日</p>
-                    <InputField
-                      type="date"
-                      value={extendedEnd}
-                      onChange={setExtendedEnd}
-                    />
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>住所</p>
+                    <p className="text-sm" style={{ color: address ? C.text : C.muted }}>
+                      {address || "未入力"}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>延長理由</p>
-                    <InputField
-                      value={extendReason}
-                      onChange={setExtendReason}
-                      placeholder="例：雨天による作業遅延"
-                    />
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>工期</p>
+                    <p className="text-sm" style={{ color: startDate || endDate ? C.text : C.muted }}>
+                      {startDate || endDate
+                        ? `${startDate || "—"} 〜 ${extendedEnd || endDate || "—"}`
+                        : "未入力"}
+                    </p>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>ステータス</p>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold"
+                      style={{
+                        background: STATUS_STYLE[status].bg,
+                        color: STATUS_STYLE[status].color,
+                        border: `1px solid ${STATUS_STYLE[status].border}`,
+                      }}
+                    >
+                      {status}
+                    </span>
                   </div>
                 </div>
-              )}
+              </Card>
             </div>
-
-            {/* Status */}
-            <div>
-              <FieldLabel>ステータス</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {STATUS_LIST.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatus(s)}
-                    className="px-4 py-2 rounded-full text-xs font-bold transition-all"
-                    style={
-                      status === s
-                        ? {
-                            background: STATUS_STYLE[s].bg,
-                            color: STATUS_STYLE[s].color,
-                            border: `2px solid ${STATUS_STYLE[s].color}`,
-                          }
-                        : {
-                            background: "#F8FAFC",
-                            color: "#94A3B8",
-                            border: "1.5px solid #E2E8F0",
-                          }
-                    }
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tab advance button */}
-            <button
-              onClick={() => setTab(1)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl font-semibold text-sm"
-              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#475569" }}
-            >
-              <span>次へ：契約・お金</span>
-              <ChevronRight size={16} />
-            </button>
-          </>
+          </div>
         )}
 
         {/* ════════════════════════════════════════
             TAB 1 — 契約・お金の管理
         ════════════════════════════════════════ */}
         {tab === 1 && (
-          <>
-            {/* Contract amount */}
-            <div>
-              <FieldLabel>契約金額（税抜）</FieldLabel>
-              <AmountInput
-                value={contract}
-                onChange={handleContractChange}
-                placeholder="3200000"
-              />
-              {contractNum > 0 && (
-                <div
-                  className="mt-2 flex items-center justify-between px-3 py-2 rounded-xl"
-                  style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
-                >
-                  <span className="text-xs" style={{ color: "#64748B" }}>消費税（10%）</span>
-                  <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
-                    ＋¥{taxAmount.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {contractNum > 0 && (
-                <div
-                  className="mt-1.5 flex items-center justify-between px-3 py-2 rounded-xl"
-                  style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}
-                >
-                  <span className="text-xs" style={{ color: "#64748B" }}>税込金額</span>
-                  <span className="text-sm font-bold" style={{ color: "#1E293B" }}>
-                    ¥{(contractNum + taxAmount).toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left: inputs */}
+            <div className="flex-1 flex flex-col gap-5">
 
-            {/* Budget breakdown */}
-            <div>
-              <FieldLabel>予算内訳</FieldLabel>
-              <div className="flex flex-col gap-2">
-                {[
-                  { label: "産廃処分費", icon: "🚛", val: wasteB,  set: setWasteB },
-                  { label: "労務費",     icon: "👷", val: laborB,  set: setLaborB },
-                  { label: "外注費",     icon: "🏢", val: subB,    set: setSubB },
-                  { label: "その他経費", icon: "📋", val: otherB,  set: setOtherB },
-                ].map(({ label, icon, val, set }) => (
-                  <div key={label} className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm"
-                      style={{ background: "#FFF7ED" }}
-                    >
-                      {icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] mb-1" style={{ color: "#94A3B8" }}>{label}</p>
-                      <AmountInput value={val} onChange={set} placeholder="0" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Real-time profit meter */}
-            {contractNum > 0 && (
-              <div
-                className="rounded-2xl p-4"
-                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-bold" style={{ color: "#475569" }}>利益シミュレーション</p>
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: profitColor }}
-                  >
-                    {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
-                  </span>
-                </div>
-
-                {/* Profit % gauge */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-[10px] mb-1" style={{ color: "#94A3B8" }}>
-                    <span>利益率</span>
-                    <span style={{ color: profitColor, fontWeight: "bold" }}>{profitPct}%</span>
-                  </div>
-                  <div className="h-4 rounded-full overflow-hidden" style={{ background: "#E2E8F0" }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(Math.max(profitPct, 0), 100)}%`,
-                        background:
-                          profitPct >= 25
-                            ? "linear-gradient(90deg, #16A34A, #4ADE80)"
-                            : profitPct >= 10
-                            ? "linear-gradient(90deg, #D97706, #FBBF24)"
-                            : "linear-gradient(90deg, #DC2626, #F87171)",
-                      }}
+              <Card>
+                <SectionLabel>契約金額</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                    <FieldLabel>契約金額（税抜）</FieldLabel>
+                    <AmountInput
+                      value={contract}
+                      onChange={handleContractChange}
+                      placeholder="3200000"
                     />
-                  </div>
-                  <div
-                    className="flex justify-between text-[9px] mt-1"
-                    style={{ color: "#CBD5E1" }}
-                  >
-                    <span>0%</span>
-                    <span>10%</span>
-                    <span>25%</span>
-                    <span>50%+</span>
+                    {contractNum > 0 && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div
+                          className="flex items-center justify-between px-3 py-2 rounded-xl"
+                          style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
+                        >
+                          <span className="text-xs" style={{ color: C.sub }}>消費税（10%）</span>
+                          <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
+                            ＋¥{taxAmount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div
+                          className="flex items-center justify-between px-3 py-2 rounded-xl"
+                          style={{ background: C.bg, border: `1px solid ${C.border}` }}
+                        >
+                          <span className="text-xs" style={{ color: C.sub }}>税込金額</span>
+                          <span className="text-sm font-bold" style={{ color: C.text }}>
+                            ¥{(contractNum + taxAmount).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </Card>
 
-                {/* Breakdown summary */}
-                <div className="flex flex-col gap-1">
+              <Card>
+                <SectionLabel>予算内訳</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { label: "受注金額", value: contractNum, color: "#1E293B" },
-                    { label: "産廃処分費", value: -wasteBNum, color: "#EF4444" },
-                    { label: "労務費", value: -laborBNum, color: "#EF4444" },
-                    { label: "外注費", value: -subBNum, color: "#EF4444" },
-                    { label: "その他", value: -otherBNum, color: "#EF4444" },
-                  ]
-                    .filter(({ value }) => value !== 0)
-                    .map(({ label, value, color }) => (
-                      <div key={label} className="flex items-center justify-between">
-                        <span className="text-[10px]" style={{ color: "#94A3B8" }}>{label}</span>
-                        <span className="text-xs font-semibold" style={{ color }}>
-                          {value > 0 ? "+" : ""}¥{Math.abs(value).toLocaleString()}
-                        </span>
+                    { label: "産廃処分費", icon: "🚛", val: wasteB,  set: setWasteB },
+                    { label: "労務費",     icon: "👷", val: laborB,  set: setLaborB },
+                    { label: "外注費",     icon: "🏢", val: subB,    set: setSubB },
+                    { label: "その他経費", icon: "📋", val: otherB,  set: setOtherB },
+                  ].map(({ label, icon, val, set }) => (
+                    <div key={label} className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm"
+                        style={{ background: "#FFFBEB" }}
+                      >
+                        {icon}
                       </div>
-                    ))}
-                  <div
-                    className="flex items-center justify-between pt-1.5 mt-0.5"
-                    style={{ borderTop: "1px solid #E2E8F0" }}
-                  >
-                    <span className="text-xs font-bold" style={{ color: "#475569" }}>利益</span>
-                    <span className="text-sm font-bold" style={{ color: profitColor }}>
-                      {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Change log (if any) */}
-            {changeLog.length > 0 && (
-              <div>
-                <FieldLabel>変更履歴</FieldLabel>
-                <div className="flex flex-col gap-2">
-                  {changeLog.map((entry, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl px-3 py-2.5"
-                      style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold" style={{ color: "#EA580C" }}>{entry.field}</span>
-                        <span className="text-[10px]" style={{ color: "#94A3B8" }}>{entry.timestamp}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>{label}</p>
+                        <AmountInput value={val} onChange={set} placeholder="0" />
                       </div>
-                      <p className="text-[10px]" style={{ color: "#64748B" }}>
-                        {entry.before} → {entry.after}
-                      </p>
-                      <p className="text-[10px] mt-0.5 font-medium" style={{ color: "#1E293B" }}>
-                        理由：{entry.reason}
-                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              </Card>
 
-            <button
-              onClick={() => setTab(2)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl font-semibold text-sm"
-              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#475569" }}
-            >
-              <span>次へ：現場環境・リスク</span>
-              <ChevronRight size={16} />
-            </button>
-          </>
+              {/* Change log (if any) */}
+              {changeLog.length > 0 && (
+                <Card>
+                  <SectionLabel>変更履歴</SectionLabel>
+                  <div className="flex flex-col gap-2">
+                    {changeLog.map((entry, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl px-3 py-2.5"
+                        style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold" style={{ color: C.amberDk }}>{entry.field}</span>
+                          <span className="text-[10px]" style={{ color: C.muted }}>{entry.timestamp}</span>
+                        </div>
+                        <p className="text-[10px]" style={{ color: C.sub }}>
+                          {entry.before} → {entry.after}
+                        </p>
+                        <p className="text-[10px] mt-0.5 font-medium" style={{ color: C.text }}>
+                          理由：{entry.reason}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              <button
+                onClick={() => setTab(2)}
+                className="self-end flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+              >
+                <span>次へ：現場環境・リスク</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Right sidebar: profit meter */}
+            <div className="lg:w-80 flex flex-col gap-4">
+              {contractNum > 0 ? (
+                <Card>
+                  <SectionLabel>利益シミュレーション</SectionLabel>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm font-bold" style={{ color: C.sub }}>利益</p>
+                    <span
+                      className="text-2xl font-bold"
+                      style={{ color: profitColor }}
+                    >
+                      {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Profit % gauge */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-[10px] mb-1" style={{ color: C.muted }}>
+                      <span>利益率</span>
+                      <span style={{ color: profitColor, fontWeight: "bold" }}>{profitPct}%</span>
+                    </div>
+                    <div className="h-3 rounded-full overflow-hidden" style={{ background: C.border }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(Math.max(profitPct, 0), 100)}%`,
+                          background:
+                            profitPct >= 25
+                              ? "linear-gradient(90deg, #16A34A, #4ADE80)"
+                              : profitPct >= 10
+                              ? `linear-gradient(90deg, ${C.amberDk}, #FBBF24)`
+                              : "linear-gradient(90deg, #DC2626, #F87171)",
+                        }}
+                      />
+                    </div>
+                    <div
+                      className="flex justify-between text-[9px] mt-1"
+                      style={{ color: C.muted }}
+                    >
+                      <span>0%</span>
+                      <span>10%</span>
+                      <span>25%</span>
+                      <span>50%+</span>
+                    </div>
+                  </div>
+
+                  {/* Breakdown summary */}
+                  <div className="flex flex-col gap-1">
+                    {[
+                      { label: "受注金額", value: contractNum, color: C.text },
+                      { label: "産廃処分費", value: -wasteBNum, color: C.red },
+                      { label: "労務費", value: -laborBNum, color: C.red },
+                      { label: "外注費", value: -subBNum, color: C.red },
+                      { label: "その他", value: -otherBNum, color: C.red },
+                    ]
+                      .filter(({ value }) => value !== 0)
+                      .map(({ label, value, color }) => (
+                        <div key={label} className="flex items-center justify-between">
+                          <span className="text-[10px]" style={{ color: C.muted }}>{label}</span>
+                          <span className="text-xs font-semibold" style={{ color }}>
+                            {value > 0 ? "+" : ""}¥{Math.abs(value).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    <div
+                      className="flex items-center justify-between pt-1.5 mt-0.5"
+                      style={{ borderTop: `1px solid ${C.border}` }}
+                    >
+                      <span className="text-xs font-bold" style={{ color: C.sub }}>利益</span>
+                      <span className="text-sm font-bold" style={{ color: profitColor }}>
+                        {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <Card>
+                  <SectionLabel>利益シミュレーション</SectionLabel>
+                  <p className="text-xs text-center py-6" style={{ color: C.muted }}>
+                    契約金額を入力すると利益シミュレーションが表示されます
+                  </p>
+                </Card>
+              )}
+            </div>
+          </div>
         )}
 
         {/* ════════════════════════════════════════
             TAB 2 — 現場環境・リスク情報
         ════════════════════════════════════════ */}
         {tab === 2 && (
-          <>
-            {/* Structure type */}
-            <div>
-              <FieldLabel>構造種別</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {STRUCTURE_TYPES.map(({ type, icon }) => (
-                  <button
-                    key={type}
-                    onClick={() => setStructureType(type === structureType ? null : type)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-                    style={
-                      structureType === type
-                        ? {
-                            background: "#FFF7ED",
-                            color: "#EA580C",
-                            border: "2px solid #EA580C",
-                          }
-                        : {
-                            background: "#F8FAFC",
-                            color: "#64748B",
-                            border: "1.5px solid #E2E8F0",
-                          }
-                    }
-                  >
-                    <span>{icon}</span>
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left: main form */}
+            <div className="flex-1 flex flex-col gap-5">
 
-            {/* Area with waste estimate hint */}
-            <div>
-              <FieldLabel>延床面積</FieldLabel>
-              <div className="flex gap-2 items-center">
-                <div className="flex-1 relative">
-                  <InputField
-                    value={area}
-                    onChange={setArea}
-                    placeholder="例：120"
-                    type="number"
-                  />
-                  <span
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
-                    style={{ color: "#94A3B8" }}
-                  >㎡</span>
-                </div>
-              </div>
-              {estWaste !== null && (
-                <div
-                  className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl"
-                  style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
-                >
-                  <Info size={13} style={{ color: "#3B82F6" }} />
-                  <p className="text-xs" style={{ color: "#3B82F6" }}>
-                    <span style={{ fontWeight: "bold" }}>{structureType}</span> {area}㎡ の場合、
-                    産廃発生量の目安は約 <span style={{ fontWeight: "bold" }}>{estWaste}㎥</span> です
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Asbestos level */}
-            <div>
-              <FieldLabel>アスベスト</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {ASBESTOS_LEVELS.map(({ level, color }) => (
-                  <button
-                    key={level}
-                    onClick={() => setAsbestos(level)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
-                    style={
-                      asbestos === level
-                        ? {
-                            background: `${color}18`,
-                            color,
-                            border: `2px solid ${color}`,
+              <Card>
+                <SectionLabel>建物・構造</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Structure type */}
+                  <div>
+                    <FieldLabel>構造種別</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {STRUCTURE_TYPES.map(({ type, icon }) => (
+                        <button
+                          key={type}
+                          onClick={() => setStructureType(type === structureType ? null : type)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                          style={
+                            structureType === type
+                              ? {
+                                  background: "#FFFBEB",
+                                  color: C.amberDk,
+                                  border: `2px solid ${C.amber}`,
+                                }
+                              : {
+                                  background: C.bg,
+                                  color: C.sub,
+                                  border: `1.5px solid ${C.border}`,
+                                }
                           }
-                        : {
-                            background: "#F8FAFC",
-                            color: "#94A3B8",
-                            border: "1.5px solid #E2E8F0",
-                          }
-                    }
-                  >
-                    {level.startsWith("あり") && (
-                      <AlertTriangle size={11} style={{ color: asbestos === level ? color : "#CBD5E1" }} />
-                    )}
-                    {level}
-                  </button>
-                ))}
-              </div>
-              {asbestos !== "なし" && asbestos !== "調査中" && (
-                <div
-                  className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl"
-                  style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
-                >
-                  <AlertTriangle size={13} style={{ color: "#DC2626" }} />
-                  <p className="text-xs" style={{ color: "#DC2626" }}>
-                    アスベスト含有材は特別管理産業廃棄物として別途処理が必要です
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Vehicle limits */}
-            <div>
-              <FieldLabel>搬出車両制限</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {VEHICLE_LIMITS.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => toggleVehicle(v)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-                    style={
-                      vehicles.has(v)
-                        ? {
-                            background: "#FFF7ED",
-                            color: "#EA580C",
-                            border: "2px solid #EA580C",
-                          }
-                        : {
-                            background: "#F8FAFC",
-                            color: "#64748B",
-                            border: "1.5px solid #E2E8F0",
-                          }
-                    }
-                  >
-                    <Truck size={12} />
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Utilities */}
-            <div>
-              <FieldLabel>電気・ガス・水道（現況）</FieldLabel>
-              <div className="flex gap-3">
-                {(
-                  [
-                    { util: "電気" as Utility, icon: <Zap size={15} />, color: "#D97706" },
-                    { util: "ガス" as Utility, icon: <Flame size={15} />, color: "#EA580C" },
-                    { util: "水道" as Utility, icon: <Droplets size={15} />, color: "#3B82F6" },
-                  ]
-                ).map(({ util, icon, color }) => (
-                  <button
-                    key={util}
-                    onClick={() => toggleUtil(util)}
-                    className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all"
-                    style={
-                      utils.has(util)
-                        ? {
-                            background: `${color}12`,
-                            color,
-                            border: `2px solid ${color}`,
-                          }
-                        : {
-                            background: "#F8FAFC",
-                            color: "#CBD5E1",
-                            border: "1.5px solid #E2E8F0",
-                          }
-                    }
-                  >
-                    <span style={{ color: utils.has(util) ? color : "#CBD5E1" }}>{icon}</span>
-                    {util}
-                    <span
-                      className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
-                      style={
-                        utils.has(util)
-                          ? { background: `${color}20`, color }
-                          : { background: "#F1F5F9", color: "#CBD5E1" }
-                      }
-                    >
-                      {utils.has(util) ? "接続中" : "未接続"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Memo */}
-            <div>
-              <FieldLabel>特記事項・メモ</FieldLabel>
-              <textarea
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                placeholder="近隣環境・搬出経路・注意事項など"
-                rows={4}
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none resize-none"
-                style={{
-                  background: "#F8FAFC",
-                  border: "1.5px solid #E2E8F0",
-                  color: "#1E293B",
-                  fontFamily: "inherit",
-                }}
-              />
-            </div>
-
-            {/* Photo / document upload */}
-            <div>
-              <FieldLabel>写真・書類</FieldLabel>
-
-              {/* Photo grid */}
-              <div className="grid grid-cols-4 gap-2 mb-2">
-                {photos.map((p, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square rounded-xl overflow-hidden relative flex items-center justify-center text-2xl"
-                    style={{ background: "#F1F5F9", border: "1px solid #E2E8F0" }}
-                  >
-                    📷
-                    <button
-                      onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
-                      className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ background: "#DC2626" }}
-                    >
-                      <X size={9} style={{ color: "#fff" }} />
-                    </button>
+                        >
+                          <span>{icon}</span>
+                          {type}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ))}
+
+                  {/* Area with waste estimate hint */}
+                  <div>
+                    <FieldLabel>延床面積</FieldLabel>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1 relative">
+                        <InputField
+                          value={area}
+                          onChange={setArea}
+                          placeholder="例：120"
+                          type="number"
+                        />
+                        <span
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
+                          style={{ color: C.muted }}
+                        >㎡</span>
+                      </div>
+                    </div>
+                    {estWaste !== null && (
+                      <div
+                        className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl"
+                        style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
+                      >
+                        <Info size={13} style={{ color: "#3B82F6" }} />
+                        <p className="text-xs" style={{ color: "#3B82F6" }}>
+                          <span style={{ fontWeight: "bold" }}>{structureType}</span> {area}㎡ の場合、
+                          産廃発生量の目安は約 <span style={{ fontWeight: "bold" }}>{estWaste}㎥</span> です
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <SectionLabel>リスク・規制</SectionLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Asbestos level */}
+                  <div>
+                    <FieldLabel>アスベスト</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {ASBESTOS_LEVELS.map(({ level, color }) => (
+                        <button
+                          key={level}
+                          onClick={() => setAsbestos(level)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                          style={
+                            asbestos === level
+                              ? {
+                                  background: `${color}18`,
+                                  color,
+                                  border: `2px solid ${color}`,
+                                }
+                              : {
+                                  background: C.bg,
+                                  color: C.muted,
+                                  border: `1.5px solid ${C.border}`,
+                                }
+                          }
+                        >
+                          {level.startsWith("あり") && (
+                            <AlertTriangle size={11} style={{ color: asbestos === level ? color : "#CBD5E1" }} />
+                          )}
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                    {asbestos !== "なし" && asbestos !== "調査中" && (
+                      <div
+                        className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl"
+                        style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
+                      >
+                        <AlertTriangle size={13} style={{ color: "#DC2626" }} />
+                        <p className="text-xs" style={{ color: "#DC2626" }}>
+                          アスベスト含有材は特別管理産業廃棄物として別途処理が必要です
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Vehicle limits */}
+                  <div>
+                    <FieldLabel>搬出車両制限</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {VEHICLE_LIMITS.map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => toggleVehicle(v)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                          style={
+                            vehicles.has(v)
+                              ? {
+                                  background: "#FFFBEB",
+                                  color: C.amberDk,
+                                  border: `2px solid ${C.amber}`,
+                                }
+                              : {
+                                  background: C.bg,
+                                  color: C.sub,
+                                  border: `1.5px solid ${C.border}`,
+                                }
+                          }
+                        >
+                          <Truck size={12} />
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <SectionLabel>設備・環境</SectionLabel>
+                {/* Utilities */}
+                <div className="mb-5">
+                  <FieldLabel>電気・ガス・水道（現況）</FieldLabel>
+                  <div className="flex gap-3">
+                    {(
+                      [
+                        { util: "電気" as Utility, icon: <Zap size={15} />, color: "#D97706" },
+                        { util: "ガス" as Utility, icon: <Flame size={15} />, color: "#EA580C" },
+                        { util: "水道" as Utility, icon: <Droplets size={15} />, color: "#3B82F6" },
+                      ]
+                    ).map(({ util, icon, color }) => (
+                      <button
+                        key={util}
+                        onClick={() => toggleUtil(util)}
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all"
+                        style={
+                          utils.has(util)
+                            ? {
+                                background: `${color}12`,
+                                color,
+                                border: `2px solid ${color}`,
+                              }
+                            : {
+                                background: C.bg,
+                                color: "#CBD5E1",
+                                border: `1.5px solid ${C.border}`,
+                              }
+                        }
+                      >
+                        <span style={{ color: utils.has(util) ? color : "#CBD5E1" }}>{icon}</span>
+                        {util}
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                          style={
+                            utils.has(util)
+                              ? { background: `${color}20`, color }
+                              : { background: C.bg, color: "#CBD5E1" }
+                          }
+                        >
+                          {utils.has(util) ? "接続中" : "未接続"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Memo */}
+                <div>
+                  <FieldLabel>特記事項・メモ</FieldLabel>
+                  <textarea
+                    value={memo}
+                    onChange={(e) => setMemo(e.target.value)}
+                    placeholder="近隣環境・搬出経路・注意事項など"
+                    rows={4}
+                    className="w-full px-3.5 py-3 rounded-xl text-sm outline-none resize-none"
+                    style={{
+                      background: C.card,
+                      border: `1.5px solid ${C.border}`,
+                      color: C.text,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+              </Card>
+
+              {/* Photo / document upload */}
+              <Card>
+                <SectionLabel>写真・書類</SectionLabel>
+
+                {/* Photo grid */}
+                <div className="grid grid-cols-6 gap-2 mb-3">
+                  {photos.map((p, i) => (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-xl overflow-hidden relative flex items-center justify-center text-2xl"
+                      style={{ background: C.bg, border: `1px solid ${C.border}` }}
+                    >
+                      📷
+                      <button
+                        onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
+                        className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                        style={{ background: "#DC2626" }}
+                      >
+                        <X size={9} style={{ color: "#fff" }} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all hover:border-amber-400"
+                    style={{ background: C.bg, border: `2px dashed ${C.border}` }}
+                  >
+                    <Camera size={16} style={{ color: C.muted }} />
+                    <span className="text-[9px]" style={{ color: C.muted }}>写真追加</span>
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const names = Array.from(e.target.files ?? []).map((f) => f.name);
+                      setPhotos((prev) => [...prev, ...names]);
+                    }}
+                  />
+                </div>
+
+                {/* PDF / doc upload */}
                 <button
-                  onClick={() => photoInputRef.current?.click()}
-                  className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
-                  style={{ background: "#F8FAFC", border: "1.5px dashed #E2E8F0" }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all hover:border-amber-400"
+                  style={{ background: C.bg, border: `2px dashed ${C.border}` }}
                 >
-                  <Camera size={16} style={{ color: "#94A3B8" }} />
-                  <span className="text-[9px]" style={{ color: "#94A3B8" }}>写真追加</span>
+                  <Upload size={15} style={{ color: C.muted }} />
+                  <span className="text-xs" style={{ color: C.sub }}>
+                    {files.length > 0
+                      ? `${files.length}件 のファイルが添付されています`
+                      : "見積書・図面（PDF）をアップロード"}
+                  </span>
                 </button>
                 <input
-                  ref={photoInputRef}
+                  ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
                   multiple
                   className="hidden"
                   onChange={(e) => {
                     const names = Array.from(e.target.files ?? []).map((f) => f.name);
-                    setPhotos((prev) => [...prev, ...names]);
+                    setFiles((prev) => [...prev, ...names]);
                   }}
                 />
-              </div>
-
-              {/* PDF / doc upload */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all"
-                style={{ background: "#F8FAFC", border: "1.5px dashed #E2E8F0" }}
-              >
-                <Upload size={15} style={{ color: "#94A3B8" }} />
-                <span className="text-xs" style={{ color: "#64748B" }}>
-                  {files.length > 0
-                    ? `${files.length}件 のファイルが添付されています`
-                    : "見積書・図面（PDF）をアップロード"}
-                </span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const names = Array.from(e.target.files ?? []).map((f) => f.name);
-                  setFiles((prev) => [...prev, ...names]);
-                }}
-              />
-              {files.length > 0 && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {files.map((f, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                      style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
-                    >
-                      <FileText size={12} style={{ color: "#3B82F6" }} />
-                      <span className="flex-1 text-xs truncate" style={{ color: "#1E293B" }}>{f}</span>
-                      <button onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}>
-                        <X size={12} style={{ color: "#94A3B8" }} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {files.length > 0 && (
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                    {files.map((f, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                        style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
+                      >
+                        <FileText size={12} style={{ color: "#3B82F6" }} />
+                        <span className="flex-1 text-xs truncate" style={{ color: C.text }}>{f}</span>
+                        <button onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}>
+                          <X size={12} style={{ color: C.muted }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
-          </>
+
+            {/* Right sidebar */}
+            <div className="lg:w-80 flex flex-col gap-4">
+              <Card>
+                <SectionLabel>現場リスクサマリー</SectionLabel>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>構造種別</p>
+                    <p className="text-sm font-semibold" style={{ color: structureType ? C.text : C.muted }}>
+                      {structureType
+                        ? `${STRUCTURE_TYPES.find(s => s.type === structureType)?.icon} ${structureType}`
+                        : "未選択"}
+                    </p>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>延床面積</p>
+                    <p className="text-sm font-semibold" style={{ color: area ? C.text : C.muted }}>
+                      {area ? `${area} ㎡` : "未入力"}
+                    </p>
+                    {estWaste !== null && (
+                      <p className="text-xs mt-0.5" style={{ color: C.sub }}>
+                        産廃目安：約 {estWaste}㎥
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>アスベスト</p>
+                    <span
+                      className="px-2.5 py-1 rounded-full text-xs font-bold"
+                      style={{
+                        background: `${ASBESTOS_LEVELS.find(a => a.level === asbestos)?.color ?? C.muted}18`,
+                        color: ASBESTOS_LEVELS.find(a => a.level === asbestos)?.color ?? C.muted,
+                        border: `1px solid ${ASBESTOS_LEVELS.find(a => a.level === asbestos)?.color ?? C.border}`,
+                      }}
+                    >
+                      {asbestos}
+                    </span>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>接続中の設備</p>
+                    <div className="flex gap-1 flex-wrap">
+                      {utils.size === 0 ? (
+                        <span className="text-xs" style={{ color: C.muted }}>なし</span>
+                      ) : (
+                        Array.from(utils).map(u => (
+                          <span
+                            key={u}
+                            className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                            style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+                          >
+                            {u}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
         )}
 
         {/* ════════════════════════════════════════
             TAB 3 — 見積明細
         ════════════════════════════════════════ */}
         {tab === 3 && (
-          <>
-            {/* Quick-add presets */}
-            <div>
-              <FieldLabel>よく使う項目をタップして追加</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ...(structureType
-                    ? [{ name: `${structureType}造解体工事`, spec: "", qty: 1, unit: "式", unitPrice: 0 }]
-                    : [{ name: "解体工事", spec: "", qty: 1, unit: "式", unitPrice: 0 }]),
-                  { name: "産廃処理費（コンクリート）", spec: "約●㎥", qty: 1, unit: "㎥", unitPrice: 8_000 },
-                  { name: "産廃処理費（木材）", spec: "約●㎥", qty: 1, unit: "㎥", unitPrice: 12_000 },
-                  { name: "産廃処理費（金属くず）", spec: "約●kg", qty: 1, unit: "kg", unitPrice: 15 },
-                  { name: "アスベスト含有建材除去", spec: "", qty: 1, unit: "式", unitPrice: 0 },
-                  { name: "重機回送費", spec: "往復", qty: 1, unit: "式", unitPrice: 80_000 },
-                  { name: "養生費", spec: "周囲防護シート", qty: 1, unit: "式", unitPrice: 60_000 },
-                  { name: "仮設工事費", spec: "足場・防護ネット一式", qty: 1, unit: "式", unitPrice: 0 },
-                  { name: "近隣挨拶費", spec: "", qty: 1, unit: "式", unitPrice: 20_000 },
-                  { name: "石綿事前調査費", spec: "", qty: 1, unit: "式", unitPrice: 0 },
-                ].map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => setItems(prev => [...prev, { ...preset }])}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
-                    style={{ background: "#FFF7ED", color: "#EA580C", border: "1px solid #FED7AA" }}
-                  >
-                    <Plus size={10} /> {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left: items list */}
+            <div className="flex-1 flex flex-col gap-5">
 
-            {/* Empty state */}
-            {items.length === 0 && (
-              <div className="py-10 flex flex-col items-center gap-2" style={{ color: "#CBD5E1" }}>
-                <FileText size={32} style={{ color: "#E2E8F0" }} />
-                <p className="text-xs">上のボタンか「行を追加」で明細を入力してください</p>
-              </div>
-            )}
-
-            {/* Item cards */}
-            <div className="flex flex-col gap-3">
-              {items.map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl p-4 flex flex-col gap-2.5"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0" }}
-                >
-                  {/* 項目名 + 削除 */}
-                  <div className="flex gap-2 items-center">
-                    <div
-                      className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
-                      style={{ background: "#EA580C", color: "#fff" }}
+              <Card>
+                <SectionLabel>よく使う項目をクリックして追加</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ...(structureType
+                      ? [{ name: `${structureType}造解体工事`, spec: "", qty: 1, unit: "式", unitPrice: 0 }]
+                      : [{ name: "解体工事", spec: "", qty: 1, unit: "式", unitPrice: 0 }]),
+                    { name: "産廃処理費（コンクリート）", spec: "約●㎥", qty: 1, unit: "㎥", unitPrice: 8_000 },
+                    { name: "産廃処理費（木材）", spec: "約●㎥", qty: 1, unit: "㎥", unitPrice: 12_000 },
+                    { name: "産廃処理費（金属くず）", spec: "約●kg", qty: 1, unit: "kg", unitPrice: 15 },
+                    { name: "アスベスト含有建材除去", spec: "", qty: 1, unit: "式", unitPrice: 0 },
+                    { name: "重機回送費", spec: "往復", qty: 1, unit: "式", unitPrice: 80_000 },
+                    { name: "養生費", spec: "周囲防護シート", qty: 1, unit: "式", unitPrice: 60_000 },
+                    { name: "仮設工事費", spec: "足場・防護ネット一式", qty: 1, unit: "式", unitPrice: 0 },
+                    { name: "近隣挨拶費", spec: "", qty: 1, unit: "式", unitPrice: 20_000 },
+                    { name: "石綿事前調査費", spec: "", qty: 1, unit: "式", unitPrice: 0 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => setItems(prev => [...prev, { ...preset }])}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                      style={{ background: "#FFFBEB", color: C.amberDk, border: `1px solid #FDE68A` }}
                     >
-                      {i + 1}
-                    </div>
-                    <input
-                      value={item.name}
-                      onChange={e => updateItem(i, "name", e.target.value)}
-                      placeholder="項目名（例：木造家屋解体工事）"
-                      className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
-                      style={{ background: "#fff", border: "1.5px solid #E2E8F0", color: "#1E293B", fontFamily: "inherit" }}
-                    />
-                    <button onClick={() => removeItem(i)} style={{ color: "#DC2626", flexShrink: 0 }}>
-                      <X size={16} />
+                      <Plus size={10} /> {preset.name}
                     </button>
-                  </div>
-                  {/* 仕様 */}
-                  <input
-                    value={item.spec}
-                    onChange={e => updateItem(i, "spec", e.target.value)}
-                    placeholder="仕様・内容（例：木造2階建 148㎡）"
-                    className="w-full px-3 py-2 rounded-xl text-xs outline-none"
-                    style={{ background: "#fff", border: "1.5px solid #E2E8F0", color: "#64748B", fontFamily: "inherit" }}
-                  />
-                  {/* 数量 × 単位 × 単価 = 金額 */}
-                  <div className="flex items-center gap-2">
+                  ))}
+                </div>
+              </Card>
+
+              {/* Empty state */}
+              {items.length === 0 && (
+                <div className="py-10 flex flex-col items-center gap-2" style={{ color: C.muted }}>
+                  <FileText size={32} style={{ color: C.border }} />
+                  <p className="text-xs">上のボタンか「行を追加」で明細を入力してください</p>
+                </div>
+              )}
+
+              {/* Item cards */}
+              <div className="flex flex-col gap-3">
+                {items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="rounded-2xl p-4 flex flex-col gap-2.5"
+                    style={{ background: C.card, border: `1.5px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+                  >
+                    {/* 項目名 + 削除 */}
+                    <div className="flex gap-2 items-center">
+                      <div
+                        className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
+                        style={{ background: C.amber, color: "#fff" }}
+                      >
+                        {i + 1}
+                      </div>
+                      <input
+                        value={item.name}
+                        onChange={e => updateItem(i, "name", e.target.value)}
+                        placeholder="項目名（例：木造家屋解体工事）"
+                        className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+                        style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
+                      />
+                      <button onClick={() => removeItem(i)} style={{ color: C.red, flexShrink: 0 }}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                    {/* 仕様 */}
                     <input
-                      type="number"
-                      value={item.qty || ""}
-                      onChange={e => updateItem(i, "qty", Number(e.target.value))}
-                      placeholder="数量"
-                      className="py-2 rounded-xl text-sm text-center outline-none"
-                      style={{ width: 60, background: "#fff", border: "1.5px solid #E2E8F0", color: "#1E293B", fontFamily: "inherit" }}
+                      value={item.spec}
+                      onChange={e => updateItem(i, "spec", e.target.value)}
+                      placeholder="仕様・内容（例：木造2階建 148㎡）"
+                      className="w-full px-3 py-2 rounded-xl text-xs outline-none"
+                      style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.sub, fontFamily: "inherit" }}
                     />
-                    <input
-                      value={item.unit}
-                      onChange={e => updateItem(i, "unit", e.target.value)}
-                      placeholder="単位"
-                      className="py-2 rounded-xl text-sm text-center outline-none"
-                      style={{ width: 48, background: "#fff", border: "1.5px solid #E2E8F0", color: "#1E293B", fontFamily: "inherit" }}
-                    />
-                    <span className="text-xs" style={{ color: "#94A3B8" }}>×</span>
-                    <div className="relative flex-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: "#94A3B8" }}>¥</span>
+                    {/* 数量 × 単位 × 単価 = 金額 */}
+                    <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        value={item.unitPrice || ""}
-                        onChange={e => updateItem(i, "unitPrice", Number(e.target.value))}
-                        placeholder="単価"
-                        className="w-full pl-6 pr-2 py-2 rounded-xl text-sm outline-none"
-                        style={{ background: "#fff", border: "1.5px solid #E2E8F0", color: "#1E293B", fontFamily: "inherit" }}
+                        value={item.qty || ""}
+                        onChange={e => updateItem(i, "qty", Number(e.target.value))}
+                        placeholder="数量"
+                        className="py-2 rounded-xl text-sm text-center outline-none"
+                        style={{ width: 60, background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
                       />
+                      <input
+                        value={item.unit}
+                        onChange={e => updateItem(i, "unit", e.target.value)}
+                        placeholder="単位"
+                        className="py-2 rounded-xl text-sm text-center outline-none"
+                        style={{ width: 48, background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
+                      />
+                      <span className="text-xs" style={{ color: C.muted }}>×</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: C.muted }}>¥</span>
+                        <input
+                          type="number"
+                          value={item.unitPrice || ""}
+                          onChange={e => updateItem(i, "unitPrice", Number(e.target.value))}
+                          placeholder="単価"
+                          className="w-full pl-6 pr-2 py-2 rounded-xl text-sm outline-none"
+                          style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold flex-shrink-0" style={{ color: C.amberDk, minWidth: 68, textAlign: "right" }}>
+                        ={" "}{item.qty * item.unitPrice > 0
+                          ? `¥${(item.qty * item.unitPrice).toLocaleString()}`
+                          : "—"}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold flex-shrink-0" style={{ color: "#EA580C", minWidth: 68, textAlign: "right" }}>
-                      ={" "}{item.qty * item.unitPrice > 0
-                        ? `¥${(item.qty * item.unitPrice).toLocaleString()}`
-                        : "—"}
-                    </span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* 行を追加 */}
+              <button
+                onClick={() => setItems(prev => [...prev, { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0 }])}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold transition-all hover:border-amber-400"
+                style={{ background: C.bg, border: `1.5px dashed ${C.border}`, color: C.sub }}
+              >
+                <Plus size={15} /> 行を追加
+              </button>
             </div>
 
-            {/* 行を追加 */}
-            <button
-              onClick={() => setItems(prev => [...prev, { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0 }])}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.98]"
-              style={{ background: "#F8FAFC", border: "1.5px dashed #E2E8F0", color: "#64748B" }}
-            >
-              <Plus size={15} /> 行を追加
-            </button>
-
-            {/* Subtotal */}
-            {items.length > 0 && (
-              <div className="rounded-2xl px-4 py-4 flex flex-col gap-1.5" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs" style={{ color: "#94A3B8" }}>小計（税抜）</span>
-                  <span className="text-sm font-bold" style={{ color: "#1E293B" }}>¥{itemsTotal.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs" style={{ color: "#94A3B8" }}>消費税（10%）</span>
-                  <span className="text-sm" style={{ color: "#64748B" }}>¥{itemsTax.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid #FED7AA" }}>
-                  <span className="text-sm font-bold" style={{ color: "#EA580C" }}>合計（税込）</span>
-                  <span className="text-lg font-bold" style={{ color: "#EA580C" }}>¥{(itemsTotal + itemsTax).toLocaleString()}</span>
-                </div>
-                {contractNum > 0 && itemsTotal > 0 && (
-                  <div
-                    className="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl text-xs"
-                    style={{
-                      background: Math.abs(itemsDiff) < contractNum * 0.01 ? "#F0FDF4" : itemsDiff >= 0 ? "#FFFBEB" : "#FEF2F2",
-                      color: Math.abs(itemsDiff) < contractNum * 0.01 ? "#16A34A" : itemsDiff >= 0 ? "#D97706" : "#DC2626",
-                    }}
-                  >
-                    <Info size={12} />
-                    <span>
-                      契約金額との差額：{itemsDiff >= 0 ? "+" : ""}¥{itemsDiff.toLocaleString()}
-                      {Math.abs(itemsDiff) < contractNum * 0.01
-                        ? "（一致）"
-                        : itemsDiff > 0
-                        ? "（明細合計が契約金額より低い）"
-                        : "（明細合計が契約金額を超過）"}
-                    </span>
+            {/* Right sidebar: subtotal */}
+            <div className="lg:w-80 flex flex-col gap-4">
+              {items.length > 0 ? (
+                <Card>
+                  <SectionLabel>明細合計</SectionLabel>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: C.muted }}>小計（税抜）</span>
+                      <span className="text-sm font-bold" style={{ color: C.text }}>¥{itemsTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: C.muted }}>消費税（10%）</span>
+                      <span className="text-sm" style={{ color: C.sub }}>¥{itemsTax.toLocaleString()}</span>
+                    </div>
+                    <div
+                      className="flex items-center justify-between pt-3 mt-1"
+                      style={{ borderTop: `1px solid ${C.border}` }}
+                    >
+                      <span className="text-sm font-bold" style={{ color: C.amberDk }}>合計（税込）</span>
+                      <span className="text-xl font-bold" style={{ color: C.amberDk }}>¥{(itemsTotal + itemsTax).toLocaleString()}</span>
+                    </div>
+                    {contractNum > 0 && itemsTotal > 0 && (
+                      <div
+                        className="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl text-xs"
+                        style={{
+                          background: Math.abs(itemsDiff) < contractNum * 0.01 ? "#F0FDF4" : itemsDiff >= 0 ? "#FFFBEB" : "#FEF2F2",
+                          color: Math.abs(itemsDiff) < contractNum * 0.01 ? "#16A34A" : itemsDiff >= 0 ? C.amberDk : "#DC2626",
+                        }}
+                      >
+                        <Info size={12} />
+                        <span>
+                          契約金額との差額：{itemsDiff >= 0 ? "+" : ""}¥{itemsDiff.toLocaleString()}
+                          {Math.abs(itemsDiff) < contractNum * 0.01
+                            ? "（一致）"
+                            : itemsDiff > 0
+                            ? "（明細合計が契約金額より低い）"
+                            : "（明細合計が契約金額を超過）"}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </>
+                </Card>
+              ) : (
+                <Card>
+                  <SectionLabel>明細合計</SectionLabel>
+                  <p className="text-xs text-center py-6" style={{ color: C.muted }}>
+                    明細を追加すると合計が表示されます
+                  </p>
+                </Card>
+              )}
+            </div>
+          </div>
         )}
 
-      </div>
-
-      {/* ── Footer save button ── */}
-      <div
-        className="flex-shrink-0 px-5 py-4 flex gap-3"
-        style={{ borderTop: "1px solid #F1F5F9", background: "#FFFFFF" }}
-      >
-        <Link href="/kaitai" className="flex-shrink-0">
-          <button
-            className="px-4 py-4 rounded-2xl font-bold text-sm"
-            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#94A3B8" }}
-          >
-            キャンセル
-          </button>
-        </Link>
-        <button
-          onClick={handleSave}
-          className="flex-1 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={
-            canSave
-              ? {
-                  background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
-                  color: "#fff",
-                  boxShadow: "0 4px 20px rgba(234,88,12,0.3)",
-                }
-              : {
-                  background: "#F8FAFC",
-                  color: "#CBD5E1",
-                  border: "1px solid #E2E8F0",
-                }
-          }
+        {/* ── Footer save bar ── */}
+        <div
+          className="mt-6 pt-5 flex gap-3 justify-end"
+          style={{ borderTop: `1px solid ${C.border}` }}
         >
-          <Check size={16} />
-          {saved ? "更新して保存" : "現場を登録する"}
-        </button>
+          <Link href="/kaitai">
+            <button
+              className="px-6 py-3 rounded-xl font-bold text-sm"
+              style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+            >
+              キャンセル
+            </button>
+          </Link>
+          <button
+            onClick={handleSave}
+            className="px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
+            style={
+              canSave
+                ? {
+                    background: C.amber,
+                    color: "#fff",
+                    minHeight: 48,
+                    boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+                  }
+                : {
+                    background: C.bg,
+                    color: "#CBD5E1",
+                    border: `1px solid ${C.border}`,
+                    minHeight: 48,
+                  }
+            }
+          >
+            <Check size={16} />
+            {saved ? "更新して保存" : "現場を登録する"}
+          </button>
+        </div>
+
       </div>
 
       {/* ── Change log modal ── */}
       {pendingChange && (
         <div
-          className="fixed inset-0 flex items-end justify-center z-50"
-          style={{ background: "rgba(0,0,0,0.4)" }}
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ background: "rgba(15,23,42,0.5)" }}
           onClick={() => setPendingChange(null)}
         >
           <div
-            className="w-full max-w-md rounded-t-3xl px-5 pt-5 pb-8 flex flex-col gap-4"
-            style={{ background: "#FFFFFF" }}
+            className="w-full max-w-md mx-4 rounded-2xl px-6 pt-6 pb-7 flex flex-col gap-4"
+            style={{ background: C.card, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-1" style={{ background: "#E2E8F0" }} />
-
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                style={{ background: "#FFF7ED" }}
+                style={{ background: "#FFFBEB" }}
               >
-                <Edit3 size={18} style={{ color: "#EA580C" }} />
+                <Edit3 size={18} style={{ color: C.amberDk }} />
               </div>
               <div>
-                <p className="font-bold" style={{ color: "#1E293B" }}>変更理由を記録</p>
-                <p className="text-xs" style={{ color: "#94A3B8" }}>
+                <p className="font-bold" style={{ color: C.text }}>変更理由を記録</p>
+                <p className="text-xs" style={{ color: C.muted }}>
                   {pendingChange.field}を変更しました
                 </p>
               </div>
@@ -1248,17 +1439,17 @@ export default function SiteNewPage() {
 
             <div
               className="rounded-2xl px-4 py-3 flex items-center gap-3"
-              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}
+              style={{ background: C.bg, border: `1px solid ${C.border}` }}
             >
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: "#94A3B8" }}>変更前</p>
-                <p className="text-sm font-bold line-through" style={{ color: "#EF4444" }}>
+                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更前</p>
+                <p className="text-sm font-bold line-through" style={{ color: C.red }}>
                   {pendingChange.before}
                 </p>
               </div>
-              <ChevronRight size={16} style={{ color: "#CBD5E1" }} />
+              <ChevronRight size={16} style={{ color: C.border }} />
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: "#94A3B8" }}>変更後</p>
+                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更後</p>
                 <p className="text-sm font-bold" style={{ color: "#16A34A" }}>
                   {pendingChange.after}
                 </p>
@@ -1266,7 +1457,7 @@ export default function SiteNewPage() {
             </div>
 
             <div>
-              <p className="text-xs font-bold mb-2" style={{ color: "#475569" }}>変更理由</p>
+              <p className="text-xs font-bold mb-2" style={{ color: C.sub }}>変更理由</p>
               <textarea
                 value={changeReason}
                 onChange={(e) => setChangeReason(e.target.value)}
@@ -1275,29 +1466,38 @@ export default function SiteNewPage() {
                 autoFocus
                 className="w-full px-3.5 py-3 rounded-xl text-sm outline-none resize-none"
                 style={{
-                  background: "#F8FAFC",
-                  border: `1.5px solid ${changeReason.trim() ? "#EA580C" : "#E2E8F0"}`,
-                  color: "#1E293B",
+                  background: C.bg,
+                  border: `1.5px solid ${changeReason.trim() ? C.amber : C.border}`,
+                  color: C.text,
                   fontFamily: "inherit",
                 }}
               />
             </div>
 
-            <button
-              onClick={confirmChange}
-              className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-              style={
-                changeReason.trim()
-                  ? {
-                      background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
-                      color: "#fff",
-                    }
-                  : { background: "#F8FAFC", color: "#CBD5E1", border: "1px solid #E2E8F0" }
-              }
-            >
-              <Clock size={15} />
-              変更を記録して保存
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingChange(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm"
+                style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmChange}
+                className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                style={
+                  changeReason.trim()
+                    ? {
+                        background: C.amber,
+                        color: "#fff",
+                      }
+                    : { background: C.bg, color: "#CBD5E1", border: `1px solid ${C.border}` }
+                }
+              >
+                <Clock size={15} />
+                変更を記録して保存
+              </button>
+            </div>
           </div>
         </div>
       )}
