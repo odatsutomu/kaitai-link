@@ -1,13 +1,18 @@
 "use client";
 
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useAppContext } from "../lib/app-context";
 
-/**
- * Switches the root background/text between:
- *   Worker mode → pure white #FFFFFF / near-black #111111
- *   Admin mode  → dark navy  #0F1928 / slate  #F1F5F9
- */
+// サイドバーを表示しないルート
+const NO_SIDEBAR_ROUTES = [
+  "/kaitai/login",
+  "/kaitai/signup",
+  "/kaitai/lp",
+  "/kaitai/demo",
+  "/kaitai/dev",
+];
+
 export function ThemeWrapper({
   children,
   fontClass,
@@ -16,25 +21,39 @@ export function ThemeWrapper({
   fontClass: string;
 }) {
   const { authLevel } = useAppContext();
+  const pathname = usePathname();
   const dark = authLevel === "admin" || authLevel === "dev";
+  const noSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
   return (
-    /* 画面全体の背景（PC では両サイドに薄いパネルを出す） */
     <div
-      className={`${fontClass} min-h-screen flex justify-center`}
+      className={`${fontClass} min-h-screen`}
       style={{
-        background: dark ? "#070E1A" : "#F0F0F0",
-        color:      dark ? "#F1F5F9" : "#111111",
+        background: noSidebar
+          ? (dark ? "#070E1A" : "#F0F2F5")
+          : (dark ? "#070E1A" : "#EEF0F4"),
+        color: dark ? "#F1F5F9" : "#111111",
       }}
     >
-      {/* コンテンツ列：スマホは全幅、PC は最大 480px で中央寄せ */}
       <div
-        className="flex flex-col w-full relative"
+        className={[
+          "flex flex-col relative",
+          noSidebar
+            // サイドバーなし：常に中央480px
+            ? "mx-auto max-w-[480px] min-h-svh"
+            : [
+                // スマホ・タブレット：中央480px
+                "mx-auto max-w-[480px] min-h-svh",
+                // PC（lg以上）：サイドバー分オフセット・全幅
+                "lg:mx-0 lg:ml-64 lg:max-w-none",
+                // タブレット（md）：アイコンサイドバー分オフセット
+                "md:mx-0 md:ml-16 md:max-w-none",
+              ].join(" "),
+        ].join(" ")}
         style={{
-          maxWidth: 480,
-          minHeight: "100svh",
           background: dark ? "#0F1928" : "#FFFFFF",
-          boxShadow: "0 0 40px rgba(0,0,0,0.15)",
+          // スマホ中央表示のときだけ影
+          boxShadow: noSidebar ? "0 0 40px rgba(0,0,0,0.15)" : undefined,
         }}
       >
         {children}

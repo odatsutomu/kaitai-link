@@ -40,7 +40,8 @@ export default function KaitaiLayout({
   return (
     <AppProvider>
       <ThemeWrapper fontClass={noto.className}>
-        <main className="flex-1 overflow-y-auto pb-24">{children}</main>
+        {/* スマホ：pb-24（底辺ナビ分）、タブレット以上：pb-8（サイドバーナビのみ） */}
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-8">{children}</main>
         <KaitaiNav />
       </ThemeWrapper>
     </AppProvider>
