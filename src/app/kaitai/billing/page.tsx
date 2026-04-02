@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import {
-  ChevronLeft, Check, ExternalLink, CreditCard, Zap, Shield,
+  Check, ExternalLink, CreditCard, Zap, Shield,
   RefreshCw, Download, Clock, AlertCircle, CheckCircle2,
   Lock, Wifi, WifiOff, ChevronRight, X, Plus,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useAppContext, PlanId, PLAN_LIMITS } from "../lib/app-context";
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
@@ -117,7 +116,7 @@ type StripeStatus = "connected" | "disconnected" | "loading";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold tracking-widest uppercase mb-3 px-1" style={{ color: "#F97316" }}>
+    <p className="text-[11px] font-bold tracking-widest uppercase mb-3 px-1" style={{ color: "#F59E0B" }}>
       {children}
     </p>
   );
@@ -160,13 +159,13 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: "rgba(0,0,0,0.72)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,23,42,0.5)" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl flex flex-col"
-        style={{ background: "#FFFFFF", maxHeight: "92dvh" }}
+        className="w-full rounded-2xl flex flex-col"
+        style={{ background: "#FFFFFF", maxWidth: 560 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -188,7 +187,7 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 py-5 flex flex-col gap-4">
+        <div className="px-5 py-5 flex flex-col gap-4">
 
           {/* Card number */}
           <div>
@@ -317,13 +316,13 @@ function CheckoutModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: "rgba(0,0,0,0.72)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,23,42,0.5)" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl flex flex-col"
-        style={{ background: "#FFFFFF", maxHeight: "92dvh" }}
+        className="w-full rounded-2xl flex flex-col"
+        style={{ background: "#FFFFFF", maxWidth: 480 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Stripe header */}
@@ -442,7 +441,6 @@ function CheckoutModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const router = useRouter();
   const { company, plan: currentPlan, setCompany, addLog } = useAppContext();
 
   const [stripeStatus,  setStripeStatus]  = useState<StripeStatus>("loading");
@@ -485,45 +483,38 @@ export default function BillingPage() {
   })();
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-10" style={{ minHeight: "100dvh", background: "#F8FAFC" }}>
+    <div className="flex flex-col" style={{ minHeight: "100dvh", background: "#F8FAFC" }}>
 
       {/* ── Header ── */}
-      <header className="px-5 pt-12 pb-4" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F3F4F6" }}>
-            <ChevronLeft size={20} style={{ color: "#374151" }} />
-          </button>
-          <div>
-            <h1 className="font-black" style={{ fontSize: 20, color: "#111827" }}>請求・プラン管理</h1>
-            <p style={{ fontSize: 11, color: "#9CA3AF" }}>Stripe 決済連携</p>
-          </div>
+      <header className="px-4 md:px-8 pt-8 pb-4" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
+        <div className="mb-4">
+          <h1 className="font-black" style={{ fontSize: 24, color: "#111827" }}>請求・プラン管理</h1>
+          <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 2 }}>Stripe 決済連携</p>
         </div>
 
         {/* Stripe connection status */}
         <div
-          className="flex items-center gap-3 rounded-2xl px-4 py-3"
+          className="inline-flex items-center gap-3 rounded-2xl px-4 py-2.5 mb-4"
           style={{
             background: stripeStatus === "connected" ? "#F0FDF4" : stripeStatus === "loading" ? "#F9FAFB" : "#FFF7ED",
             border: `1.5px solid ${stripeStatus === "connected" ? "#A7F3D0" : stripeStatus === "loading" ? "#E5E7EB" : "#FED7AA"}`,
           }}
         >
           {stripeStatus === "loading" ? (
-            <RefreshCw size={16} color="#9CA3AF" style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
+            <RefreshCw size={15} color="#9CA3AF" style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
           ) : stripeStatus === "connected" ? (
-            <Wifi size={16} color="#16A34A" style={{ flexShrink: 0 }} />
+            <Wifi size={15} color="#16A34A" style={{ flexShrink: 0 }} />
           ) : (
-            <WifiOff size={16} color="#F97316" style={{ flexShrink: 0 }} />
+            <WifiOff size={15} color="#F97316" style={{ flexShrink: 0 }} />
           )}
-          <div className="flex-1 min-w-0">
-            <p style={{ fontSize: 12, fontWeight: 700, color: stripeStatus === "connected" ? "#15803D" : stripeStatus === "loading" ? "#6B7280" : "#C2410C" }}>
-              {stripeStatus === "loading" ? "Stripe に接続中..." : stripeStatus === "connected" ? "Stripe 接続済み" : "Stripe 未接続"}
+          <p style={{ fontSize: 13, fontWeight: 700, color: stripeStatus === "connected" ? "#15803D" : stripeStatus === "loading" ? "#6B7280" : "#C2410C" }}>
+            {stripeStatus === "loading" ? "Stripe に接続中..." : stripeStatus === "connected" ? "Stripe 接続済み" : "Stripe 未接続"}
+          </p>
+          {company?.stripeCustomerId && (
+            <p style={{ fontSize: 11, color: "#6B7280", fontFamily: "monospace" }}>
+              {company.stripeCustomerId}
             </p>
-            {company?.stripeCustomerId && (
-              <p style={{ fontSize: 10, color: "#6B7280", fontFamily: "monospace" }} className="truncate">
-                {company.stripeCustomerId}
-              </p>
-            )}
-          </div>
+          )}
           <div
             className="w-2 h-2 rounded-full flex-shrink-0"
             style={{
@@ -534,7 +525,7 @@ export default function BillingPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-3">
+        <div className="flex gap-1 max-w-xl">
           {([
             { key: "plan",     label: "プラン" },
             { key: "payment",  label: "お支払い" },
@@ -543,7 +534,7 @@ export default function BillingPage() {
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className="flex-1 py-2 rounded-xl text-xs font-bold"
+              className="flex-1 h-10 rounded-xl text-sm font-bold"
               style={activeTab === t.key
                 ? { background: "#111827", color: "#FFFFFF" }
                 : { background: "#F3F4F6", color: "#6B7280" }}
@@ -554,14 +545,14 @@ export default function BillingPage() {
         </div>
       </header>
 
-      <div className="px-4 pt-5 flex flex-col gap-5">
+      <div className="px-4 md:px-8 py-6 pb-24 md:pb-8 flex flex-col gap-5">
 
         {/* ══ Tab: Plan ══════════════════════════════════════════════ */}
         {activeTab === "plan" && (
           <>
             {/* Current plan hero */}
             <div
-              className="rounded-3xl p-5"
+              className="max-w-2xl rounded-3xl p-5"
               style={{ background: `linear-gradient(135deg, ${cp.color}18 0%, ${cp.color}08 100%)`, border: `2px solid ${cp.color}50` }}
             >
               <div className="flex items-start justify-between mb-3">
@@ -618,7 +609,7 @@ export default function BillingPage() {
             </div>
 
             {/* Feature notice */}
-            <div className="flex items-start gap-3 rounded-2xl px-4 py-3" style={{ background: "#ECFDF5", border: "1.5px solid #A7F3D0" }}>
+            <div className="max-w-2xl flex items-start gap-3 rounded-2xl px-4 py-3" style={{ background: "#ECFDF5", border: "1.5px solid #A7F3D0" }}>
               <CheckCircle2 size={16} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />
               <p style={{ fontSize: 12, color: "#15803D" }}>
                 <strong>全プラン共通</strong>: 機材管理・経営分析・元請け管理・帳票出力をすべてのプランでご利用いただけます。規模でのみ課金します。
@@ -628,54 +619,37 @@ export default function BillingPage() {
             {/* Plan cards */}
             <section>
               <SectionLabel>プランを変更</SectionLabel>
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {PLANS.map(p => {
                   const isCurrent = p.id === currentPlan;
                   return (
                     <div
                       key={p.id}
-                      className="rounded-2xl p-4"
+                      className="rounded-2xl p-4 flex flex-col"
                       style={{
                         background: isCurrent ? `${p.color}10` : "#FFFFFF",
                         border: isCurrent ? `2px solid ${p.color}70` : "1.5px solid #E5E7EB",
                       }}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span style={{ fontSize: 17, fontWeight: 900, color: p.color }}>{p.name}</span>
-                            {p.popular && !isCurrent && (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: p.color, color: "#fff" }}>人気</span>
-                            )}
-                            {isCurrent && (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: p.color, color: "#fff" }}>利用中</span>
-                            )}
-                          </div>
-                          <p style={{ fontSize: 16, fontWeight: 900, color: "#111111" }}>
-                            {p.priceStr}
-                            {p.price > 0 && <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>/月</span>}
-                          </p>
-                        </div>
-                        {!isCurrent && p.id !== "enterprise" && (
-                          <button
-                            onClick={() => setCheckoutPlan(p)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold"
-                            style={{ background: p.color, color: "#FFFFFF", fontSize: 12 }}
-                          >
-                            <Zap size={13} />
-                            {p.price > (cp.price) ? "アップグレード" : "変更"}
-                          </button>
+                      {/* Plan name + badge */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span style={{ fontSize: 17, fontWeight: 900, color: p.color }}>{p.name}</span>
+                        {p.popular && !isCurrent && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: p.color, color: "#fff" }}>人気</span>
                         )}
-                        {!isCurrent && p.id === "enterprise" && (
-                          <button
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold"
-                            style={{ background: "#F5F0FF", color: "#7C3AED", fontSize: 12 }}
-                          >
-                            お問い合わせ
-                          </button>
+                        {isCurrent && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: p.color, color: "#fff" }}>利用中</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
+
+                      {/* Price */}
+                      <p style={{ fontSize: 16, fontWeight: 900, color: "#111111", marginBottom: 12 }}>
+                        {p.priceStr}
+                        {p.price > 0 && <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>/月</span>}
+                      </p>
+
+                      {/* Features */}
+                      <div className="flex flex-col gap-1 flex-1 mb-4">
                         {p.features.map(f => (
                           <div key={f} className="flex items-center gap-2">
                             <Check size={11} style={{ color: p.color, flexShrink: 0 }} />
@@ -683,6 +657,26 @@ export default function BillingPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Action button */}
+                      {!isCurrent && p.id !== "enterprise" && (
+                        <button
+                          onClick={() => setCheckoutPlan(p)}
+                          className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold"
+                          style={{ background: p.color, color: "#FFFFFF", fontSize: 13 }}
+                        >
+                          <Zap size={13} />
+                          {p.price > (cp.price) ? "アップグレード" : "変更"}
+                        </button>
+                      )}
+                      {!isCurrent && p.id === "enterprise" && (
+                        <button
+                          className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl font-bold"
+                          style={{ background: "#F5F0FF", color: "#7C3AED", fontSize: 13 }}
+                        >
+                          お問い合わせ
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -691,7 +685,7 @@ export default function BillingPage() {
 
             {/* Stripe Customer Portal */}
             <button
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 font-bold"
+              className="w-full max-w-xs flex items-center justify-center gap-2 rounded-2xl py-3.5 font-bold"
               style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#635BFF", fontSize: 13 }}
             >
               <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: "#635BFF" }}>
@@ -706,7 +700,7 @@ export default function BillingPage() {
         {/* ══ Tab: Payment ══════════════════════════════════════════ */}
         {activeTab === "payment" && (
           <>
-            <section>
+            <section className="max-w-xl">
               <SectionLabel>登録カード</SectionLabel>
               {card ? (
                 <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB" }}>
@@ -774,7 +768,7 @@ export default function BillingPage() {
             </section>
 
             {/* Security info */}
-            <section>
+            <section className="max-w-xl">
               <SectionLabel>セキュリティ</SectionLabel>
               <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB" }}>
                 {[
@@ -804,7 +798,7 @@ export default function BillingPage() {
             {card && (
               <button
                 onClick={() => setShowAddCard(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 font-bold"
+                className="max-w-xl w-full flex items-center justify-center gap-2 rounded-2xl py-4 font-bold"
                 style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#374151", fontSize: 14 }}
               >
                 <Plus size={16} />
@@ -817,7 +811,7 @@ export default function BillingPage() {
         {/* ══ Tab: Invoices ══════════════════════════════════════════ */}
         {activeTab === "invoices" && (
           <>
-            <section>
+            <section className="max-w-2xl">
               <SectionLabel>請求履歴</SectionLabel>
               {currentPlan === "free" ? (
                 <div className="rounded-2xl py-10 text-center" style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB" }}>
@@ -864,7 +858,7 @@ export default function BillingPage() {
 
             {currentPlan !== "free" && (
               <button
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold"
+                className="max-w-2xl w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold"
                 style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#635BFF", fontSize: 13 }}
               >
                 <ExternalLink size={13} />
@@ -875,7 +869,7 @@ export default function BillingPage() {
             {/* Next billing */}
             {currentPlan !== "free" && (
               <div
-                className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                className="max-w-2xl flex items-center gap-3 rounded-2xl px-4 py-3"
                 style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB" }}
               >
                 <Clock size={16} color="#6B7280" />
