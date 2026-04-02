@@ -23,8 +23,9 @@ function AdminNav({ pathname }: { pathname: string }) {
   const { setAdminMode } = useAppContext();
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 flex flex-col z-40"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 flex flex-col z-40 w-full"
       style={{
+        maxWidth: 480,
         background: "rgba(15,25,40,0.97)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
@@ -112,8 +113,9 @@ function WorkerNav({ pathname }: { pathname: string }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex items-stretch w-full"
       style={{
+        maxWidth: 480,
         background: "#FFFFFF",
         borderTop: "2px solid #EEEEEE",
         boxShadow: "0 -2px 16px rgba(0,0,0,0.07)",
