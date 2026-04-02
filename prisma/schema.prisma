@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── 解体LINK Models ──────────────────────────────────────────────────────────
+
+model KaitaiCompany {
+  id               String   @id @default(cuid())
+  name             String
+  address          String
+  phone            String
+  adminName        String
+  adminEmail       String   @unique
+  password1Hash    String
+  password2Hash    String
+  plan             String   @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sessions      KaitaiSession[]
+  sites         KaitaiSite[]
+  members       KaitaiMember[]
+  equipment     KaitaiEquipment[]
+  clients       KaitaiClient[]
+  expenseLogs   KaitaiExpenseLog[]
+  images        KaitaiImage[]
+  operationLogs KaitaiOperationLog[]
+}
+
+model KaitaiSession {
+  id        String   @id @default(cuid())
+  companyId String
+  authLevel String   @default("worker")
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([companyId])
+}
+
+model KaitaiSite {
+  id             String   @id @default(cuid())
+  companyId      String
+  clientId       String?
+  name           String
+  address        String
+  status         String   @default("着工前")
+  startDate      String?
+  endDate        String?
+  contractAmount Int      @default(0)
+  progressPct    Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company     KaitaiCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expenseLogs KaitaiExpenseLog[]
+  images      KaitaiImage[]
+
+  @@index([companyId])
+}
+
+model KaitaiMember {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  role      String   @default("worker")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model KaitaiClient {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  memo        String?
+  status      String   @default("active")
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model KaitaiEquipment {
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String
+  category       String
+  type           String
+  supplier       String?
+  unitPrice      Int      @default(0)
+  status         String   @default("待機中")
+  returnDeadline String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model KaitaiExpenseLog {
+  id            String   @id @default(cuid())
+  companyId     String
+  siteId        String?
+  siteName      String?
+  category      String
+  amount        Int      @default(0)
+  description   String?
+  reporter      String
+  date          String
+  memo          String?
+  equipmentId   String?
+  equipmentName String?
+  liters        Float?
+  pricePerLiter Float?
+  createdAt     DateTime @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site    KaitaiSite?   @relation(fields: [siteId], references: [id])
+
+  @@index([companyId])
+  @@index([siteId])
+  @@index([createdAt])
+}
+
+model KaitaiImage {
+  id         String    @id @default(cuid())
+  companyId  String
+  siteId     String?
+  reportType String?
+  r2Key      String
+  url        String
+  expiresAt  DateTime?
+  uploadedBy String
+  createdAt  DateTime  @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site    KaitaiSite?   @relation(fields: [siteId], references: [id])
+
+  @@index([companyId])
+  @@index([expiresAt])
+}
+
+model KaitaiOperationLog {
+  id        String   @id @default(cuid())
+  companyId String?
+  action    String
+  user      String
+  device    String?
+  siteId    String?
+  createdAt DateTime @default(now())
+
+  company KaitaiCompany? @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([createdAt])
+}
