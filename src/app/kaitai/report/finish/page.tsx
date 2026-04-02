@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle, Plus, Minus, Camera } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
@@ -13,7 +13,7 @@ const WASTE_ITEMS = [
   { id: "w5", label: "その他混合廃棄",   unit: "㎥" },
 ];
 
-export default function FinishPage() {
+function FinishPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const siteName = params.get("name") ?? "現場";
@@ -149,5 +149,13 @@ export default function FinishPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function FinishPage() {
+  return (
+    <Suspense fallback={null}>
+      <FinishPageInner />
+    </Suspense>
   );
 }

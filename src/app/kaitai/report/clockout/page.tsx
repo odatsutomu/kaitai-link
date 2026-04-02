@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
@@ -14,7 +14,7 @@ const MEMBERS = [
   { id: "m6", name: "伊藤 拓也", role: "補助" },
 ];
 
-export default function ClockOutPage() {
+function ClockOutPageInner() {
   const router = useRouter();
   const params = useSearchParams();
   const siteName = params.get("name") ?? "現場";
@@ -103,5 +103,13 @@ export default function ClockOutPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function ClockOutPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClockOutPageInner />
+    </Suspense>
   );
 }

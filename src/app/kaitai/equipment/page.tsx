@@ -603,10 +603,11 @@ export default function EquipmentPage() {
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
   function handleSave(data: Omit<Equipment, "id" | "createdAt">) {
-    if (modalTarget === "new") {
+    const target = modalTarget;
+    if (target === "new") {
       addEquipment(data);
-    } else if (modalTarget && modalTarget !== "new") {
-      updateEquipment(modalTarget.id, data);
+    } else if (target !== null && typeof target === "object") {
+      updateEquipment(target.id, data);
     }
     setModalTarget(null);
   }

@@ -17,8 +17,8 @@ const SEED_COMPANIES: Company[] = [
     adminEmail: "sato@tokyokaitai.jp",
     password1: "tokyo2026",
     password2: "admin01",
-    plan: "pro",
-    stripeCustomerId: "cus_mock_TKY001PRO",
+    plan: "business",
+    stripeCustomerId: "cus_mock_TKY001BIZ",
     createdAt: "2025-10-01T00:00:00.000Z",
   },
   {
@@ -51,8 +51,8 @@ const SEED_COMPANIES: Company[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const PLAN_COLOR = { free: "#64748B", standard: "#FF9800", pro: "#7C3AED" };
-const PLAN_LABEL = { free: "Free", standard: "Standard", pro: "Pro" };
+const PLAN_COLOR = { free: "#64748B", standard: "#FF9800", business: "#3B82F6", enterprise: "#7C3AED" };
+const PLAN_LABEL = { free: "Free", standard: "Standard", business: "Business", enterprise: "Enterprise" };
 
 function StatusBadge({ hasStripe }: { hasStripe: boolean }) {
   if (hasStripe) return (
@@ -128,7 +128,7 @@ export default function DevPage() {
         <div className="grid grid-cols-3 gap-2 mt-3">
           {[
             { label: "総会社数",    value: allCompanies.length },
-            { label: "Pro契約",    value: allCompanies.filter(c => c.plan === "pro").length },
+            { label: "有料契約",    value: allCompanies.filter(c => c.plan !== "free").length },
             { label: "Stripe未設定", value: allCompanies.filter(c => !c.stripeCustomerId).length },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl p-2 text-center" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
