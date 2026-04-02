@@ -551,7 +551,7 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -738,8 +738,8 @@ export default function EquipmentPage() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setModalTarget(e)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-gray-100"
-                  style={{ color: C.sub, border: `1px solid ${C.border}` }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
+                  style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                 >
                   <Edit3 size={12} />
                   編集

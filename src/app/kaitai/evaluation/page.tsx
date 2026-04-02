@@ -137,7 +137,7 @@ export default function EvaluationPage() {
   // ── Select step ──────────────────────────────────────────────────────────────
   if (step === "select") {
     return (
-      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>本日の評価入力</h1>
@@ -329,7 +329,7 @@ export default function EvaluationPage() {
   // ── Evaluate step ────────────────────────────────────────────────────────────
   if (step === "evaluate") {
     return (
-      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
@@ -544,7 +544,7 @@ export default function EvaluationPage() {
 
   // ── Done step ────────────────────────────────────────────────────────────────
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex items-center justify-center" style={{ minHeight: "60vh" }}>
+    <div className="py-6 pb-28 md:pb-8 flex items-center justify-center" style={{ minHeight: "60vh" }}>
       <div
         style={{
           background: C.card,

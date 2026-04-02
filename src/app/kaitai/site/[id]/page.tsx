@@ -185,7 +185,7 @@ export default async function SiteDetailPage({
     : 0;
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-6">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-6">
 
       {/* ── 2-column layout ── */}
       <div className="flex flex-col lg:flex-row gap-6">
@@ -234,12 +234,8 @@ export default async function SiteDetailPage({
               </div>
               <Link href={`/kaitai/sites/${id}/edit`} className="flex-shrink-0">
                 <button
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{
-                    background: "#F1F5F9",
-                    border: `1px solid ${C.border}`,
-                    color: C.sub,
-                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
+                  style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                 >
                   <Edit3 size={13} />
                   編集

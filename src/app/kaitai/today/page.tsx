@@ -536,7 +536,7 @@ export default function TodayDashboard() {
   const dateStr = `${today.getMonth() + 1}月${today.getDate()}日（${"日月火水木金土"[today.getDay()]}）`;
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
       <section

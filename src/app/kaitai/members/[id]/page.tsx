@@ -401,7 +401,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const AVAILABLE_TAGS = ["#効率的", "#リーダーシップ", "#安全模範", "#要注意", "#ルール違反", "#成長中", "#冷静対応"];
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Hero ── */}
       <section

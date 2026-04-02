@@ -275,7 +275,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8">
+    <div className="py-6 pb-28 md:pb-8">
 
       {/* Header */}
       <header className="mb-6">
@@ -286,8 +286,8 @@ export default function ClientsPage() {
           </div>
           <button
             onClick={() => setModal({ mode: "add" })}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0"
-            style={{ background: C.amber, color: "#FFF" }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90 flex-shrink-0"
+            style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
           >
             <Plus size={16} />
             元請けを追加
@@ -416,15 +416,15 @@ export default function ClientsPage() {
                   </span>
                   <button
                     onClick={() => setModal({ mode: "edit", client: c })}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl"
-                    style={{ background: C.bg }}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                   >
-                    <Edit3 size={13} color={C.sub} />
+                    <Edit3 size={13} />
                   </button>
                   <button
                     onClick={() => handleArchive(c)}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl"
-                    style={{ background: C.bg }}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
+                    style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                   >
                     {c.archived
                       ? <ArchiveRestore size={13} color={C.green} />

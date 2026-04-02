@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  MapPin, TrendingUp, Users, Calendar, HardHat,
+  MapPin, TrendingUp, Users, HardHat,
   CheckCircle2, Clock, ChevronRight, ArrowUpRight,
   Sun, Cloud, CloudRain, Wind,
 } from "lucide-react";
@@ -253,10 +253,11 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
         {/* 詳細リンク */}
         <div className="flex flex-col items-center justify-center px-3" style={{ borderLeft: `1px solid ${C.border}` }}>
           <Link href={`/kaitai/site/${site.id}`}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors"
-            style={{ color: C.muted }}>
-            <ChevronRight size={16} />
-            <span style={{ fontSize: 9, writingMode: "vertical-rl" }}>詳細</span>
+            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors cursor-pointer">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}>
+              <ChevronRight size={14} />
+            </div>
+            <span style={{ fontSize: 9, writingMode: "vertical-rl", color: C.amber }}>詳細</span>
           </Link>
         </div>
       </div>
@@ -530,43 +531,15 @@ export default function KaitaiHome() {
         <span style={{ fontSize: 11, color: C.muted }}>{dateStr}</span>
       </header>
 
-      {/* ── PC ページヘッダー ────────────── */}
-      <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar size={13} style={{ color: C.muted }} />
-            <span style={{ fontSize: 12, color: C.sub }}>{dateStr}</span>
-          </div>
-          <span className="px-2.5 py-1 rounded-md text-xs font-medium"
-            style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
-            閲覧専用モード
-          </span>
-        </div>
-        {/* セカンダリタブ */}
-        <div className="flex items-center gap-1">
-          {["現場管理", "収支分析", "人員配置"].map((tab, i) => (
-            <Link key={tab} href={i === 1 ? "/kaitai/admin" : "#"}
-              className="px-4 py-1.5 text-sm font-medium transition-colors"
-              style={{
-                color: i === 0 ? C.amber : C.sub,
-                borderBottom: i === 0 ? `2px solid ${C.amber}` : "2px solid transparent",
-              }}>
-              {tab}
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* ── KPI行 ────────────────────────── */}
-      <div className="px-4 md:px-8 pt-5 pb-4">
+      <div className="pt-5 pb-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {kpis.map(kpi => <KpiCard key={kpi.label} {...kpi} />)}
         </div>
       </div>
 
       {/* ── メインコンテンツ ─────────────── */}
-      <div className="px-4 md:px-8 pb-28 md:pb-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="pb-28 md:pb-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* 左：稼働中の現場 + 月次収支 */}
         <div className="lg:col-span-2 flex flex-col gap-4">

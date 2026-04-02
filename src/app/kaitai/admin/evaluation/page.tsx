@@ -266,7 +266,8 @@ export default function AdminEvaluationPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 40,
+          paddingTop: 40,
+          paddingBottom: 40,
         }}
       >
         <div
@@ -311,7 +312,7 @@ export default function AdminEvaluationPage() {
   }
 
   return (
-    <div style={{ padding: "32px 24px", maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ paddingTop: "32px", paddingBottom: "32px" }}>
       {/* Page title */}
       <div
         style={{

@@ -328,7 +328,7 @@ export default function SiteNewPage() {
     <div style={{ background: C.bg, color: C.text, minHeight: "100vh" }}>
       {/* ── Page header ── */}
       <div
-        className="px-4 md:px-8 py-5"
+        className="py-5"
         style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}
       >
         <div className="flex items-center justify-between">
@@ -356,13 +356,13 @@ export default function SiteNewPage() {
 
       {/* ── Tab bar ── */}
       <div style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}>
-        <div className="px-4 md:px-8">
+        <div>
           <TabBar active={tab} onChange={setTab} />
         </div>
       </div>
 
       {/* ── Tab content ── */}
-      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8">
+      <div className="py-6 pb-28 md:pb-8">
 
         {/* ════════════════════════════════════════
             TAB 0 — 基本・スケジュール
@@ -1378,8 +1378,8 @@ export default function SiteNewPage() {
         >
           <Link href="/kaitai">
             <button
-              className="px-6 py-3 rounded-xl font-bold text-sm"
-              style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
+              style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
             >
               キャンセル
             </button>

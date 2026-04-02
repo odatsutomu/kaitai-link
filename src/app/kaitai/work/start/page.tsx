@@ -149,7 +149,7 @@ export default function WorkStartPage({
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
       <section className="flex flex-col gap-3" style={{ borderBottom: "1px solid #2D3E54", paddingBottom: 20 }}>
@@ -178,7 +178,7 @@ export default function WorkStartPage({
         <StepIndicator step={step} total={3} />
       </section>
 
-      <div className="px-4 flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
 
         {/* ══ STEP 0: 作業項目選択 ══ */}
         {step === 0 && (

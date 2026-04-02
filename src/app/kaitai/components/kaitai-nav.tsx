@@ -58,8 +58,8 @@ export function KaitaiPCHeader() {
     >
       {/* 最大幅コンテナ */}
       <div
-        className="flex items-center h-full mx-auto px-10"
-        style={{ maxWidth: 1280 }}
+        className="flex items-center h-full px-10"
+        style={{ maxWidth: 1280, marginLeft: "auto", marginRight: "auto" }}
       >
         {/* ── 左：ロゴ ── */}
         <Link href="/kaitai" className="flex-shrink-0 mr-10">

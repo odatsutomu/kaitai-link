@@ -73,7 +73,7 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8">
+    <div className="py-6 pb-28 md:pb-8">
       <div className="max-w-xl mx-auto lg:mx-0 flex flex-col gap-5">
 
         {/* ── Page header ── */}
@@ -148,7 +148,7 @@ export default function MenuPage() {
                   <p className="text-sm font-semibold" style={{ color: C.text }}>評価入力</p>
                   <p className="text-xs mt-0.5" style={{ color: C.muted }}>本日の現場メンバーを評価する</p>
                 </div>
-                <ChevronRight size={15} style={{ color: C.border }} />
+                <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
               </div>
             </Link>
           </div>
@@ -218,7 +218,7 @@ export default function MenuPage() {
                         <p className="text-sm font-semibold" style={{ color: C.text }}>{label}</p>
                         <p className="text-xs mt-0.5" style={{ color: C.muted }}>{sub}</p>
                       </div>
-                      <ChevronRight size={15} style={{ color: C.border }} />
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
                     </div>
                   </Link>
                 ))}
@@ -250,7 +250,7 @@ export default function MenuPage() {
                   <p className="text-sm font-semibold" style={{ color: C.text }}>{label}</p>
                   <p className="text-xs mt-0.5" style={{ color: C.muted }}>{sub}</p>
                 </div>
-                <ChevronRight size={15} style={{ color: C.border }} />
+                <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
               </button>
             ))}
           </div>

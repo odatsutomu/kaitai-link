@@ -72,8 +72,8 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
       {onAdd && addHref && (
         <Link href={addHref}>
           <button
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold"
-            style={{ background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.2)" }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90"
+            style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
           >
             <Plus size={12} /> 追加
           </button>
@@ -95,7 +95,7 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
 
 export default function MasterPage() {
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-8 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-8 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div>
@@ -147,8 +147,8 @@ export default function MasterPage() {
                     </span>
                     <Link href={`/kaitai/docs?site=${site.id}`}>
                       <button
-                        className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg"
-                        style={{ background: "#F8FAFC", color: C.sub, border: `1px solid ${C.border}` }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all"
+                        style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                         title="帳票出力"
                       >
                         <FileText size={11} />
@@ -156,11 +156,11 @@ export default function MasterPage() {
                       </button>
                     </Link>
                     <Link href={`/kaitai/sites/${site.id}/edit`}>
-                      <button className="p-1.5 rounded-lg transition-colors hover:bg-gray-50" style={{ color: C.muted }}>
+                      <button className="inline-flex items-center p-2 rounded-xl transition-all" style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                         <Edit3 size={14} />
                       </button>
                     </Link>
-                    <ChevronRight size={14} style={{ color: C.muted }} />
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={12} /></div>
                   </div>
                 </Card>
               ))}
@@ -293,7 +293,7 @@ export default function MasterPage() {
                       ¥{m.dayRate.toLocaleString()}
                     </span>
                     <div className="col-span-1 flex justify-end">
-                      <button className="p-1 rounded hover:bg-gray-50" style={{ color: C.muted }}>
+                      <button className="p-1.5 rounded-lg transition-all hover:bg-slate-100" style={{ color: "#334155", border: "1px solid #E2E8F0" }}>
                         <Edit3 size={13} />
                       </button>
                     </div>

@@ -224,7 +224,7 @@ export default function AttendancePage({
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
       <section>

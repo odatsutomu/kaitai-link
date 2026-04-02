@@ -49,7 +49,7 @@ function StartPageInner() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
       <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>

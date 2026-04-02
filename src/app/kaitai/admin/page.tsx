@@ -294,7 +294,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -393,10 +393,10 @@ export default function AdminPage() {
               <SectionLabel>現場別利益ランキング</SectionLabel>
               <button
                 onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
-                className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg"
-                style={{ background: "#F1F5F9", color: C.sub, border: `1px solid ${C.border}` }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
+                style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
-                <ArrowUpDown size={10} />
+                <ArrowUpDown size={12} />
                 {sortBy === "profitRate" ? "利益率順" : "利益額順"}
               </button>
             </div>

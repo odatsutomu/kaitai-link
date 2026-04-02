@@ -19,7 +19,7 @@ const activeSites = [
 
 export default function WorkSelectPage() {
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div>
@@ -113,7 +113,7 @@ export default function WorkSelectPage() {
           <span className="flex-1 text-sm font-medium" style={{ color: C.sub }}>
             すべての現場を見る
           </span>
-          <ChevronRight size={15} style={{ color: C.muted }} />
+          <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
         </div>
       </Link>
     </div>

@@ -361,7 +361,7 @@ export default function MembersPage() {
   });
 
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -372,8 +372,8 @@ export default function MembersPage() {
           </p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white flex-shrink-0"
-          style={{ background: C.amber, boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90 flex-shrink-0"
+          style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
         >
           <Plus size={14} />
           メンバー追加
@@ -446,8 +446,8 @@ export default function MembersPage() {
                 onClick={() => setTab(t)}
                 className="flex-1 py-2 rounded-md text-xs font-bold transition-all"
                 style={tab === t
-                  ? { background: C.card, color: C.text, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
-                  : { color: C.sub }
+                  ? { background: C.card, color: C.amber, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", borderBottom: `2px solid ${C.amber}` }
+                  : { color: "#64748B" }
                 }
               >
                 {t}

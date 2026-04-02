@@ -62,7 +62,7 @@ export default function SchedulePage() {
   const isWeekend = selectedDay ? WEEKENDS.has(selectedDay) : false;
 
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div className="flex items-start justify-between gap-4">

@@ -46,12 +46,15 @@ export default function KaitaiLayout({
         {/* メインコンテンツ */}
         <main className="flex-1 overflow-y-auto pb-36 lg:pb-12">
           {/*
-            PC 向けコンテナ：
-            - 最大幅 1280px で中央寄せ
-            - 左右 40px (px-10) のパディング
-            - モバイルはそのまま（各ページが自前でパディングを持つ）
+            コンテナ：
+            - 最大幅 1280px で中央寄せ（mx-auto）
+            - モバイル: px-4, md: px-8, lg: px-10 でパディングを統一
+            - 各ページは水平パディング不要（縦方向のみ設定）
           */}
-          <div className="w-full lg:max-w-[1280px] lg:mx-auto lg:px-10">
+          <div
+            className="px-4 md:px-8 lg:px-10 box-border"
+            style={{ maxWidth: 1280, marginLeft: "auto", marginRight: "auto" }}
+          >
             {children}
           </div>
         </main>

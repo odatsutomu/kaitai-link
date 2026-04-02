@@ -107,7 +107,7 @@ export default function ReportPage() {
   // ── Step: site selection ─────────────────────────────────────────────────
   if (step === "site") {
     return (
-      <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+      <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>作業報告</h1>
@@ -260,7 +260,7 @@ export default function ReportPage() {
 
   // ── Step: action selection ────────────────────────────────────────────────
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* Header */}
       <div className="flex items-center gap-3">
