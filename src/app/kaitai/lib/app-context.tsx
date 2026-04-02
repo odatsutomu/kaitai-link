@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import type { WorkerEval } from "./evaluation-data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -158,6 +159,10 @@ type AppContextType = {
   addFuelLog: (data: Omit<FuelLog, "id">) => void;
   expenseLogs: ExpenseLog[];
   addExpenseLog: (data: Omit<ExpenseLog, "id">) => void;
+
+  // 作業員評価
+  evaluations: WorkerEval[];
+  addEvaluation: (data: WorkerEval) => void;
 };
 
 // ─── Default company (demo) ───────────────────────────────────────────────────
@@ -277,6 +282,8 @@ const AppContext = createContext<AppContextType>({
   addFuelLog: () => {},
   expenseLogs: [],
   addExpenseLog: () => {},
+  evaluations: [],
+  addEvaluation: () => {},
 });
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -290,6 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [assignments,  setAssignments]  = useState<EquipmentAssignment[]>(SEED_ASSIGNMENTS);
   const [fuelLogs,     setFuelLogs]     = useState<FuelLog[]>(SEED_FUEL_LOGS);
   const [expenseLogs,  setExpenseLogs]  = useState<ExpenseLog[]>([]);
+  const [evaluations,  setEvaluations]  = useState<WorkerEval[]>([]);
 
   // Derived
   const adminMode = authLevel === "admin" || authLevel === "dev";
@@ -349,6 +357,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setExpenseLogs(prev => [{ ...data, id: `exp${Date.now().toString(36)}` }, ...prev]);
   }, []);
 
+  const addEvaluation = useCallback((data: WorkerEval) => {
+    setEvaluations(prev => [data, ...prev]);
+  }, []);
+
   const addLog = useCallback((action: string, user = "system") => {
     const device = typeof window !== "undefined"
       ? window.navigator.userAgent.slice(0, 60)
@@ -377,6 +389,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       assignments,  addAssignment, removeAssignment,
       fuelLogs,     addFuelLog,
       expenseLogs,  addExpenseLog,
+      evaluations,  addEvaluation,
     }}>
       {children}
     </AppContext.Provider>

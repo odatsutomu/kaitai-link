@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, BarChart2, Database, Users, ChevronRight,
-  HardHat, LogOut, Bell, Info, Lock, CreditCard, Building2, FileText, Truck,
+  HardHat, LogOut, Bell, Info, Lock, CreditCard, Building2, FileText, Truck, Star,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import { PinPad } from "../components/pin-pad";
@@ -133,6 +133,27 @@ export default function MenuPage() {
           )}
         </div>
 
+        {/* ── Quick actions ── */}
+        <section>
+          <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 px-1" style={{ color: C.sub }}>
+            クイックアクション
+          </p>
+          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <Link href="/kaitai/evaluation">
+              <div className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FFFBEB" }}>
+                  <Star size={16} style={{ color: C.amber }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: C.text }}>評価入力</p>
+                  <p className="text-xs mt-0.5" style={{ color: C.muted }}>本日の現場メンバーを評価する</p>
+                </div>
+                <ChevronRight size={15} style={{ color: C.border }} />
+              </div>
+            </Link>
+          </div>
+        </section>
+
         {/* ── Admin section ── */}
         <section>
           <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 px-1" style={{ color: C.amber }}>
@@ -173,7 +194,8 @@ export default function MenuPage() {
             {isAdmin && (
               <div style={{ borderTop: `1px solid ${C.border}` }}>
                 {[
-                  { href: "/kaitai/admin",     icon: BarChart2,  label: "収支・経営分析",  sub: "売上・原価・粗利の分析レポート" },
+                  { href: "/kaitai/admin",            icon: BarChart2,  label: "収支・経営分析",     sub: "売上・原価・粗利の分析レポート" },
+                  { href: "/kaitai/admin/evaluation", icon: Star,       label: "評価ダッシュボード",  sub: "作業員パフォーマンス分析（非公開）" },
                   { href: "/kaitai/equipment", icon: Truck,      label: "機材・車両管理",  sub: "重機・リース品・給油ログの管理" },
                   { href: "/kaitai/docs",      icon: FileText,   label: "帳票出力",         sub: "見積書・請求書・報告書などを出力" },
                   { href: "/kaitai/clients",   icon: Building2,  label: "元請け管理",       sub: "発注元・元請け会社の登録・管理" },
