@@ -566,7 +566,7 @@ export default function KaitaiHome() {
       </div>
 
       {/* ── メインコンテンツ ─────────────── */}
-      <div className="px-4 md:px-8 pb-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="px-4 md:px-8 pb-28 md:pb-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* 左：稼働中の現場 + 月次収支 */}
         <div className="lg:col-span-2 flex flex-col gap-4">

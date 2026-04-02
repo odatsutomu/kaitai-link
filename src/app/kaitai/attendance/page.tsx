@@ -9,6 +9,14 @@ import {
   AlertCircle, Loader2,
 } from "lucide-react";
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
+  border: "#E2E8F0", card: "#FFFFFF",
+  amber: "#F59E0B", amberDk: "#D97706",
+  red: "#EF4444", green: "#10B981", blue: "#3B82F6",
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AttendanceStatus = "勤務中" | "休憩中" | "退勤済";
@@ -216,18 +224,18 @@ export default function AttendancePage({
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-8" style={{ background: "#0F1928", minHeight: "100vh" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
-      <section className="px-5 pt-12 pb-5" style={{ borderBottom: "1px solid #2D3E54" }}>
+      <section>
         <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-3 text-sm" style={{ color: "#64748B" }}>
           <ArrowLeft size={15} /> 作業報告
         </Link>
 
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>勤怠・ステータス管理</h1>
-            <p className="text-sm mt-0.5" style={{ color: "#94A3B8" }}>{siteName}</p>
+            <h1 className="text-2xl font-bold" style={{ color: C.text }}>勤怠・ステータス管理</h1>
+            <p className="text-sm mt-1" style={{ color: C.sub }}>{siteName}</p>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
             style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.2)" }}>
@@ -264,7 +272,7 @@ export default function AttendancePage({
       </section>
 
       {/* ── Member list ── */}
-      <div className="px-4 pt-4 flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {members.map((member) => {
           const cfg        = STATUS_CONFIG[member.status];
           const isActive   = activeId === member.id;

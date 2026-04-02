@@ -26,9 +26,15 @@ function Stars({ n, color }: { n: number; color: string }) {
   );
 }
 
+const C_MEM = {
+  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
+  border: "#E2E8F0", card: "#FFFFFF",
+  amber: "#F59E0B", amberDk: "#D97706",
+};
+
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl ${className}`} style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
+    <div className={`rounded-xl ${className}`} style={{ background: C_MEM.card, border: `1px solid ${C_MEM.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
       {children}
     </div>
   );
@@ -36,7 +42,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: C_MEM.sub }}>
       {children}
     </p>
   );
@@ -395,12 +401,12 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const AVAILABLE_TAGS = ["#効率的", "#リーダーシップ", "#安全模範", "#要注意", "#ルール違反", "#成長中", "#冷静対応"];
 
   return (
-    <div className="max-w-md mx-auto flex flex-col gap-0 pb-4">
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Hero ── */}
       <section
-        className="px-5 pt-12 pb-5"
-        style={{ background: "linear-gradient(160deg, #0F1928 0%, #1A2535 100%)", borderBottom: "1px solid #2D3E54" }}
+        className="rounded-xl p-5"
+        style={{ background: "linear-gradient(160deg, #0F1928 0%, #1A2535 100%)", border: "1px solid #2D3E54" }}
       >
         <Link href="/kaitai/members" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: "#64748B" }}>
           <ArrowLeft size={15} /> メンバー一覧
@@ -459,7 +465,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       </section>
 
       {/* ── Tabs ── */}
-      <div className="px-4 py-3" style={{ borderBottom: "1px solid #2D3E54" }}>
+      <div className="py-1">
         <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#1A2535" }}>
           {(["基本情報", "勤怠", "パフォーマンス", "評価"] as Tab[]).map(t => (
             <button
@@ -477,7 +483,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="px-4 flex flex-col gap-5 pt-4">
+      <div className="flex flex-col gap-5">
 
         {/* ════════════════════════════════════════
             TAB: 基本情報

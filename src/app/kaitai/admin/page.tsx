@@ -294,7 +294,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-24 md:pb-8">
+    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">

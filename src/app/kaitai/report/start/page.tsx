@@ -40,7 +40,7 @@ function StartPageInner() {
 
   if (done) {
     return (
-      <div className="max-w-md mx-auto flex flex-col items-center justify-center" style={{ minHeight: "100dvh", background: "#E8F5E9" }}>
+      <div className="flex flex-col items-center justify-center py-16" style={{ background: "#E8F5E9", borderRadius: 16, padding: "64px 32px" }}>
         <CheckCircle size={96} color="#2E7D32" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#1B5E20", marginTop: 24 }}>勤務開始 記録完了</p>
         <p style={{ fontSize: 15, color: "#388E3C", marginTop: 8 }}>{siteName}</p>
@@ -49,8 +49,8 @@ function StartPageInner() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-8" style={{ minHeight: "100dvh" }}>
-      <header className="px-5 pt-10 pb-5" style={{ borderBottom: "2px solid #EEEEEE" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
@@ -61,7 +61,7 @@ function StartPageInner() {
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>本日出勤するメンバーを選択してください</p>
       </header>
 
-      <div className="px-4 pt-5 flex flex-col gap-3 flex-1">
+      <div className="flex flex-col gap-3">
         {MEMBERS.map(m => {
           const on = selected.includes(m.id);
           return (
@@ -89,7 +89,7 @@ function StartPageInner() {
         })}
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="pt-2">
         <button
           onClick={confirm}
           disabled={selected.length === 0}

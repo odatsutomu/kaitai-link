@@ -42,7 +42,7 @@ function BreakPageInner() {
 
   if (done) {
     return (
-      <div className="max-w-md mx-auto flex flex-col items-center justify-center" style={{ minHeight: "100dvh", background: "#E3F2FD" }}>
+      <div className="flex flex-col items-center justify-center py-16" style={{ background: "#E3F2FD", borderRadius: 16, padding: "64px 32px" }}>
         <CheckCircle size={96} color="#1565C0" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#0D47A1", marginTop: 24 }}>
           {breakType === "in" ? "休憩入り" : "休憩戻り"} 記録完了
@@ -53,8 +53,8 @@ function BreakPageInner() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-8" style={{ minHeight: "100dvh" }}>
-      <header className="px-5 pt-10 pb-5" style={{ borderBottom: "2px solid #EEEEEE" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
@@ -65,7 +65,7 @@ function BreakPageInner() {
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>休憩の種類とメンバーを選択</p>
       </header>
 
-      <div className="px-4 pt-5 flex flex-col gap-5 flex-1">
+      <div className="flex flex-col gap-5">
         {/* Toggle */}
         <div className="grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ background: "#F3F4F6" }}>
           {(["in", "back"] as const).map(t => (
@@ -112,7 +112,7 @@ function BreakPageInner() {
         </div>
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="pt-2">
         <button
           onClick={confirm}
           disabled={selected.length === 0}

@@ -149,10 +149,10 @@ export default function WorkStartPage({
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col gap-5 pb-8">
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
-      <section className="px-5 pt-12 pb-4" style={{ borderBottom: "1px solid #2D3E54" }}>
+      <section className="flex flex-col gap-3" style={{ borderBottom: "1px solid #2D3E54", paddingBottom: 20 }}>
         <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: "#64748B" }}>
           <ArrowLeft size={15} /> 作業報告
         </Link>

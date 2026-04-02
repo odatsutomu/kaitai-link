@@ -45,7 +45,7 @@ function FinishPageInner() {
 
   if (done) {
     return (
-      <div className="max-w-md mx-auto flex flex-col items-center justify-center" style={{ minHeight: "100dvh", background: "#F5F5F5" }}>
+      <div className="flex flex-col items-center justify-center py-16" style={{ background: "#F5F5F5", borderRadius: 16, padding: "64px 32px" }}>
         <CheckCircle size={96} color="#212121" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#212121", marginTop: 24 }}>終了報告 送信完了</p>
         <p style={{ fontSize: 15, color: "#616161", marginTop: 8 }}>{siteName}</p>
@@ -54,8 +54,8 @@ function FinishPageInner() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-8" style={{ minHeight: "100dvh" }}>
-      <header className="px-5 pt-10 pb-5" style={{ borderBottom: "2px solid #EEEEEE" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
@@ -66,7 +66,7 @@ function FinishPageInner() {
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>廃材数量・経費を入力してください</p>
       </header>
 
-      <div className="px-4 pt-5 flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
 
         {/* Waste items */}
         <section>
@@ -139,7 +139,7 @@ function FinishPageInner() {
 
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="pt-2">
         <button
           onClick={confirm}
           className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"

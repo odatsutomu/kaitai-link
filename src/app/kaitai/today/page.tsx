@@ -536,14 +536,14 @@ export default function TodayDashboard() {
   const dateStr = `${today.getMonth() + 1}月${today.getDate()}日（${"日月火水木金土"[today.getDay()]}）`;
 
   return (
-    <div className="max-w-md mx-auto flex flex-col gap-4 pb-4">
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* ── Header ── */}
       <section
-        className="px-5 pt-12 pb-5"
+        className="rounded-xl p-5"
         style={{
           background: "linear-gradient(160deg, #0F1928 0%, #111E30 100%)",
-          borderBottom: "1px solid #2D3E54",
+          border: "1px solid #2D3E54",
         }}
       >
         <Link
@@ -622,7 +622,7 @@ export default function TodayDashboard() {
       </section>
 
       {/* ── View toggle ── */}
-      <div className="px-4">
+      <div>
         <div
           className="flex rounded-2xl p-1 gap-1"
           style={{ background: "#1A2535", border: "1px solid #2D3E54" }}
@@ -645,7 +645,7 @@ export default function TodayDashboard() {
         </div>
       </div>
 
-      <div className="px-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
 
         {/* ── Map view ── */}
         {view === "map" && (

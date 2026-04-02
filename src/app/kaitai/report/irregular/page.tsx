@@ -58,7 +58,7 @@ function IrregularPageInner() {
 
   if (done) {
     return (
-      <div className="max-w-md mx-auto flex flex-col items-center justify-center" style={{ minHeight: "100dvh", background: "#FFF0F0" }}>
+      <div className="flex flex-col items-center justify-center py-16" style={{ background: "#FFF0F0", borderRadius: 16, padding: "64px 32px" }}>
         <CheckCircle size={96} color="#B71C1C" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#B71C1C", marginTop: 24 }}>報告送信完了</p>
         <p style={{ fontSize: 15, color: "#C62828", marginTop: 8 }}>{siteName}</p>
@@ -68,8 +68,8 @@ function IrregularPageInner() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-8" style={{ minHeight: "100dvh" }}>
-      <header className="px-5 pt-10 pb-5" style={{ borderBottom: "2px solid #FECACA" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #FECACA", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#FEF2F2" }}>
             <ChevronLeft size={20} style={{ color: "#EF4444" }} />
@@ -83,7 +83,7 @@ function IrregularPageInner() {
         <p style={{ fontSize: 14, color: "#888", marginTop: 4 }}>発生した問題の詳細を報告してください</p>
       </header>
 
-      <div className="px-4 pt-5 flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
 
         {/* Category */}
         <section>
@@ -190,7 +190,7 @@ function IrregularPageInner() {
 
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="pt-2">
         <button
           onClick={confirm}
           disabled={!canSubmit}

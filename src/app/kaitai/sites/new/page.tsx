@@ -362,7 +362,7 @@ export default function SiteNewPage() {
       </div>
 
       {/* ── Tab content ── */}
-      <div className="px-4 md:px-8 py-6 pb-8">
+      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8">
 
         {/* ════════════════════════════════════════
             TAB 0 — 基本・スケジュール

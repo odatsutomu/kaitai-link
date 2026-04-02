@@ -185,7 +185,7 @@ export default async function SiteDetailPage({
     : 0;
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-24 md:pb-8 flex flex-col gap-6">
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-6">
 
       {/* ── 2-column layout ── */}
       <div className="flex flex-col lg:flex-row gap-6">

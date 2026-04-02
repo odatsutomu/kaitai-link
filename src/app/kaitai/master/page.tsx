@@ -95,7 +95,7 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
 
 export default function MasterPage() {
   return (
-    <div className="px-4 md:px-8 py-6 flex flex-col gap-8 pb-24 md:pb-8">
+    <div className="px-4 md:px-8 py-6 flex flex-col gap-8 pb-28 md:pb-8">
 
       {/* ── Page header ── */}
       <div>

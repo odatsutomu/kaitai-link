@@ -275,7 +275,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-24 md:pb-8">
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8">
 
       {/* Header */}
       <header className="mb-6">

@@ -137,37 +137,14 @@ export default function EvaluationPage() {
   // ── Select step ──────────────────────────────────────────────────────────────
   if (step === "select") {
     return (
-      <div
-        style={{
-          minHeight: "100dvh",
-          background: "#F8FAFC",
-          padding: "0 0 120px 0",
-          fontFamily: "inherit",
-        }}
-      >
+      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
         {/* Header */}
-        <div
-          style={{
-            background: C.card,
-            borderBottom: `1px solid ${C.border}`,
-            padding: "20px 20px 16px",
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <ClipboardCheck size={22} color={C.amber} />
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>
-                本日の評価入力
-              </div>
-              <div style={{ fontSize: 13, color: C.sub, marginTop: 2 }}>{today}</div>
-            </div>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>本日の評価入力</h1>
+          <p className="text-sm mt-1" style={{ color: C.sub }}>{today}</p>
         </div>
 
-        <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
+        <div className="flex flex-col gap-5">
           {/* Site selection */}
           <section>
             <div
@@ -311,16 +288,7 @@ export default function EvaluationPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div
-          style={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "16px 20px 32px",
-            background: "linear-gradient(to top, #F8FAFC 70%, transparent)",
-          }}
-        >
+        <div className="pt-2">
           <button
             onClick={proceedToEvaluate}
             disabled={!selectedSite || selectedWorkers.length === 0}
@@ -361,52 +329,25 @@ export default function EvaluationPage() {
   // ── Evaluate step ────────────────────────────────────────────────────────────
   if (step === "evaluate") {
     return (
-      <div
-        style={{
-          minHeight: "100dvh",
-          background: "#F8FAFC",
-          padding: "0 0 120px 0",
-        }}
-      >
+      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
         {/* Header */}
-        <div
-          style={{
-            background: C.card,
-            borderBottom: `1px solid ${C.border}`,
-            padding: "16px 20px",
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setStep("select")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 4,
-              color: C.sub,
-              display: "flex",
-            }}
+            className="w-9 h-9 flex items-center justify-center rounded-xl"
+            style={{ background: "#F1F5F9", border: "none", cursor: "pointer", color: C.sub }}
           >
             <X size={20} />
           </button>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>
-              評価入力
-            </div>
-            <div style={{ fontSize: 13, color: C.sub }}>
-              {SITES.find((s) => s.id === selectedSite)?.name} ·{" "}
-              {selectedWorkers.length}名
-            </div>
+            <h1 className="text-2xl font-bold" style={{ color: C.text }}>評価入力</h1>
+            <p className="text-sm mt-0.5" style={{ color: C.sub }}>
+              {SITES.find((s) => s.id === selectedSite)?.name} · {selectedWorkers.length}名
+            </p>
           </div>
         </div>
 
-        <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div className="flex flex-col gap-5">
           {selectedWorkers.map((workerId) => {
             const worker = WORKERS.find((w) => w.id === workerId);
             if (!worker || !scores[workerId]) return null;
@@ -581,32 +522,15 @@ export default function EvaluationPage() {
         </div>
 
         {/* Submit button */}
-        <div
-          style={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "16px 20px 32px",
-            background: "linear-gradient(to top, #F8FAFC 70%, transparent)",
-          }}
-        >
+        <div className="pt-2">
           <button
             onClick={handleSubmit}
+            className="w-full rounded-xl py-3.5 font-bold text-sm flex items-center justify-center gap-2"
             style={{
-              width: "100%",
-              minHeight: 56,
-              borderRadius: 12,
-              border: "none",
               background: `linear-gradient(135deg, ${C.amber}, ${C.amberDk})`,
               color: "#fff",
-              fontSize: 17,
-              fontWeight: 700,
+              border: "none",
               cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
               boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
             }}
           >
@@ -620,18 +544,7 @@ export default function EvaluationPage() {
 
   // ── Done step ────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "#F8FAFC",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 20px",
-        flexDirection: "column",
-        gap: 0,
-      }}
-    >
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex items-center justify-center" style={{ minHeight: "60vh" }}>
       <div
         style={{
           background: C.card,

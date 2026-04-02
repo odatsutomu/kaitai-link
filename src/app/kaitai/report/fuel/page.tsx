@@ -73,10 +73,10 @@ function FuelContent() {
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col" style={{ background: "#F9FAFB" }}>
+    <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-5">
 
       {/* Header */}
-      <header className="px-5 pt-10 pb-5" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
+      <header className="flex flex-col gap-2" style={{ paddingBottom: 20, borderBottom: "1px solid #F3F4F6" }}>
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-sm mb-3"
@@ -98,7 +98,7 @@ function FuelContent() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5 pb-32">
+      <div className="flex flex-col gap-5">
 
         {/* 機材選択 */}
         <div>
@@ -206,7 +206,7 @@ function FuelContent() {
       </div>
 
       {/* Submit button */}
-      <div className="fixed bottom-0 left-0 right-0 px-5 py-4" style={{ background: "#FFFFFF", borderTop: "1px solid #F3F4F6" }}>
+      <div className="pt-2">
         <button
           onClick={handleSubmit}
           disabled={!selectedEqId || litersNum <= 0}

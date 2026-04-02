@@ -363,7 +363,7 @@ export default function SiteEditPage({
 
   return (
     <div style={{ background: C.bg, color: C.text }}>
-      <div className="px-4 md:px-8 py-6 pb-24 md:pb-8 flex flex-col gap-6">
+      <div className="px-4 md:px-8 py-6 pb-28 md:pb-8 flex flex-col gap-6">
 
         {/* ── Page title ── */}
         <div className="flex items-center justify-between">
