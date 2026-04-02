@@ -7,6 +7,7 @@ import {
   Calendar, ClipboardList, X, CreditCard, Plus, LogOut,
   Building2, ChevronRight,
 } from "lucide-react";
+import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
@@ -52,22 +53,24 @@ export function KaitaiSidebar() {
         style={{ background: "#1E293B" }}
       >
         {/* ロゴ */}
-        <div className="px-5 pt-6 pb-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="flex items-center gap-3">
-            {/* オレンジのアイコンボックス */}
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "#F59E0B" }}>
-              <HardHat size={18} color="#FFFFFF" strokeWidth={2.5} />
-            </div>
-            <div>
-              <div style={{ color: "#F1F5F9", fontWeight: 700, fontSize: 16, letterSpacing: "-0.2px" }}>
-                解体LINK
-              </div>
-              <div className="truncate max-w-[140px]" style={{ color: "#64748B", fontSize: 10, marginTop: 1 }}>
-                {company?.name || "解体工業株式会社"}
-              </div>
-            </div>
+        <div className="px-4 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          {/* 白背景コンテナでロゴ画像を表示（ダークサイドバー対応） */}
+          <div className="rounded-xl px-3 py-2 inline-flex items-center"
+            style={{ background: "#FFFFFF" }}>
+            <Image
+              src="/logo.png"
+              alt="解体LINK"
+              width={144}
+              height={40}
+              style={{ objectFit: "contain", height: 40, width: "auto" }}
+              priority
+            />
           </div>
+          {company?.name && (
+            <div className="truncate mt-2" style={{ color: "#64748B", fontSize: 10, paddingLeft: 2 }}>
+              {company.name}
+            </div>
+          )}
         </div>
 
         {/* 管理者バナー */}
@@ -139,9 +142,16 @@ export function KaitaiSidebar() {
         className="hidden md:flex lg:hidden fixed left-0 top-0 h-full w-16 flex-col z-50"
         style={{ background: "#1E293B" }}
       >
-        <div className="flex items-center justify-center h-14" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#F59E0B" }}>
-            <HardHat size={16} color="#FFF" strokeWidth={2.5} />
+        <div className="flex items-center justify-center h-14 px-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div className="rounded-lg p-1" style={{ background: "#FFFFFF" }}>
+            <Image
+              src="/logo.png"
+              alt="解体LINK"
+              width={40}
+              height={40}
+              style={{ objectFit: "contain", height: 28, width: "auto" }}
+              priority
+            />
           </div>
         </div>
         <nav className="flex-1 flex flex-col items-center py-3 gap-1">
@@ -239,27 +249,32 @@ export function KaitaiTopBar() {
 function AdminMobileNav({ pathname }: { pathname: string }) {
   const { setAdminMode } = useAppContext();
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 flex flex-col z-40 w-full"
-      style={{ maxWidth: 480, background: "#1E293B", borderTop: "1px solid rgba(255,255,255,0.08)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="flex items-center justify-between px-4 py-1.5"
-        style={{ background: "rgba(239,68,68,0.08)", borderBottom: "1px solid rgba(239,68,68,0.18)" }}>
+    <nav className="fixed bottom-0 left-0 right-0 flex flex-col z-40 w-full"
+      style={{
+        background: "#1E293B",
+        borderTop: "2px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.25)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}>
+      <div className="flex items-center justify-between px-5 py-1.5"
+        style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)" }}>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          <span style={{ color: "#F87171", fontSize: 11, fontWeight: 600 }}>管理者モード</span>
+          <span style={{ color: "#F87171", fontSize: 11, fontWeight: 700 }}>管理者モード</span>
         </div>
         <button onClick={() => setAdminMode(false)}
-          className="flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-medium"
-          style={{ background: "rgba(239,68,68,0.15)", color: "#F87171" }}>
-          <X size={9} />終了
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
+          style={{ background: "rgba(239,68,68,0.18)", color: "#F87171" }}>
+          <X size={10} />終了
         </button>
       </div>
       <div className="flex">
         {ADMIN_TABS.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname);
           return (
-            <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5">
-              <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
-              <span style={{ fontSize: 9, fontWeight: active ? 600 : 400, color: active ? "#F59E0B" : "#64748B" }}>{label}</span>
+            <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-1 py-3">
+              <Icon size={20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>{label}</span>
             </Link>
           );
         })}
@@ -268,7 +283,7 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
   );
 }
 
-const NAV_H = 68;
+const NAV_H = 76;
 function WorkerMobileNav({ pathname }: { pathname: string }) {
   const tabs = [
     { href: "/kaitai",          label: "現場状況", icon: Home,           active: pathname === "/kaitai",                  center: false },
@@ -278,21 +293,34 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
     { href: "/kaitai/menu",     label: "メニュー", icon: MoreHorizontal, active: pathname.startsWith("/kaitai/menu"),     center: false },
   ];
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex items-stretch w-full"
-      style={{ maxWidth: 480, background: "#FFFFFF", borderTop: "1px solid #E2E8F0", boxShadow: "0 -1px 8px rgba(0,0,0,0.06)", paddingBottom: "env(safe-area-inset-bottom)", height: `calc(${NAV_H}px + env(safe-area-inset-bottom))` }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch w-full"
+      style={{
+        background: "#FFFFFF",
+        borderTop: "2px solid #E2E8F0",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.10)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        height: `calc(${NAV_H}px + env(safe-area-inset-bottom))`,
+      }}>
       {tabs.map(({ href, label, icon: Icon, active, center }) => (
-        <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-0.5" style={{ minHeight: NAV_H }}>
+        <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-1" style={{ minHeight: NAV_H }}>
           {center ? (
             <>
-              <div className="flex items-center justify-center rounded-full" style={{ width: 44, height: 44, background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.4)", marginBottom: -2 }}>
-                <Icon size={20} color="#FFF" strokeWidth={2.5} />
+              <div className="flex items-center justify-center rounded-full"
+                style={{ width: 48, height: 48, background: "#F59E0B", boxShadow: "0 4px 12px rgba(245,158,11,0.45)", marginTop: -8 }}>
+                <Icon size={22} color="#FFF" strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#F59E0B", lineHeight: 1 }}>{label}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>{label}</span>
             </>
           ) : (
             <>
-              <Icon size={active ? 21 : 19} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
-              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>{label}</span>
+              <div className="flex items-center justify-center rounded-xl transition-colors"
+                style={{
+                  width: 40, height: 32,
+                  background: active ? "rgba(245,158,11,0.1)" : "transparent",
+                }}>
+                <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>{label}</span>
             </>
           )}
         </Link>

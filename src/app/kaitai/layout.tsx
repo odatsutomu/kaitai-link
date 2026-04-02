@@ -47,7 +47,7 @@ export default function KaitaiLayout({
         <KaitaiTopBar />
 
         {/* メインコンテンツ */}
-        <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
+        <main className="flex-1 overflow-y-auto pb-36 md:pb-12">
           {/*
             PC 向けコンテナ：
             - 横幅を 1280px で制限（画面端まで広がらないように）

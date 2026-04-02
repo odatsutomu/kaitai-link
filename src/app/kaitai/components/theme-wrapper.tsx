@@ -10,17 +10,15 @@ const NO_SIDEBAR_ROUTES = [
 ];
 
 export function ThemeWrapper({ children, fontClass }: { children: ReactNode; fontClass: string }) {
-  const { authLevel } = useAppContext();
   const pathname = usePathname();
-  const dark = authLevel === "admin" || authLevel === "dev";
   const noSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
   return (
     <div
       className={`${fontClass} min-h-screen flex`}
       style={{
-        background: dark ? "#060D1A" : "#CBD5E1",   // 両サイドに見える外枠の色
-        color: dark ? "#E2E8F0" : "#334155",
+        background: "#E2E8F0",   // サイドバー両サイドに見える外枠の色
+        color: "#334155",
       }}
     >
       {/* サイドバーのスペーサー */}
@@ -36,7 +34,7 @@ export function ThemeWrapper({ children, fontClass }: { children: ReactNode; fon
         className="flex-1 min-w-0 flex flex-col"
         style={{
           minHeight: "100svh",
-          background: dark ? "#0D1827" : "#F8F9FA",
+          background: "#F8F9FA",
         }}
       >
         {children}

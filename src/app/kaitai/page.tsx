@@ -23,7 +23,7 @@ const C = {
   red:     "#EF4444",
   navy:    "#1E293B",
 };
-const shadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)";
+const shadow = "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)";
 
 // ─── モックデータ ─────────────────────────────────────────────────────────────
 type SiteStatus = "着工前" | "解体中" | "完工";
@@ -137,7 +137,8 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
   const typeColor = TYPE_COLOR[site.type] ?? C.blue;
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}>
+    <div className="bg-white rounded-xl overflow-hidden"
+      style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow, borderLeft: `4px solid ${st.dot}` }}>
       <div className="flex">
         {/* サムネイル */}
         <div
@@ -153,7 +154,7 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
         </div>
 
         {/* メインコンテンツ */}
-        <div className="flex-1 min-w-0 p-4">
+        <div className="flex-1 min-w-0 p-5">
           {/* ヘッダー行 */}
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -261,8 +262,8 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
       </div>
 
       {/* フッター（作業員・完工予定） */}
-      <div className="flex items-center justify-between px-4 py-2.5"
-        style={{ background: "#F8FAFC", borderTop: `1px solid ${C.border}` }}>
+      <div className="flex items-center justify-between px-5 py-3"
+        style={{ background: "#F8FAFC", borderTop: `1.5px solid ${C.border}` }}>
         <div className="flex items-center gap-1.5">
           <Users size={12} style={{ color: C.sub }} />
           <span className="font-numeric" style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
@@ -283,49 +284,51 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
   const upcoming = sites.filter(s => s.status === "着工前");
   const done = sites.filter(s => s.status === "完工");
   return (
-    <div className="bg-white rounded-xl" style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>ステータス管理</h3>
+    <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
+      <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>ステータス管理</h3>
       </div>
-      <div className="px-4 py-3 flex flex-col gap-2">
+      <div className="px-4 py-4 flex flex-col gap-2.5">
         {/* 着工前 */}
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-2 h-2 rounded-full" style={{ background: C.blue }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: C.blue }}>
+        <div className="flex items-center gap-2 mb-0.5">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.blue }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
             着工前 ({upcoming.length})
           </span>
         </div>
         {upcoming.map(s => (
           <Link key={s.id} href={`/kaitai/site/${s.id}`}>
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors"
-              style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+            <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-blue-50"
+              style={{ background: "#EFF6FF", border: `1.5px solid #BFDBFE` }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 500, color: C.navy }}>{s.name}</p>
-                <p style={{ fontSize: 11, color: C.muted }}>{s.endDate.replace(/-/g, "/")} 着工予定</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>{s.name}</p>
+                <p style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{s.endDate.replace(/-/g, "/")} 着工予定</p>
               </div>
-              <ChevronRight size={13} style={{ color: C.muted }} />
+              <ChevronRight size={15} style={{ color: C.blue }} />
             </div>
           </Link>
         ))}
 
         {/* 完工済 */}
-        <div className="flex items-center gap-2 mt-2 mb-1">
-          <div className="w-2 h-2 rounded-full" style={{ background: C.green }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: C.green }}>完工済 ({done.length})</span>
-          <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium"
-            style={{ background: "#F0FDF4", color: C.green }}>今月</span>
+        <div className="flex items-center gap-2 mt-3 mb-0.5">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.green }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>完工済 ({done.length})</span>
+          <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-bold"
+            style={{ background: "#F0FDF4", color: C.green, border: "1px solid #BBF7D0" }}>今月</span>
         </div>
         {done.map(s => {
           const pct = Math.round(((s.contract - s.cost) / s.contract) * 100);
           return (
             <Link key={s.id} href={`/kaitai/site/${s.id}`}>
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors"
-                style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+              <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-green-50"
+                style={{ background: "#F0FDF4", border: `1.5px solid #BBF7D0` }}>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: C.sub }}>{s.name}</p>
-                  <p style={{ fontSize: 11, color: C.muted }}>{s.endDate.replace(/-/g, "/")} 引渡済</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>{s.name}</p>
+                  <p style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                    {s.endDate.replace(/-/g, "/")} 引渡済 · 粗利 {pct}%
+                  </p>
                 </div>
-                <CheckCircle2 size={14} style={{ color: C.green }} />
+                <CheckCircle2 size={15} style={{ color: C.green }} />
               </div>
             </Link>
           );
@@ -338,9 +341,9 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
 // ─── 右パネル：現場マップ ─────────────────────────────────────────────────────
 function MapPanel() {
   return (
-    <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>現場マップ</h3>
+    <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
+      <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>現場マップ</h3>
         <ArrowUpRight size={14} style={{ color: C.muted }} />
       </div>
       {/* マップ プレースホルダー */}
@@ -386,9 +389,9 @@ function WeatherPanel() {
     { label: "4/6",   icon: Sun,        hi: 19, lo: 11 },
   ];
   return (
-    <div className="bg-white rounded-xl" style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>本日の天気（世田谷区）</h3>
+    <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
+      <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>本日の天気（世田谷区）</h3>
       </div>
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center gap-3 mb-3">
@@ -582,7 +585,7 @@ export default function KaitaiHome() {
           </div>
 
           {/* 現場カード一覧 */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-5">
             {active.map(site => <SiteCard key={site.id} site={site} />)}
           </div>
 
