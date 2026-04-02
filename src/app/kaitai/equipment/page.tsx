@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, Edit3, X, AlertTriangle } from "lucide-react";
+import { Plus, Edit3, X, AlertTriangle, Search } from "lucide-react";
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
+  border: "#E2E8F0", card: "#FFFFFF",
+  amber: "#F59E0B", amberDk: "#D97706",
+  green: "#10B981", red: "#EF4444", blue: "#3B82F6",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,17 +163,17 @@ const SEED_ASSIGNMENTS: EquipmentAssignment[] = [
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
-const STATUS_COLOR: Record<EquipmentStatus, { bg: string; color: string }> = {
-  "稼働中":   { bg: "rgba(59,130,246,0.12)",   color: "#60A5FA" },
-  "待機中":   { bg: "rgba(100,116,139,0.12)",  color: "#94A3B8" },
-  "修理中":   { bg: "rgba(245,158,11,0.12)",   color: "#FBBF24" },
-  "返却済み": { bg: "rgba(239,68,68,0.12)",    color: "#F87171" },
+const STATUS_STYLE: Record<EquipmentStatus, { bg: string; color: string }> = {
+  "稼働中":   { bg: "#EFF6FF", color: "#2563EB" },
+  "待機中":   { bg: "#F1F5F9", color: "#64748B" },
+  "修理中":   { bg: "#FFFBEB", color: "#D97706" },
+  "返却済み": { bg: "#F0FDF4", color: "#16A34A" },
 };
 
-const CATEGORY_COLOR: Record<EquipmentCategory, { bg: string; color: string }> = {
-  "自社保有": { bg: "rgba(167,139,250,0.12)", color: "#A78BFA" },
-  "リース":   { bg: "rgba(96,165,250,0.12)",  color: "#60A5FA" },
-  "レンタル": { bg: "rgba(74,222,128,0.1)",   color: "#4ADE80" },
+const CATEGORY_STYLE: Record<EquipmentCategory, { bg: string; color: string }> = {
+  "自社保有": { bg: "#F5F3FF", color: "#7C3AED" },
+  "リース":   { bg: "#EFF6FF", color: "#2563EB" },
+  "レンタル": { bg: "#F0FDF4", color: "#16A34A" },
 };
 
 const TYPE_ICON: Record<EquipmentType, string> = {
@@ -203,46 +210,7 @@ function newId(): string {
   return `eq${Date.now().toString(36)}`;
 }
 
-// ─── ChipSelector ─────────────────────────────────────────────────────────────
-
-function ChipSelector<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: T[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {options.map(opt => {
-        const active = opt === value;
-        return (
-          <button
-            key={opt}
-            onClick={() => onChange(opt)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              fontSize: 13,
-              fontWeight: active ? 700 : 500,
-              border: active ? "1.5px solid #F97316" : "1.5px solid #2D3E54",
-              background: active ? "rgba(249,115,22,0.15)" : "transparent",
-              color: active ? "#FB923C" : "#94A3B8",
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-          >
-            {opt}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Equipment Form Modal ─────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
   name: "",
@@ -255,10 +223,37 @@ const EMPTY_FORM = {
   notes: "",
 };
 
+function ChipGroup<T extends string>({
+  options, value, onChange,
+}: {
+  options: T[]; value: T; onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => {
+        const active = opt === value;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
+            style={{
+              border: active ? `1.5px solid ${C.amber}` : `1.5px solid ${C.border}`,
+              background: active ? "rgba(245,158,11,0.1)" : C.card,
+              color: active ? C.amberDk : C.sub,
+            }}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function EquipmentModal({
-  initial,
-  onSave,
-  onClose,
+  initial, onSave, onClose,
 }: {
   initial?: Equipment | null;
   onSave: (data: Omit<Equipment, "id" | "createdAt">) => void;
@@ -266,18 +261,16 @@ function EquipmentModal({
 }) {
   const [form, setForm] = useState({
     ...EMPTY_FORM,
-    ...(initial
-      ? {
-          name: initial.name,
-          type: initial.type,
-          category: initial.category,
-          supplier: initial.supplier,
-          unitPrice: initial.unitPrice,
-          status: initial.status,
-          returnDeadline: initial.returnDeadline ?? "",
-          notes: initial.notes ?? "",
-        }
-      : {}),
+    ...(initial ? {
+      name: initial.name,
+      type: initial.type,
+      category: initial.category,
+      supplier: initial.supplier,
+      unitPrice: initial.unitPrice,
+      status: initial.status,
+      returnDeadline: initial.returnDeadline ?? "",
+      notes: initial.notes ?? "",
+    } : {}),
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -291,7 +284,7 @@ function EquipmentModal({
       setErrors({ name: "機材名は必須です" });
       return;
     }
-    const data: Omit<Equipment, "id" | "createdAt"> = {
+    onSave({
       name: form.name.trim(),
       type: form.type,
       category: form.category,
@@ -300,153 +293,113 @@ function EquipmentModal({
       status: form.status,
       notes: form.notes.trim() || undefined,
       returnDeadline:
-        (form.category === "リース" || form.category === "レンタル") &&
-        form.returnDeadline
-          ? form.returnDeadline
-          : undefined,
-    };
-    onSave(data);
+        (form.category === "リース" || form.category === "レンタル") && form.returnDeadline
+          ? form.returnDeadline : undefined,
+    });
   }
 
   const needsDeadline = form.category === "リース" || form.category === "レンタル";
 
-  const inputStyle = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1.5px solid #2D3E54",
-    background: "#0F1928",
-    color: "#F1F5F9",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box" as const,
-  };
-  const labelStyle = {
-    fontSize: 11,
-    fontWeight: 700 as const,
-    color: "#94A3B8",
-    display: "block" as const,
-    marginBottom: 6,
-    letterSpacing: "0.05em",
-  };
+  const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all";
+  const inputStyle = { border: `1.5px solid ${C.border}`, background: "#F8FAFC", color: C.text };
+  const labelCls = "block text-xs font-bold mb-1.5 uppercase tracking-wide";
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 50,
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        background: "rgba(0,0,0,0.75)",
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,23,42,0.5)" }}
       onClick={onClose}
     >
       <div
-        style={{
-          width: "100%", maxWidth: 480,
-          borderRadius: "24px 24px 0 0",
-          background: "#1A2535",
-          border: "1px solid #2D3E54",
-          maxHeight: "92dvh",
-          display: "flex", flexDirection: "column",
-        }}
+        className="w-full rounded-2xl flex flex-col"
+        style={{ maxWidth: 640, background: C.card, boxShadow: "0 20px 60px rgba(0,0,0,0.15)", maxHeight: "90dvh" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "20px 20px 16px",
-            borderBottom: "1px solid #2D3E54",
-          }}
-        >
-          <p style={{ fontSize: 17, fontWeight: 900, color: "#F1F5F9" }}>
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <h2 className="text-lg font-bold" style={{ color: C.text }}>
             {initial ? "機材を編集" : "機材を追加"}
-          </p>
+          </h2>
           <button
             onClick={onClose}
-            style={{
-              width: 36, height: 36,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 10, background: "#0F1928", border: "none", cursor: "pointer",
-            }}
+            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
+            style={{ color: C.muted }}
           >
-            <X size={17} color="#64748B" />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Form */}
-        <div style={{ overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 18 }}>
+        {/* Form body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
 
           {/* 機材名 */}
           <div>
-            <label style={labelStyle}>
-              機材名 <span style={{ color: "#F87171" }}>*</span>
+            <label className={labelCls} style={{ color: C.muted }}>
+              機材名 <span style={{ color: C.red }}>*</span>
             </label>
             <input
-              style={{ ...inputStyle, borderColor: errors.name ? "#F87171" : "#2D3E54" }}
+              className={inputCls}
+              style={{ ...inputStyle, borderColor: errors.name ? C.red : C.border }}
               placeholder="例：コマツ PC200 油圧ショベル"
               value={form.name}
               onChange={e => set("name", e.target.value)}
             />
-            {errors.name && (
-              <p style={{ fontSize: 11, color: "#F87171", marginTop: 4 }}>{errors.name}</p>
-            )}
+            {errors.name && <p className="text-xs mt-1" style={{ color: C.red }}>{errors.name}</p>}
           </div>
 
-          {/* 種類 */}
-          <div>
-            <label style={labelStyle}>種類</label>
-            <ChipSelector options={TYPE_OPTIONS} value={form.type} onChange={v => set("type", v)} />
+          {/* 種類 + 区分 (2-col) */}
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className={labelCls} style={{ color: C.muted }}>種類</label>
+              <ChipGroup options={TYPE_OPTIONS} value={form.type} onChange={v => set("type", v)} />
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: C.muted }}>区分</label>
+              <ChipGroup options={CATEGORY_OPTIONS} value={form.category} onChange={v => set("category", v)} />
+            </div>
           </div>
 
-          {/* 区分 */}
-          <div>
-            <label style={labelStyle}>区分</label>
-            <ChipSelector options={CATEGORY_OPTIONS} value={form.category} onChange={v => set("category", v)} />
-          </div>
-
-          {/* 入手先 */}
-          <div>
-            <label style={labelStyle}>入手先</label>
-            <input
-              style={inputStyle}
-              placeholder="リース会社名・自社拠点など"
-              value={form.supplier}
-              onChange={e => set("supplier", e.target.value)}
-            />
-          </div>
-
-          {/* 日単価 */}
-          <div>
-            <label style={labelStyle}>日単価</label>
-            <div style={{ position: "relative" }}>
-              <span
-                style={{
-                  position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                  color: "#64748B", fontSize: 14, pointerEvents: "none",
-                }}
-              >¥</span>
+          {/* 入手先 + 日単価 (2-col) */}
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className={labelCls} style={{ color: C.muted }}>入手先</label>
               <input
-                type="number"
-                style={{ ...inputStyle, paddingLeft: 28 }}
-                placeholder="0"
-                value={form.unitPrice || ""}
-                onChange={e => set("unitPrice", Number(e.target.value))}
+                className={inputCls}
+                style={inputStyle}
+                placeholder="リース会社・自社拠点など"
+                value={form.supplier}
+                onChange={e => set("supplier", e.target.value)}
               />
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: C.muted }}>日単価</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: C.muted }}>¥</span>
+                <input
+                  type="number"
+                  className={inputCls}
+                  style={{ ...inputStyle, paddingLeft: 24 }}
+                  placeholder="0"
+                  value={form.unitPrice || ""}
+                  onChange={e => set("unitPrice", Number(e.target.value))}
+                />
+              </div>
             </div>
           </div>
 
           {/* 状態 */}
           <div>
-            <label style={labelStyle}>状態</label>
-            <ChipSelector options={STATUS_OPTIONS} value={form.status} onChange={v => set("status", v)} />
+            <label className={labelCls} style={{ color: C.muted }}>状態</label>
+            <ChipGroup options={STATUS_OPTIONS} value={form.status} onChange={v => set("status", v)} />
           </div>
 
-          {/* 返却期限 (only for リース/レンタル) */}
+          {/* 返却期限 */}
           {needsDeadline && (
             <div>
-              <label style={labelStyle}>返却期限</label>
+              <label className={labelCls} style={{ color: C.muted }}>返却期限</label>
               <input
                 type="date"
+                className={inputCls}
                 style={inputStyle}
                 value={form.returnDeadline}
                 onChange={e => set("returnDeadline", e.target.value)}
@@ -456,57 +409,59 @@ function EquipmentModal({
 
           {/* メモ */}
           <div>
-            <label style={labelStyle}>メモ</label>
+            <label className={labelCls} style={{ color: C.muted }}>メモ</label>
             <textarea
-              style={{
-                ...inputStyle,
-                minHeight: 72,
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
+              className={inputCls}
+              style={{ ...inputStyle, minHeight: 80, resize: "vertical", fontFamily: "inherit" }}
               placeholder="特記事項・点検履歴など"
               value={form.notes}
               onChange={e => set("notes", e.target.value)}
             />
           </div>
+        </div>
 
-          {/* Buttons */}
-          <div style={{ display: "flex", gap: 10, paddingBottom: 8 }}>
-            <button
-              onClick={onClose}
-              style={{
-                flex: 1, padding: "13px 0",
-                borderRadius: 14, border: "1.5px solid #2D3E54",
-                background: "transparent", color: "#94A3B8",
-                fontSize: 15, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              キャンセル
-            </button>
-            <button
-              onClick={submit}
-              style={{
-                flex: 2, padding: "13px 0",
-                borderRadius: 14, border: "none",
-                background: "#F97316", color: "#fff",
-                fontSize: 15, fontWeight: 900, cursor: "pointer",
-              }}
-            >
-              保存する
-            </button>
-          </div>
+        {/* Footer actions */}
+        <div className="flex gap-3 px-6 py-5" style={{ borderTop: `1px solid ${C.border}` }}>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-semibold text-sm transition-colors hover:bg-gray-50"
+            style={{ border: `1.5px solid ${C.border}`, color: C.sub }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={submit}
+            className="flex-2 px-8 py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
+            style={{ background: C.amber, boxShadow: "0 2px 12px rgba(245,158,11,0.35)", minWidth: 160 }}
+          >
+            保存する
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Filter chip ─────────────────────────────────────────────────────────────
+
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+      style={active
+        ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: `1.5px solid rgba(245,158,11,0.35)` }
+        : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function EquipmentPage() {
-  const router = useRouter();
-
-  // Try to get equipment from context; fall back to local state with seed data
   let ctxEquipment: Equipment[] | undefined;
   let ctxAddEquipment: ((data: Omit<Equipment, "id" | "createdAt">) => void) | undefined;
   let ctxUpdateEquipment: ((id: string, patch: Partial<Omit<Equipment, "id" | "createdAt">>) => void) | undefined;
@@ -517,21 +472,15 @@ export default function EquipmentPage() {
     const ctx = require("../lib/app-context");
     const appCtx = ctx.useAppContext?.();
     if (appCtx) {
-      ctxEquipment      = (appCtx as { equipment?: Equipment[] }).equipment;
-      ctxAddEquipment   = (appCtx as { addEquipment?: typeof ctxAddEquipment }).addEquipment;
+      ctxEquipment       = (appCtx as { equipment?: Equipment[] }).equipment;
+      ctxAddEquipment    = (appCtx as { addEquipment?: typeof ctxAddEquipment }).addEquipment;
       ctxUpdateEquipment = (appCtx as { updateEquipment?: typeof ctxUpdateEquipment }).updateEquipment;
-      ctxAssignments    = (appCtx as { assignments?: EquipmentAssignment[] }).assignments;
+      ctxAssignments     = (appCtx as { assignments?: EquipmentAssignment[] }).assignments;
     }
-  } catch {
-    // context not yet extended — use local state below
-  }
+  } catch { /* context not extended */ }
 
-  const [localEquipment, setLocalEquipment] = useState<Equipment[]>(
-    ctxEquipment ?? SEED_EQUIPMENT
-  );
-  const [localAssignments] = useState<EquipmentAssignment[]>(
-    ctxAssignments ?? SEED_ASSIGNMENTS
-  );
+  const [localEquipment, setLocalEquipment] = useState<Equipment[]>(ctxEquipment ?? SEED_EQUIPMENT);
+  const [localAssignments] = useState<EquipmentAssignment[]>(ctxAssignments ?? SEED_ASSIGNMENTS);
 
   const equipment   = ctxEquipment   ?? localEquipment;
   const assignments = ctxAssignments ?? localAssignments;
@@ -540,12 +489,7 @@ export default function EquipmentPage() {
     if (ctxAddEquipment) {
       ctxAddEquipment(data);
     } else {
-      const item: Equipment = {
-        ...data,
-        id: newId(),
-        createdAt: new Date().toISOString(),
-      };
-      setLocalEquipment(prev => [item, ...prev]);
+      setLocalEquipment(prev => [{ ...data, id: newId(), createdAt: new Date().toISOString() }, ...prev]);
     }
   }
 
@@ -553,19 +497,14 @@ export default function EquipmentPage() {
     if (ctxUpdateEquipment) {
       ctxUpdateEquipment(id, patch);
     } else {
-      setLocalEquipment(prev =>
-        prev.map(e => e.id === id ? { ...e, ...patch } : e)
-      );
+      setLocalEquipment(prev => prev.map(e => e.id === id ? { ...e, ...patch } : e));
     }
   }
 
-  // ─── Filter state ──────────────────────────────────────────────────────────
-
   const [typeFilter,   setTypeFilter]   = useState<EquipmentType | "全て">("全て");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "全状態">("全状態");
+  const [search,       setSearch]       = useState("");
   const [modalTarget,  setModalTarget]  = useState<Equipment | null | "new">(null);
-
-  // ─── Computed ──────────────────────────────────────────────────────────────
 
   const assignmentMap = useMemo(() => {
     const m: Record<string, EquipmentAssignment> = {};
@@ -587,9 +526,10 @@ export default function EquipmentPage() {
     return equipment.filter(e => {
       if (typeFilter !== "全て" && e.type !== typeFilter) return false;
       if (statusFilter !== "全状態" && e.status !== statusFilter) return false;
+      if (search && !e.name.toLowerCase().includes(search.toLowerCase()) && !e.supplier.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [equipment, typeFilter, statusFilter]);
+  }, [equipment, typeFilter, statusFilter, search]);
 
   const activeAssignments = useMemo(
     () => assignments.filter(a => {
@@ -599,8 +539,6 @@ export default function EquipmentPage() {
     }),
     [assignments]
   );
-
-  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   function handleSave(data: Omit<Equipment, "id" | "createdAt">) {
     const target = modalTarget;
@@ -612,365 +550,243 @@ export default function EquipmentPage() {
     setModalTarget(null);
   }
 
-  // ─── Chip row ──────────────────────────────────────────────────────────────
-
-  function FilterChip<T extends string>({
-    label, active, onClick,
-  }: { label: T; active: boolean; onClick: () => void }) {
-    return (
-      <button
-        onClick={onClick}
-        style={{
-          padding: "5px 13px",
-          borderRadius: 20,
-          fontSize: 12,
-          fontWeight: active ? 700 : 500,
-          border: active ? "1.5px solid #F97316" : "1.5px solid #2D3E54",
-          background: active ? "rgba(249,115,22,0.15)" : "transparent",
-          color: active ? "#FB923C" : "#64748B",
-          cursor: "pointer",
-          whiteSpace: "nowrap" as const,
-          flexShrink: 0,
-        }}
-      >
-        {label}
-      </button>
-    );
-  }
-
-  // ─── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "#080F1A",
-        color: "#F1F5F9",
-        fontFamily: "'Noto Sans JP', sans-serif",
-        paddingBottom: 96,
-      }}
-    >
-      {/* ── Header ── */}
-      <div
-        style={{
-          position: "sticky", top: 0, zIndex: 20,
-          background: "#080F1A",
-          borderBottom: "1px solid #2D3E54",
-          padding: "12px 16px 14px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              width: 36, height: 36,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: 10, background: "#1A2535", border: "none", cursor: "pointer",
-            }}
-          >
-            <ChevronLeft size={20} color="#94A3B8" />
-          </button>
-          <div>
-            <p style={{ fontSize: 18, fontWeight: 900, color: "#F1F5F9", lineHeight: 1.2 }}>
-              機材・車両管理
-            </p>
-            <p style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>
-              重機・車両・リース品の一元管理
-            </p>
-          </div>
+    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-24 md:pb-8">
+
+      {/* ── Page header ── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>機材・車両管理</h1>
+          <p className="text-sm mt-1" style={{ color: C.sub }}>重機・車両・リース品の一元管理</p>
         </div>
+        <button
+          onClick={() => setModalTarget("new")}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm text-white flex-shrink-0 transition-all hover:opacity-90"
+          style={{ background: C.amber, boxShadow: "0 2px 10px rgba(245,158,11,0.35)" }}
+        >
+          <Plus size={16} />
+          機材を追加
+        </button>
       </div>
 
-      <div style={{ padding: "0 16px" }}>
+      {/* ── KPI strip ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "登録台数",  value: equipment.length,                                          color: C.text,    note: "総登録数" },
+          { label: "稼働中",    value: equipment.filter(e => e.status === "稼働中").length,        color: C.blue,    note: "現在稼働" },
+          { label: "修理中",    value: equipment.filter(e => e.status === "修理中").length,        color: C.amber,   note: "要確認" },
+          { label: "返却期限近", value: nearDeadlineCount, color: nearDeadlineCount > 0 ? C.red : C.green, note: "14日以内" },
+        ].map(({ label, value, color, note }) => (
+          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <p className="text-xs mb-1" style={{ color: C.sub }}>{label}</p>
+            <p className="text-3xl font-bold font-numeric" style={{ color }}>{value}</p>
+            <p className="text-[10px] mt-1" style={{ color: C.muted }}>{note}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* ── Alert strip ── */}
-        {alertItems.length > 0 && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: "12px 14px",
-              borderRadius: 14,
-              background: "rgba(239,68,68,0.08)",
-              border: "1.5px solid rgba(239,68,68,0.35)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-              <AlertTriangle size={15} color="#F87171" />
-              <p style={{ fontSize: 13, fontWeight: 800, color: "#F87171" }}>
-                返却期限が近い機材があります
-              </p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* ── Alert banner ── */}
+      {alertItems.length > 0 && (
+        <div className="flex items-start gap-3 px-5 py-4 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+          <AlertTriangle size={18} style={{ color: C.red, flexShrink: 0, marginTop: 1 }} />
+          <div className="flex-1">
+            <p className="text-sm font-bold mb-2" style={{ color: C.red }}>返却期限が7日以内の機材があります</p>
+            <div className="flex flex-col gap-1.5">
               {alertItems.map(e => {
                 const days = daysUntil(e.returnDeadline!);
                 return (
-                  <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <p style={{ fontSize: 13, color: "#F1F5F9", fontWeight: 600 }}>{e.name}</p>
-                    <p style={{ fontSize: 12, fontWeight: 800, color: "#F87171" }}>
-                      返却期限まで {days} 日
-                    </p>
+                  <div key={e.id} className="flex items-center justify-between">
+                    <p className="text-sm font-medium" style={{ color: C.text }}>{e.name}</p>
+                    <p className="text-sm font-bold" style={{ color: C.red }}>あと {days} 日（{fmtDate(e.returnDeadline!)}）</p>
                   </div>
                 );
               })}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Stats bar ── */}
-        <div
-          style={{
-            marginTop: 16,
-            display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10,
-          }}
-        >
-          {[
-            { label: "登録台数", value: equipment.length, color: "#F1F5F9" },
-            { label: "稼働中",   value: equipment.filter(e => e.status === "稼働中").length, color: "#60A5FA" },
-            { label: "期限間近", value: nearDeadlineCount, color: nearDeadlineCount > 0 ? "#FBBF24" : "#F1F5F9" },
-          ].map(s => (
-            <div
-              key={s.label}
-              style={{
-                background: "#1A2535",
-                borderRadius: 14,
-                padding: "12px 0",
-                textAlign: "center",
-                border: "1px solid #2D3E54",
-              }}
-            >
-              <p style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</p>
-              <p style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{s.label}</p>
-            </div>
+      {/* ── Toolbar: search + filters ── */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: C.card, border: `1px solid ${C.border}`, minWidth: 200 }}>
+          <Search size={14} style={{ color: C.muted }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="機材名・入手先で検索…"
+            className="bg-transparent text-sm outline-none"
+            style={{ color: C.text, width: 180 }}
+          />
+        </div>
+        {/* Type filters */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium mr-1" style={{ color: C.muted }}>種類:</span>
+          {(["全て", ...TYPE_OPTIONS] as const).map(t => (
+            <FilterChip key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t as typeof typeFilter)} />
           ))}
         </div>
+        {/* Status filters */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium mr-1" style={{ color: C.muted }}>状態:</span>
+          {(["全状態", ...STATUS_OPTIONS] as const).map(s => (
+            <FilterChip key={s} label={s} active={statusFilter === s} onClick={() => setStatusFilter(s as typeof statusFilter)} />
+          ))}
+        </div>
+      </div>
 
-        {/* ── Filter chips ── */}
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-          {/* Row 1: type */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-            {(["全て", ...TYPE_OPTIONS] as const).map(t => (
-              <FilterChip
-                key={t}
-                label={t}
-                active={typeFilter === t}
-                onClick={() => setTypeFilter(t as typeof typeFilter)}
-              />
-            ))}
-          </div>
-          {/* Row 2: status */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-            {(["全状態", ...STATUS_OPTIONS] as const).map(s => (
-              <FilterChip
-                key={s}
-                label={s}
-                active={statusFilter === s}
-                onClick={() => setStatusFilter(s as typeof statusFilter)}
-              />
-            ))}
-          </div>
+      {/* ── Equipment table ── */}
+      <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        {/* Table header */}
+        <div
+          className="grid items-center px-5 py-3 text-xs font-bold uppercase tracking-wider"
+          style={{
+            gridTemplateColumns: "2.5fr 90px 90px 140px 110px 120px 80px",
+            borderBottom: `1px solid ${C.border}`,
+            background: "#F8FAFC",
+            color: C.muted,
+          }}
+        >
+          <span>機材名</span>
+          <span>種類</span>
+          <span>区分</span>
+          <span>入手先</span>
+          <span className="text-right">日単価</span>
+          <span>返却期限</span>
+          <span className="text-right">操作</span>
         </div>
 
-        {/* ── Equipment list ── */}
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-          {filtered.length === 0 && (
-            <div
-              style={{
-                textAlign: "center", padding: "40px 0",
-                color: "#64748B", fontSize: 14,
-              }}
-            >
-              該当する機材がありません
-            </div>
-          )}
-          {filtered.map(e => {
-            const assignment = assignmentMap[e.id];
-            const deadline   = e.returnDeadline ? daysUntil(e.returnDeadline) : null;
-            const isUrgent   = deadline !== null && deadline <= 7 && deadline >= 0;
-            const isNear     = deadline !== null && deadline >= 8 && deadline <= 14;
-            const sc = STATUS_COLOR[e.status];
-            const cc = CATEGORY_COLOR[e.category];
-
-            return (
-              <div
-                key={e.id}
-                style={{
-                  background: "#1A2535",
-                  borderRadius: 16,
-                  border: `1px solid ${isUrgent ? "rgba(239,68,68,0.5)" : "#2D3E54"}`,
-                  borderLeft: `4px solid ${isUrgent ? "#F87171" : "#2D3E54"}`,
-                  padding: "14px 14px 12px",
-                  position: "relative",
-                }}
-              >
-                {/* Top row: icon + name + edit */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>
-                    {TYPE_ICON[e.type]}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 15, fontWeight: 900, color: "#F1F5F9",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      }}
-                    >
-                      {e.name}
-                    </p>
-                    {/* Badges */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                      <span
-                        style={{
-                          fontSize: 11, fontWeight: 700,
-                          padding: "2px 8px", borderRadius: 20,
-                          background: cc.bg, color: cc.color,
-                        }}
-                      >
-                        {e.category}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11, fontWeight: 700,
-                          padding: "2px 8px", borderRadius: 20,
-                          background: sc.bg, color: sc.color,
-                        }}
-                      >
-                        {e.status}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setModalTarget(e)}
-                    style={{
-                      width: 32, height: 32, flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      borderRadius: 9, background: "#0F1928",
-                      border: "1px solid #2D3E54", cursor: "pointer",
-                    }}
-                  >
-                    <Edit3 size={14} color="#64748B" />
-                  </button>
-                </div>
-
-                {/* Supplier + price */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                  <p style={{ fontSize: 12, color: "#64748B" }}>{e.supplier || "—"}</p>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#94A3B8" }}>
-                    {fmtPrice(e.unitPrice)}&thinsp;/ 日
-                  </p>
-                </div>
-
-                {/* Assignment */}
-                {assignment && (
-                  <p style={{ fontSize: 12, color: "#FB923C", marginTop: 6, fontWeight: 600 }}>
-                    現場: {assignment.siteName}
-                  </p>
-                )}
-
-                {/* Deadline */}
-                {isUrgent && (
-                  <p style={{ fontSize: 12, fontWeight: 900, color: "#F87171", marginTop: 6 }}>
-                    ⚠ 返却 {fmtDate(e.returnDeadline!)}
-                  </p>
-                )}
-                {isNear && (
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#FBBF24", marginTop: 6 }}>
-                    返却 {fmtDate(e.returnDeadline!)}
-                  </p>
-                )}
-
-                {/* Notes */}
-                {e.notes && (
-                  <p
-                    style={{
-                      fontSize: 11, color: "#64748B", marginTop: 6,
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}
-                  >
-                    {e.notes}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Assignments section ── */}
-        {activeAssignments.length > 0 && (
-          <div style={{ marginTop: 28 }}>
-            <p
-              style={{
-                fontSize: 13, fontWeight: 800, color: "#94A3B8",
-                letterSpacing: "0.06em", marginBottom: 10,
-              }}
-            >
-              現場アサイン状況
-            </p>
-            <div
-              style={{
-                background: "#1A2535",
-                borderRadius: 16,
-                border: "1px solid #2D3E54",
-                overflow: "hidden",
-              }}
-            >
-              {activeAssignments.map((a, i) => {
-                const eq = equipment.find(e => e.id === a.equipmentId);
-                return (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "11px 14px",
-                      borderBottom: i < activeAssignments.length - 1 ? "1px solid #2D3E54" : "none",
-                    }}
-                  >
-                    <span style={{ fontSize: 18 }}>
-                      {eq ? TYPE_ICON[eq.type] : "📦"}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p
-                        style={{
-                          fontSize: 13, fontWeight: 700, color: "#F1F5F9",
-                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                        }}
-                      >
-                        {eq?.name ?? a.equipmentId}
-                      </p>
-                      <p style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
-                        {a.siteName}
-                      </p>
-                    </div>
-                    <p style={{ fontSize: 11, color: "#64748B", whiteSpace: "nowrap" }}>
-                      {a.startDate} 〜 {a.endDate}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+        {filtered.length === 0 && (
+          <div className="py-16 text-center" style={{ color: C.muted }}>
+            <p className="text-sm">該当する機材がありません</p>
           </div>
         )}
 
+        {filtered.map((e, idx) => {
+          const assignment = assignmentMap[e.id];
+          const deadline   = e.returnDeadline ? daysUntil(e.returnDeadline) : null;
+          const isUrgent   = deadline !== null && deadline <= 7 && deadline >= 0;
+          const isNear     = deadline !== null && deadline >= 8 && deadline <= 14;
+          const sc = STATUS_STYLE[e.status];
+          const cc = CATEGORY_STYLE[e.category];
+
+          return (
+            <div
+              key={e.id}
+              className="grid items-center px-5 py-4 hover:bg-gray-50 transition-colors"
+              style={{
+                gridTemplateColumns: "2.5fr 90px 90px 140px 110px 120px 80px",
+                borderBottom: idx < filtered.length - 1 ? `1px solid #F1F5F9` : undefined,
+                borderLeft: isUrgent ? `3px solid ${C.red}` : "3px solid transparent",
+              }}
+            >
+              {/* 機材名 + badges */}
+              <div className="flex flex-col gap-1.5 min-w-0 pr-4">
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 18 }}>{TYPE_ICON[e.type]}</span>
+                  <span className="text-sm font-semibold truncate" style={{ color: C.text }}>{e.name}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.color }}>
+                    {e.status}
+                  </span>
+                  {assignment && (
+                    <span className="text-[10px]" style={{ color: C.amber }}>📍 {assignment.siteName}</span>
+                  )}
+                  {e.notes && (
+                    <span className="text-[10px] truncate max-w-[200px]" style={{ color: C.muted }}>{e.notes}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 種類 */}
+              <span className="text-sm" style={{ color: C.sub }}>{e.type}</span>
+
+              {/* 区分 */}
+              <span className="text-xs font-bold px-2 py-1 rounded-full w-fit" style={{ background: cc.bg, color: cc.color }}>
+                {e.category}
+              </span>
+
+              {/* 入手先 */}
+              <span className="text-sm truncate" style={{ color: C.sub }}>{e.supplier || "—"}</span>
+
+              {/* 日単価 */}
+              <span className="text-sm font-bold text-right font-numeric" style={{ color: C.amberDk }}>
+                {fmtPrice(e.unitPrice)}<span className="text-xs font-normal" style={{ color: C.muted }}>/日</span>
+              </span>
+
+              {/* 返却期限 */}
+              <div>
+                {e.returnDeadline ? (
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: isUrgent ? C.red : isNear ? C.amber : C.sub }}>
+                      {fmtDate(e.returnDeadline)}
+                    </p>
+                    {(isUrgent || isNear) && (
+                      <p className="text-[10px] font-bold" style={{ color: isUrgent ? C.red : C.amber }}>
+                        あと {deadline} 日
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-sm" style={{ color: C.muted }}>—</span>
+                )}
+              </div>
+
+              {/* 操作 */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setModalTarget(e)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-gray-100"
+                  style={{ color: C.sub, border: `1px solid ${C.border}` }}
+                >
+                  <Edit3 size={12} />
+                  編集
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── FAB ── */}
-      <button
-        onClick={() => setModalTarget("new")}
-        style={{
-          position: "fixed", bottom: 28, right: 20,
-          width: 56, height: 56,
-          borderRadius: 28,
-          background: "#F97316",
-          border: "none",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(249,115,22,0.45)",
-          zIndex: 30,
-        }}
-      >
-        <Plus size={26} color="#fff" strokeWidth={2.5} />
-      </button>
+      {/* ── Active assignments ── */}
+      {activeAssignments.length > 0 && (
+        <section>
+          <h2 className="text-[11px] font-bold tracking-widest uppercase mb-4" style={{ color: C.amber }}>
+            現場アサイン状況
+          </h2>
+          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div
+              className="grid px-5 py-3 text-xs font-bold uppercase tracking-wider"
+              style={{ gridTemplateColumns: "2fr 2fr 200px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC", color: C.muted }}
+            >
+              <span>機材</span>
+              <span>現場</span>
+              <span>期間</span>
+            </div>
+            {activeAssignments.map((a, i) => {
+              const eq = equipment.find(e => e.id === a.equipmentId);
+              return (
+                <div
+                  key={a.id}
+                  className="grid px-5 py-4 items-center"
+                  style={{ gridTemplateColumns: "2fr 2fr 200px", borderBottom: i < activeAssignments.length - 1 ? "1px solid #F1F5F9" : undefined }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: 16 }}>{eq ? TYPE_ICON[eq.type] : "📦"}</span>
+                    <span className="text-sm font-medium truncate" style={{ color: C.text }}>{eq?.name ?? a.equipmentId}</span>
+                  </div>
+                  <span className="text-sm" style={{ color: C.sub }}>{a.siteName}</span>
+                  <span className="text-sm font-numeric" style={{ color: C.muted }}>{a.startDate} 〜 {a.endDate}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* ── Modal ── */}
+      {/* Modal */}
       {modalTarget !== null && (
         <EquipmentModal
           initial={modalTarget === "new" ? null : modalTarget}
