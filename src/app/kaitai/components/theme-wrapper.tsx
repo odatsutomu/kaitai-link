@@ -4,7 +4,6 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useAppContext } from "../lib/app-context";
 
-// サイドバーを表示しないルート
 const NO_SIDEBAR_ROUTES = [
   "/kaitai/login",
   "/kaitai/signup",
@@ -29,18 +28,12 @@ export function ThemeWrapper({
     <div
       className={`${fontClass} min-h-screen flex`}
       style={{
-        background: dark ? "#070E1A" : "#EEF0F4",
-        color: dark ? "#F1F5F9" : "#111111",
+        // PCの「余白部分」は落ち着いた色
+        background: dark ? "#060E1B" : "#DFE5ED",
+        color: dark ? "#E2E8F0" : "#1A202C",
       }}
     >
-      {/*
-        ── サイドバーが存在するページでは「スペーサー」を挿入 ──
-        固定(fixed)サイドバーはドキュメントフローの外なので
-        同幅の透明スペーサーでコンテンツを右にズラす。
-        モバイル(<768px)：hidden → スペーサーなし＝全幅
-        タブレット(768-1024px)：w-16 (64px)
-        PC(1024px+)：w-64 (256px)
-      */}
+      {/* サイドバー分のスペーサー */}
       {!noSidebar && (
         <>
           <div className="hidden lg:block w-64 flex-shrink-0" />
@@ -48,12 +41,13 @@ export function ThemeWrapper({
         </>
       )}
 
-      {/* コンテンツ列：スペーサーの残りを埋める */}
+      {/* コンテンツ列 */}
       <div
         className="flex-1 min-w-0 flex flex-col"
         style={{
           minHeight: "100svh",
-          background: dark ? "#0F1928" : "#FFFFFF",
+          // PC：ページ全体背景をわずかにオフホワイト、カードが白で浮き立つ
+          background: dark ? "#0D1827" : "#F2F5F8",
         }}
       >
         {children}

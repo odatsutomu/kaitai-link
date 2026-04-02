@@ -47,8 +47,16 @@ export default function KaitaiLayout({
         <KaitaiTopBar />
 
         {/* メインコンテンツ */}
-        <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
-          {children}
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
+          {/*
+            PC 向けコンテナ：
+            - 横幅を 1280px で制限（画面端まで広がらないように）
+            - 中央寄せ＋左右パディングで余白を確保
+            - モバイルはそのまま（各ページが自前でパディングを持つ）
+          */}
+          <div className="w-full md:max-w-[1280px] md:mx-auto">
+            {children}
+          </div>
         </main>
 
         {/* モバイル底辺ナビ（md+では非表示） */}
