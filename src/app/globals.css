@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 * {
@@ -6,8 +7,7 @@
   margin: 0;
 }
 
-html,
-body {
+html, body {
   max-width: 100vw;
   overflow-x: hidden;
 }
@@ -15,4 +15,9 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* 数値・英数字はInterを優先 */
+.font-numeric {
+  font-family: 'Inter', 'Roboto', sans-serif;
 }
