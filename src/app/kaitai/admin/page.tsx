@@ -4,6 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown } from "lucide-react";
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
+  border: "#E2E8F0", card: "#FFFFFF",
+  amber: "#F59E0B", amberDk: "#D97706",
+  green: "#10B981", red: "#EF4444",
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Period = "thisMonth" | "lastMonth" | "thisYear" | "lastYear";
@@ -16,7 +24,7 @@ type PeriodStats = {
   otherCost: number;
   yoyRevenue: number;
   yoyProfit: number;
-  forecast?: number; // 着地予測（今月のみ）
+  forecast?: number;
 };
 
 type MonthBar = {
@@ -142,7 +150,7 @@ function DonutChart({
   let angle = -Math.PI / 2;
   const paths = slices.map(s => {
     const sweep = (s.value / total) * 2 * Math.PI;
-    const a1 = angle, a2 = angle + sweep - 0.02; // tiny gap
+    const a1 = angle, a2 = angle + sweep - 0.02;
     const cos1 = Math.cos(a1), sin1 = Math.sin(a1);
     const cos2 = Math.cos(a2), sin2 = Math.sin(a2);
     const large = sweep > Math.PI ? 1 : 0;
@@ -169,17 +177,16 @@ function DonutChart({
 // ─── SVG Bar chart ────────────────────────────────────────────────────────────
 
 function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boolean }) {
-  const H = 88;
+  const H = 100;
   const maxVal = Math.max(...bars.flatMap(b => [b.revenue, compare ? (b.prevRevenue ?? 0) : 0]), 1);
   const n = bars.length;
-  const VW = 300;
+  const VW = 340;
   const groupW = VW / n;
-  const bw = compare ? Math.max(Math.floor(groupW / 4) - 1, 4) : Math.max(Math.floor(groupW / 2) - 2, 5);
+  const bw = compare ? Math.max(Math.floor(groupW / 4) - 1, 4) : Math.max(Math.floor(groupW / 2) - 2, 6);
 
   return (
-    <svg viewBox={`0 0 ${VW} ${H + 18}`} width="100%" style={{ display: "block" }}>
-      {/* baseline */}
-      <line x1={0} y1={H} x2={VW} y2={H} stroke="#2D3E54" strokeWidth={1} />
+    <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
+      <line x1={0} y1={H} x2={VW} y2={H} stroke="#E2E8F0" strokeWidth={1} />
       {bars.map((b, i) => {
         const cx = i * groupW + groupW / 2;
         const revH = Math.max((b.revenue / maxVal) * H, 2);
@@ -189,29 +196,27 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
           <g key={i}>
             {compare && b.prevRevenue && (
               <>
-                {/* prev year (dimmed) */}
                 <rect
                   x={cx - bw * 2 - 1} y={H - Math.max((b.prevRevenue / maxVal) * H, 2)}
                   width={bw} height={Math.max((b.prevRevenue / maxVal) * H, 2)}
-                  rx={2} fill="rgba(34,197,94,0.25)"
+                  rx={2} fill="rgba(16,185,129,0.2)"
                 />
                 <rect
                   x={cx - bw} y={H - Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
                   width={bw} height={Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
-                  rx={2} fill="rgba(248,113,113,0.25)"
+                  rx={2} fill="rgba(239,68,68,0.2)"
                 />
-                {/* this year (bright) */}
-                <rect x={cx + 1} y={H - revH} width={bw} height={revH} rx={2} fill="rgba(34,197,94,0.8)" />
-                <rect x={cx + bw + 2} y={H - costH} width={bw} height={costH} rx={2} fill="rgba(248,113,113,0.8)" />
+                <rect x={cx + 1} y={H - revH} width={bw} height={revH} rx={2} fill="rgba(16,185,129,0.8)" />
+                <rect x={cx + bw + 2} y={H - costH} width={bw} height={costH} rx={2} fill="rgba(239,68,68,0.8)" />
               </>
             )}
             {!compare && (
               <>
-                <rect x={cx - bw - 1} y={H - revH} width={bw} height={revH} rx={2} fill="rgba(34,197,94,0.75)" />
-                <rect x={cx + 1} y={H - costH} width={bw} height={costH} rx={2} fill="rgba(248,113,113,0.75)" />
+                <rect x={cx - bw - 1} y={H - revH} width={bw} height={revH} rx={2} fill="rgba(16,185,129,0.75)" />
+                <rect x={cx + 1} y={H - costH} width={bw} height={costH} rx={2} fill="rgba(239,68,68,0.75)" />
               </>
             )}
-            <text x={cx} y={H + 13} textAnchor="middle" fontSize={7.5} fill="#475569">
+            <text x={cx} y={H + 14} textAnchor="middle" fontSize={8} fill="#94A3B8">
               {b.label}
             </text>
           </g>
@@ -225,15 +230,15 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl ${className}`} style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
+    <div className={`rounded-xl ${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
       {children}
     </div>
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: C.amber }}>
       {children}
     </p>
   );
@@ -266,13 +271,11 @@ export default function AdminPage() {
 
   const canCompare = period === "thisYear";
 
-  // Alert sites (粗利率 < threshold)
   const alertSites = SITE_RANKS.filter(r => {
     if (r.cost === 0) return false;
     return Math.round(((r.contract - r.cost) / r.contract) * 100) < ALERT_THRESHOLD;
   });
 
-  // Sorted ranking
   const ranked = [...SITE_RANKS].sort((a, b) => {
     if (sortBy === "profitRate") {
       const ra = a.cost > 0 ? (a.contract - a.cost) / a.contract : 1;
@@ -287,292 +290,289 @@ export default function AdminPage() {
     { value: s.wasteCost,   color: "#F87171", label: "産廃費" },
     { value: s.laborCost,   color: "#FB923C", label: "労務費" },
     { value: s.vehicleCost, color: "#FBBF24", label: "車両・燃料" },
-    { value: s.otherCost,   color: "#64748B", label: "その他" },
+    { value: s.otherCost,   color: "#94A3B8", label: "その他" },
   ];
 
   return (
-    <div className="max-w-md mx-auto flex flex-col pb-4">
+    <div className="px-4 md:px-8 py-6 flex flex-col gap-6 pb-24 md:pb-8">
 
       {/* ── Header ── */}
-      <header className="px-5 pt-12 pb-4 flex items-center justify-between" style={{ borderBottom: "1px solid #2D3E54" }}>
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>経営分析</h1>
-          <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>収支・利益をリアルタイム集計</p>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>経営分析</h1>
+          <p className="text-sm mt-1" style={{ color: C.sub }}>収支・利益をリアルタイム集計</p>
         </div>
         {/* Period tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#F1F5F9" }}>
           {PERIOD_TABS.map(t => (
             <button
               key={t.key}
               onClick={() => { setPeriod(t.key); if (t.key !== "thisYear") setCompare(false); }}
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all"
+              className="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
               style={period === t.key
-                ? { background: "#F97316", color: "#FFFFFF" }
-                : { background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
+                ? { background: C.amber, color: "#FFFFFF" }
+                : { color: C.sub }
+              }
             >
               {t.label}
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
-      <div className="px-4 flex flex-col gap-5 pt-5">
-
-        {/* ── Alert banner ── */}
-        {alertSites.length > 0 && (
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-            style={{ background: "rgba(251,191,36,0.08)", border: "1.5px solid rgba(251,191,36,0.3)" }}
-          >
-            <AlertTriangle size={18} style={{ color: "#FBBF24", flexShrink: 0 }} />
-            <div className="flex-1">
-              <p className="text-xs font-bold" style={{ color: "#FBBF24" }}>
-                粗利率{ALERT_THRESHOLD}%以下の現場があります
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: "#94A3B8" }}>
-                {alertSites.map(s => s.name).join("・")}
-              </p>
-            </div>
+      {/* ── Alert banner ── */}
+      {alertSites.length > 0 && (
+        <div
+          className="flex items-center gap-3 px-5 py-4 rounded-xl"
+          style={{ background: "#FFFBEB", border: "1.5px solid #FEF3C7" }}
+        >
+          <AlertTriangle size={18} style={{ color: C.amberDk, flexShrink: 0 }} />
+          <div className="flex-1">
+            <p className="text-sm font-bold" style={{ color: C.amberDk }}>
+              粗利率{ALERT_THRESHOLD}%以下の現場があります
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: C.sub }}>
+              {alertSites.map(s => s.name).join("・")}
+            </p>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Hero: 着地予測 or 実績粗利 ── */}
-        <Card className="p-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#64748B" }}>
-                {period === "thisMonth" ? "今月 着地予測粗利" : "期間粗利（実績）"}
-              </p>
-              <p className="mt-1 font-bold" style={{ fontSize: 42, lineHeight: 1, color: profit >= 0 ? "#4ADE80" : "#F87171", fontFeatureSettings: "'tnum'" }}>
-                {fmt(period === "thisMonth" && s.forecast ? s.forecast : profit)}
-              </p>
-              {period === "thisMonth" && s.forecast && (
-                <p className="text-xs mt-1" style={{ color: "#64748B" }}>
-                  確定粗利 <span style={{ color: "#94A3B8", fontWeight: 700 }}>{fmt(profit)}</span>（進行中含む）
-                </p>
+      {/* ── Main grid: left 2/3 + right 1/3 ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* ── Left column (2/3) ── */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+
+          {/* 収支推移グラフ */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>収支推移グラフ</SectionLabel>
+              {canCompare && (
+                <button
+                  onClick={() => setCompare(c => !c)}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  style={compare
+                    ? { background: C.amber, color: "#FFF" }
+                    : { background: "#F1F5F9", color: C.sub, border: `1px solid ${C.border}` }}
+                >
+                  昨年比較
+                </button>
               )}
             </div>
-            <div className="text-right">
+            <Card className="p-5">
+              <BarChart bars={bars} compare={compare && canCompare} />
+              <div className="flex items-center gap-4 mt-3 justify-center">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(16,185,129,0.75)" }} />
+                  <span className="text-[10px]" style={{ color: C.muted }}>{compare ? "今年 売上" : "売上"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(239,68,68,0.75)" }} />
+                  <span className="text-[10px]" style={{ color: C.muted }}>{compare ? "今年 原価" : "原価"}</span>
+                </div>
+                {compare && (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(16,185,129,0.2)" }} />
+                      <span className="text-[10px]" style={{ color: C.muted }}>昨年 売上</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(239,68,68,0.2)" }} />
+                      <span className="text-[10px]" style={{ color: C.muted }}>昨年 原価</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
+          </section>
+
+          {/* 現場別利益ランキング */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>現場別利益ランキング</SectionLabel>
+              <button
+                onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
+                className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg"
+                style={{ background: "#F1F5F9", color: C.sub, border: `1px solid ${C.border}` }}
+              >
+                <ArrowUpDown size={10} />
+                {sortBy === "profitRate" ? "利益率順" : "利益額順"}
+              </button>
+            </div>
+            <Card>
               <div
-                className="flex items-center gap-1 justify-end px-2.5 py-1 rounded-xl"
+                className="grid px-5 py-3"
+                style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
+              >
+                <span className="text-[10px] font-bold" style={{ color: C.muted }}>現場名</span>
+                <span className="text-[10px] font-bold text-right" style={{ color: C.muted }}>粗利</span>
+                <span className="text-[10px] font-bold text-right" style={{ color: C.muted }}>粗利率</span>
+              </div>
+              {ranked.map((site, rank) => {
+                const siteProfit = site.contract - site.cost;
+                const siteProfitRate = site.cost > 0
+                  ? Math.round((siteProfit / site.contract) * 100)
+                  : null;
+                const rColor = siteProfitRate == null
+                  ? C.muted
+                  : siteProfitRate >= 25 ? C.green
+                  : siteProfitRate >= 15 ? C.amber
+                  : C.red;
+                const isAlert = siteProfitRate != null && siteProfitRate < ALERT_THRESHOLD;
+                return (
+                  <Link key={site.id} href={`/kaitai/sites/${site.id}`}>
+                    <div
+                      className="grid px-5 py-4 hover:bg-gray-50 transition-colors"
+                      style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid #F1F5F9` }}
+                    >
+                      <div className="flex flex-col gap-1 min-w-0 pr-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: rank === 0 ? "#FFFBEB" : "#F8FAFC",
+                              color: rank === 0 ? "#D97706" : C.muted,
+                            }}
+                          >
+                            {rank + 1}
+                          </span>
+                          {isAlert && <AlertTriangle size={9} style={{ color: C.amber, flexShrink: 0 }} />}
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={site.status === "完工"
+                              ? { background: "#F0FDF4", color: "#16A34A" }
+                              : site.status === "解体中"
+                              ? { background: "#FFF7ED", color: C.amberDk }
+                              : { background: "#F8FAFC", color: C.muted }}
+                          >
+                            {site.status}
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold truncate" style={{ color: C.text }}>{site.name}</p>
+                        {siteProfitRate != null && (
+                          <div className="h-1 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${Math.min(Math.max(siteProfitRate, 0), 100)}%`, background: rColor }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right self-center">
+                        <p className="text-sm font-bold font-numeric" style={{ color: rColor }}>
+                          {site.cost > 0 ? fmt(siteProfit) : "—"}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end gap-1 self-center">
+                        <p className="text-base font-bold font-numeric" style={{ color: rColor }}>
+                          {siteProfitRate != null ? `${siteProfitRate}%` : "—"}
+                        </p>
+                        <ChevronRight size={12} style={{ color: C.muted }} />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </Card>
+          </section>
+        </div>
+
+        {/* ── Right column (1/3) ── */}
+        <div className="flex flex-col gap-6">
+
+          {/* Hero KPI card */}
+          <Card className="p-6">
+            <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ color: C.muted }}>
+              {period === "thisMonth" ? "今月 着地予測粗利" : "期間粗利（実績）"}
+            </p>
+            <p className="font-bold font-numeric" style={{ fontSize: 40, lineHeight: 1, color: profit >= 0 ? C.green : C.red }}>
+              {fmt(period === "thisMonth" && s.forecast ? s.forecast : profit)}
+            </p>
+            {period === "thisMonth" && s.forecast && (
+              <p className="text-xs mt-1" style={{ color: C.muted }}>
+                確定粗利 <span style={{ color: C.sub, fontWeight: 700 }}>{fmt(profit)}</span>
+              </p>
+            )}
+            <div className="mt-4 flex items-center justify-between">
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
                 style={{
-                  background: isYoyUp ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
-                  border: `1px solid ${isYoyUp ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}`,
+                  background: isYoyUp ? "#F0FDF4" : "#FEF2F2",
+                  border: `1px solid ${isYoyUp ? "#BBF7D0" : "#FECACA"}`,
                 }}
               >
                 {isYoyUp
-                  ? <TrendingUp size={12} style={{ color: "#4ADE80" }} />
-                  : <TrendingDown size={12} style={{ color: "#F87171" }} />}
-                <span className="text-xs font-bold" style={{ color: isYoyUp ? "#4ADE80" : "#F87171" }}>
+                  ? <TrendingUp size={12} style={{ color: C.green }} />
+                  : <TrendingDown size={12} style={{ color: C.red }} />}
+                <span className="text-xs font-bold" style={{ color: isYoyUp ? C.green : C.red }}>
                   昨対 {isYoyUp ? "+" : ""}{yoyChange}%
                 </span>
               </div>
-              <p className="text-[10px] mt-1.5" style={{ color: "#64748B" }}>
-                粗利率 <span className="font-bold" style={{ color: profitRate >= 25 ? "#4ADE80" : profitRate >= 15 ? "#FBBF24" : "#F87171" }}>
+              <p className="text-sm" style={{ color: C.muted }}>
+                粗利率 <span className="font-bold" style={{ color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red }}>
                   {profitRate}%
                 </span>
               </p>
             </div>
-          </div>
 
-          {/* KPI 4-grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "売上高",   value: s.revenue,   color: "#4ADE80" },
-              { label: "売上原価", value: totalCost,   color: "#F87171" },
-              { label: "粗利益",   value: profit,      color: profit >= 0 ? "#4ADE80" : "#F87171" },
-              { label: "粗利率",   value: null,        color: profitRate >= 25 ? "#4ADE80" : profitRate >= 15 ? "#FBBF24" : "#F87171", strVal: `${profitRate}%` },
-            ].map(({ label, value, color, strVal }) => (
-              <div key={label} className="rounded-xl p-3" style={{ background: "#0F1928" }}>
-                <p className="text-[10px] mb-1" style={{ color: "#64748B" }}>{label}</p>
-                <p className="text-base font-bold" style={{ color, fontFeatureSettings: "'tnum'" }}>
-                  {strVal ?? fmt(value!)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* ── 月次収支推移 ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <Label>収支推移グラフ</Label>
-            {canCompare && (
-              <button
-                onClick={() => setCompare(c => !c)}
-                className="text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all"
-                style={compare
-                  ? { background: "#F97316", color: "#FFF" }
-                  : { background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
-              >
-                昨年比較
-              </button>
-            )}
-          </div>
-          <Card className="p-4">
-            <BarChart bars={bars} compare={compare && canCompare} />
-            <div className="flex items-center gap-4 mt-2 justify-center">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(34,197,94,0.75)" }} />
-                <span className="text-[10px]" style={{ color: "#64748B" }}>
-                  {compare ? "今年 売上" : "売上"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(248,113,113,0.75)" }} />
-                <span className="text-[10px]" style={{ color: "#64748B" }}>
-                  {compare ? "今年 原価" : "原価"}
-                </span>
-              </div>
-              {compare && (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(34,197,94,0.25)" }} />
-                    <span className="text-[10px]" style={{ color: "#64748B" }}>昨年 売上</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(248,113,113,0.25)" }} />
-                    <span className="text-[10px]" style={{ color: "#64748B" }}>昨年 原価</span>
-                  </div>
-                </>
-              )}
+            {/* KPI 4-grid */}
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {[
+                { label: "売上高",   value: s.revenue,   color: C.green },
+                { label: "売上原価", value: totalCost,   color: C.red },
+                { label: "粗利益",   value: profit,      color: profit >= 0 ? C.green : C.red },
+                { label: "粗利率",   value: null,        color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red, strVal: `${profitRate}%` },
+              ].map(({ label, value, color, strVal }) => (
+                <div key={label} className="rounded-lg p-3" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                  <p className="text-[10px] mb-1" style={{ color: C.muted }}>{label}</p>
+                  <p className="text-base font-bold font-numeric" style={{ color }}>
+                    {strVal ?? fmt(value!)}
+                  </p>
+                </div>
+              ))}
             </div>
           </Card>
-        </section>
 
-        {/* ── 原価構造（ドーナツ） ── */}
-        <section>
-          <Label>原価構造分析</Label>
-          <Card className="p-4">
-            <div className="flex items-center gap-4">
-              {/* Donut */}
-              <div className="relative flex-shrink-0">
-                <DonutChart slices={pieSlices} size={160} outerR={70} innerR={44} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-[10px]" style={{ color: "#64748B" }}>原価合計</p>
-                  <p className="text-sm font-bold" style={{ color: "#F1F5F9" }}>{fmt(totalCost)}</p>
+          {/* 原価構造ドーナツ */}
+          <section>
+            <SectionLabel>原価構造分析</SectionLabel>
+            <Card className="p-5">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <DonutChart slices={pieSlices} size={160} outerR={70} innerR={44} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-[10px]" style={{ color: C.muted }}>原価合計</p>
+                    <p className="text-sm font-bold font-numeric" style={{ color: C.text }}>{fmt(totalCost)}</p>
+                  </div>
+                </div>
+                <div className="w-full flex flex-col gap-2.5">
+                  {pieSlices.map(({ label, value, color }) => {
+                    const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
+                    return (
+                      <div key={label}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+                            <span className="text-xs font-medium" style={{ color: C.sub }}>{label}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold font-numeric" style={{ color: C.muted }}>{fmt(value)}</span>
+                            <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              {/* Legend */}
-              <div className="flex flex-col gap-2.5 flex-1">
-                {pieSlices.map(({ label, value, color }) => {
-                  const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
-                  return (
-                    <div key={label}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5">
-                          <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                          <span className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>{label}</span>
-                        </div>
-                        <span className="text-[11px] font-bold" style={{ color }}>{pct}%</span>
-                      </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#0F1928" }}>
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                      </div>
-                      <p className="text-[10px] mt-0.5 text-right" style={{ color: "#64748B" }}>{fmt(value)}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
-        </section>
+            </Card>
+          </section>
 
-        {/* ── 現場別利益ランキング ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <Label>現場別利益ランキング</Label>
-            <button
-              onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
-              className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg"
-              style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
-            >
-              <ArrowUpDown size={10} />
-              {sortBy === "profitRate" ? "利益率順" : "利益額順"}
-            </button>
-          </div>
-          <Card>
-            {/* Table header */}
-            <div
-              className="grid px-4 py-2"
-              style={{ gridTemplateColumns: "1fr 72px 60px", borderBottom: "1px solid #2D3E54" }}
-            >
-              <span className="text-[10px] font-bold" style={{ color: "#475569" }}>現場名</span>
-              <span className="text-[10px] font-bold text-right" style={{ color: "#475569" }}>粗利</span>
-              <span className="text-[10px] font-bold text-right" style={{ color: "#475569" }}>粗利率</span>
-            </div>
-            {ranked.map((site, rank) => {
-              const siteProfit = site.contract - site.cost;
-              const siteProfitRate = site.cost > 0
-                ? Math.round((siteProfit / site.contract) * 100)
-                : null;
-              const rColor = siteProfitRate == null
-                ? "#64748B"
-                : siteProfitRate >= 25 ? "#4ADE80"
-                : siteProfitRate >= 15 ? "#FBBF24"
-                : "#F87171";
-              const isAlert = siteProfitRate != null && siteProfitRate < ALERT_THRESHOLD;
-              return (
-                <Link key={site.id} href={`/kaitai/sites/${site.id}`}>
-                  <div
-                    className="grid px-4 py-3 active:bg-white/5 transition-colors"
-                    style={{ gridTemplateColumns: "1fr 72px 60px", borderBottom: "1px solid #1E2D3D" }}
-                  >
-                    {/* Name + badges */}
-                    <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span
-                          className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                          style={{
-                            background: rank === 0 ? "rgba(251,191,36,0.15)" : "rgba(100,116,139,0.15)",
-                            color: rank === 0 ? "#FBBF24" : "#64748B",
-                          }}
-                        >
-                          {rank + 1}
-                        </span>
-                        {isAlert && <AlertTriangle size={9} style={{ color: "#FBBF24", flexShrink: 0 }} />}
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                          style={site.status === "完工"
-                            ? { background: "rgba(74,222,128,0.1)", color: "#4ADE80" }
-                            : site.status === "解体中"
-                            ? { background: "rgba(249,115,22,0.1)", color: "#FB923C" }
-                            : { background: "rgba(100,116,139,0.1)", color: "#64748B" }}
-                        >
-                          {site.status}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold truncate" style={{ color: "#E2E8F0" }}>{site.name}</p>
-                      {/* Profit bar */}
-                      {siteProfitRate != null && (
-                        <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: "#0F1928" }}>
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${Math.min(Math.max(siteProfitRate, 0), 100)}%`, background: rColor }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    {/* Profit amount */}
-                    <div className="text-right self-center">
-                      <p className="text-xs font-bold" style={{ color: rColor, fontFeatureSettings: "'tnum'" }}>
-                        {site.cost > 0 ? fmt(siteProfit) : "—"}
-                      </p>
-                    </div>
-                    {/* Profit rate */}
-                    <div className="flex items-center justify-end gap-1 self-center">
-                      <p className="text-sm font-bold" style={{ color: rColor }}>
-                        {siteProfitRate != null ? `${siteProfitRate}%` : "—"}
-                      </p>
-                      <ChevronRight size={12} style={{ color: "#475569" }} />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </Card>
-        </section>
-
+        </div>
       </div>
     </div>
   );
