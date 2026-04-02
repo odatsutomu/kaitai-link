@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import { AppProvider } from "./lib/app-context";
-import { KaitaiSidebar, KaitaiTopBar, KaitaiMobileNav } from "./components/kaitai-nav";
+import { KaitaiPCHeader, KaitaiMobileNav } from "./components/kaitai-nav";
 import { ThemeWrapper } from "./components/theme-wrapper";
 
 const noto = Noto_Sans_JP({
@@ -40,26 +40,23 @@ export default function KaitaiLayout({
   return (
     <AppProvider>
       <ThemeWrapper fontClass={noto.className}>
-        {/* サイドバー（fixed、フロー外） */}
-        <KaitaiSidebar />
-
-        {/* PCトップバー（sticky、mainより上に配置） */}
-        <KaitaiTopBar />
+        {/* PC トップヘッダー（lg以上・sticky） */}
+        <KaitaiPCHeader />
 
         {/* メインコンテンツ */}
-        <main className="flex-1 overflow-y-auto pb-36 md:pb-12">
+        <main className="flex-1 overflow-y-auto pb-36 lg:pb-12">
           {/*
             PC 向けコンテナ：
-            - 横幅を 1280px で制限（画面端まで広がらないように）
-            - 中央寄せ＋左右パディングで余白を確保
+            - 最大幅 1280px で中央寄せ
+            - 左右 40px (px-10) のパディング
             - モバイルはそのまま（各ページが自前でパディングを持つ）
           */}
-          <div className="w-full md:max-w-[1280px] md:mx-auto">
+          <div className="w-full lg:max-w-[1280px] lg:mx-auto lg:px-10">
             {children}
           </div>
         </main>
 
-        {/* モバイル底辺ナビ（md+では非表示） */}
+        {/* モバイル底辺ナビ（lg未満で表示） */}
         <KaitaiMobileNav />
       </ThemeWrapper>
     </AppProvider>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Users, MoreHorizontal, HardHat, TrendingUp, Settings,
   Calendar, ClipboardList, X, CreditCard, Plus, LogOut,
-  Building2, ChevronRight,
+  Building2,
 } from "lucide-react";
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
@@ -37,234 +37,199 @@ function isActive(href: string, p: string) {
   return p === href || (href !== "/kaitai" && p.startsWith(href));
 }
 
-// ─── PC フルサイドバー ─────────────────────────────────────────────────────────
-export function KaitaiSidebar() {
+// ─── PC ヘッダー (≥1024px) ──────────────────────────────────────────────────
+export function KaitaiPCHeader() {
   const pathname = usePathname();
-  const { adminMode, setAdminMode, company } = useAppContext();
+  const { adminMode, setAdminMode, company, plan } = useAppContext();
   if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
 
   const tabs = adminMode ? ADMIN_TABS : WORKER_TABS;
-
-  return (
-    <>
-      {/* ── lg+ フルサイドバー (w-64) ──────────────── */}
-      <aside
-        className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col z-50"
-        style={{ background: "#1E293B" }}
-      >
-        {/* ロゴ */}
-        <div className="px-4 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          {/* 白背景コンテナでロゴ画像を表示（ダークサイドバー対応） */}
-          <div className="rounded-xl px-3 py-2 inline-flex items-center"
-            style={{ background: "#FFFFFF" }}>
-            <Image
-              src="/logo.png"
-              alt="解体LINK"
-              width={144}
-              height={40}
-              style={{ objectFit: "contain", height: 40, width: "auto" }}
-              priority
-            />
-          </div>
-          {company?.name && (
-            <div className="truncate mt-2" style={{ color: "#64748B", fontSize: 10, paddingLeft: 2 }}>
-              {company.name}
-            </div>
-          )}
-        </div>
-
-        {/* 管理者バナー */}
-        {adminMode && (
-          <div className="mx-3 mt-3 px-3 py-2 rounded-lg flex items-center justify-between"
-            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#EF4444" }} />
-              <span style={{ color: "#F87171", fontSize: 11, fontWeight: 600 }}>管理者モード</span>
-            </div>
-            <button onClick={() => setAdminMode(false)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium"
-              style={{ background: "rgba(239,68,68,0.15)", color: "#F87171" }}>
-              <X size={9} />終了
-            </button>
-          </div>
-        )}
-
-        {/* ナビ */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-          {tabs.map(({ href, label, icon: Icon }) => {
-            const active = isActive(href, pathname);
-            return (
-              <Link key={href} href={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
-                style={{
-                  background: active ? "rgba(245,158,11,0.1)" : "transparent",
-                  borderLeft: `3px solid ${active ? "#F59E0B" : "transparent"}`,
-                  paddingLeft: active ? "calc(0.75rem - 3px)" : "0.75rem",
-                }}
-              >
-                <Icon size={16} strokeWidth={active ? 2.5 : 2}
-                  style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
-                <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? "#F1F5F9" : "#94A3B8" }}>
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* ボトムセクション */}
-        <div className="px-3 pb-5 flex flex-col gap-1" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-          {/* 新規現場登録ボタン */}
-          <Link href="/kaitai/sites/new">
-            <div className="flex items-center justify-center gap-2 mt-3 mb-2 py-2.5 rounded-lg font-semibold text-sm text-white transition-all"
-              style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.4)" }}>
-              <Plus size={15} />
-              新規現場登録
-            </div>
-          </Link>
-          <Link href="/kaitai/master"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-            style={{ color: "#94A3B8" }}>
-            <Settings size={15} />
-            <span style={{ fontSize: 13 }}>設定</span>
-          </Link>
-          <Link href="/kaitai/login"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
-            style={{ color: "#64748B" }}>
-            <LogOut size={15} />
-            <span style={{ fontSize: 13 }}>ログアウト</span>
-          </Link>
-        </div>
-      </aside>
-
-      {/* ── md only アイコンサイドバー (w-16) ─────── */}
-      <aside
-        className="hidden md:flex lg:hidden fixed left-0 top-0 h-full w-16 flex-col z-50"
-        style={{ background: "#1E293B" }}
-      >
-        <div className="flex items-center justify-center h-14 px-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="rounded-lg p-1" style={{ background: "#FFFFFF" }}>
-            <Image
-              src="/logo.png"
-              alt="解体LINK"
-              width={40}
-              height={40}
-              style={{ objectFit: "contain", height: 28, width: "auto" }}
-              priority
-            />
-          </div>
-        </div>
-        <nav className="flex-1 flex flex-col items-center py-3 gap-1">
-          {tabs.map(({ href, label, icon: Icon }) => {
-            const active = isActive(href, pathname);
-            return (
-              <Link key={href} href={href} title={label}
-                className="flex items-center justify-center w-10 h-10 rounded-lg"
-                style={{ background: active ? "rgba(245,158,11,0.12)" : "transparent" }}>
-                <Icon size={18} strokeWidth={active ? 2.5 : 2}
-                  style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="flex items-center justify-center h-12" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-          <Link href="/kaitai/master" title="設定">
-            <Settings size={16} style={{ color: "#64748B" }} />
-          </Link>
-        </div>
-      </aside>
-    </>
-  );
-}
-
-// ─── PC トップバー ─────────────────────────────────────────────────────────────
-const PAGE_TITLES: Record<string, string> = {
-  "/kaitai":          "現場管理",
-  "/kaitai/members":  "メンバー管理",
-  "/kaitai/work":     "作業報告",
-  "/kaitai/admin":    "収支分析",
-  "/kaitai/master":   "マスタ設定",
-  "/kaitai/schedule": "全体予定",
-  "/kaitai/report":   "作業報告入力",
-  "/kaitai/menu":     "メニュー",
-};
-
-export function KaitaiTopBar() {
-  const pathname = usePathname();
-  const { company, adminMode, setAdminMode } = useAppContext();
-  if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
-
-  const title = Object.entries(PAGE_TITLES)
-    .sort((a, b) => b[0].length - a[0].length)
-    .find(([k]) => pathname === k || pathname.startsWith(k + "/"))?.[1] ?? "解体LINK";
+  const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Free";
 
   return (
     <header
-      className="hidden md:flex items-center justify-between px-6 sticky top-0 z-30 flex-shrink-0"
+      className="hidden lg:block sticky top-0 z-50 flex-shrink-0 w-full"
       style={{
-        height: 52,
+        height: 80,
         background: "#FFFFFF",
-        borderBottom: "1px solid #E2E8F0",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        borderBottom: "1px solid #E5E7EB",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>{title}</span>
-      <div className="flex items-center gap-2">
-        {adminMode ? (
-          <button onClick={() => setAdminMode(false)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}>
-            <X size={11} />管理者モード終了
-          </button>
-        ) : (
-          <span className="px-2.5 py-1 rounded-md text-xs font-medium"
-            style={{ background: "#F1F5F9", color: "#64748B", border: "1px solid #E2E8F0" }}>
-            現場スタッフ
-          </span>
-        )}
-        {company?.name && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-            style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
-            <Building2 size={12} style={{ color: "#94A3B8" }} />
-            <span style={{ fontSize: 12, fontWeight: 500, color: "#334155" }} className="max-w-[160px] truncate">
-              {company.name}
-            </span>
-          </div>
-        )}
-        {/* プラン */}
-        <Link href="/kaitai/billing"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
-          <CreditCard size={12} style={{ color: "#F59E0B" }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706" }}>
-            {company?.plan ? company.plan.charAt(0).toUpperCase() + company.plan.slice(1) : "Free"}
-          </span>
+      {/* 最大幅コンテナ */}
+      <div
+        className="flex items-center h-full mx-auto px-10"
+        style={{ maxWidth: 1280 }}
+      >
+        {/* ── 左：ロゴ ── */}
+        <Link href="/kaitai" className="flex-shrink-0 mr-10">
+          <Image
+            src="/logo.png"
+            alt="解体LINK"
+            width={144}
+            height={40}
+            style={{ objectFit: "contain", height: 40, width: "auto" }}
+            priority
+          />
         </Link>
+
+        {/* ── 中央：メインナビタブ ── */}
+        <nav className="flex items-center flex-1" style={{ gap: 32 }}>
+          {tabs.map(({ href, label }) => {
+            const active = isActive(href, pathname);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="relative flex items-center transition-colors"
+                style={{
+                  fontSize: 15,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? "#F59E0B" : "#64748B",
+                  paddingBottom: 4,
+                  borderBottom: `2px solid ${active ? "#F59E0B" : "transparent"}`,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* ── 右：アクション群 ── */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {/* 新規現場ボタン */}
+          <Link href="/kaitai/sites/new">
+            <div
+              className="flex items-center gap-1.5 rounded-xl font-bold transition-all"
+              style={{
+                height: 40,
+                padding: "0 16px",
+                background: "#F59E0B",
+                color: "#FFFFFF",
+                fontSize: 13,
+                boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+              }}
+            >
+              <Plus size={14} />
+              新規現場
+            </div>
+          </Link>
+
+          {/* 管理者モードバッジ／終了 */}
+          {adminMode ? (
+            <button
+              onClick={() => setAdminMode(false)}
+              className="flex items-center gap-1.5 rounded-xl font-medium"
+              style={{
+                height: 36,
+                padding: "0 14px",
+                background: "#FEF2F2",
+                color: "#DC2626",
+                border: "1px solid #FECACA",
+                fontSize: 12,
+              }}
+            >
+              <X size={12} />
+              管理者モード終了
+            </button>
+          ) : (
+            <span
+              className="flex items-center rounded-lg"
+              style={{
+                height: 32,
+                padding: "0 10px",
+                background: "#F1F5F9",
+                color: "#64748B",
+                fontSize: 12,
+                fontWeight: 600,
+                border: "1px solid #E2E8F0",
+              }}
+            >
+              現場スタッフ
+            </span>
+          )}
+
+          {/* プランバッジ */}
+          <Link
+            href="/kaitai/billing"
+            className="flex items-center gap-1.5 rounded-lg"
+            style={{
+              height: 32,
+              padding: "0 10px",
+              background: "rgba(245,158,11,0.08)",
+              border: "1px solid rgba(245,158,11,0.2)",
+            }}
+          >
+            <CreditCard size={12} style={{ color: "#F59E0B" }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706" }}>
+              {planLabel}
+            </span>
+          </Link>
+
+          {/* 会社名チップ */}
+          {company?.name && (
+            <div
+              className="flex items-center gap-1.5 rounded-lg"
+              style={{
+                height: 36,
+                padding: "0 12px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+              }}
+            >
+              <Building2 size={13} style={{ color: "#94A3B8" }} />
+              <span
+                className="max-w-[160px] truncate"
+                style={{ fontSize: 13, fontWeight: 500, color: "#334155" }}
+              >
+                {company.name}
+              </span>
+            </div>
+          )}
+
+          {/* ログアウト */}
+          <Link
+            href="/kaitai/login"
+            className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
+            title="ログアウト"
+            style={{ width: 36, height: 36 }}
+          >
+            <LogOut size={16} style={{ color: "#94A3B8" }} />
+          </Link>
+        </div>
       </div>
     </header>
   );
 }
 
-// ─── モバイルナビ ─────────────────────────────────────────────────────────────
+// ─── モバイルナビ (<1024px) ───────────────────────────────────────────────────
 function AdminMobileNav({ pathname }: { pathname: string }) {
   const { setAdminMode } = useAppContext();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 flex flex-col z-40 w-full"
+    <nav
+      className="fixed bottom-0 left-0 right-0 flex flex-col z-40 w-full"
       style={{
         background: "#1E293B",
         borderTop: "2px solid rgba(255,255,255,0.12)",
         boxShadow: "0 -4px 20px rgba(0,0,0,0.25)",
         paddingBottom: "env(safe-area-inset-bottom)",
-      }}>
-      <div className="flex items-center justify-between px-5 py-1.5"
-        style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)" }}>
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-1.5"
+        style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)" }}
+      >
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
           <span style={{ color: "#F87171", fontSize: 11, fontWeight: 700 }}>管理者モード</span>
         </div>
-        <button onClick={() => setAdminMode(false)}
+        <button
+          onClick={() => setAdminMode(false)}
           className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
-          style={{ background: "rgba(239,68,68,0.18)", color: "#F87171" }}>
+          style={{ background: "rgba(239,68,68,0.18)", color: "#F87171" }}
+        >
           <X size={10} />終了
         </button>
       </div>
@@ -272,9 +237,15 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
         {ADMIN_TABS.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname);
           return (
-            <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-1 py-3">
+            <Link
+              key={href}
+              href={href}
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-3"
+            >
               <Icon size={20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>{label}</span>
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>
+                {label}
+              </span>
             </Link>
           );
         })}
@@ -288,39 +259,56 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
   const tabs = [
     { href: "/kaitai",          label: "現場状況", icon: Home,           active: pathname === "/kaitai",                  center: false },
     { href: "/kaitai/schedule", label: "全体予定", icon: Calendar,       active: pathname.startsWith("/kaitai/schedule"), center: false },
-    { href: "/kaitai/report",   label: "報告",     icon: ClipboardList,  active: pathname.startsWith("/kaitai/report"),   center: true },
+    { href: "/kaitai/report",   label: "報告",     icon: ClipboardList,  active: pathname.startsWith("/kaitai/report"),   center: true  },
     { href: "/kaitai/members",  label: "メンバー", icon: Users,          active: pathname.startsWith("/kaitai/members"),  center: false },
     { href: "/kaitai/menu",     label: "メニュー", icon: MoreHorizontal, active: pathname.startsWith("/kaitai/menu"),     center: false },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch w-full"
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch w-full"
       style={{
         background: "#FFFFFF",
         borderTop: "2px solid #E2E8F0",
         boxShadow: "0 -4px 20px rgba(0,0,0,0.10)",
         paddingBottom: "env(safe-area-inset-bottom)",
         height: `calc(${NAV_H}px + env(safe-area-inset-bottom))`,
-      }}>
+      }}
+    >
       {tabs.map(({ href, label, icon: Icon, active, center }) => (
-        <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-1" style={{ minHeight: NAV_H }}>
+        <Link
+          key={href}
+          href={href}
+          className="flex-1 flex flex-col items-center justify-center gap-1"
+          style={{ minHeight: NAV_H }}
+        >
           {center ? (
             <>
-              <div className="flex items-center justify-center rounded-full"
-                style={{ width: 48, height: 48, background: "#F59E0B", boxShadow: "0 4px 12px rgba(245,158,11,0.45)", marginTop: -8 }}>
+              <div
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width: 48, height: 48,
+                  background: "#F59E0B",
+                  boxShadow: "0 4px 12px rgba(245,158,11,0.45)",
+                  marginTop: -8,
+                }}
+              >
                 <Icon size={22} color="#FFF" strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>{label}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>
+                {label}
+              </span>
             </>
           ) : (
             <>
-              <div className="flex items-center justify-center rounded-xl transition-colors"
-                style={{
-                  width: 40, height: 32,
-                  background: active ? "rgba(245,158,11,0.1)" : "transparent",
-                }}>
+              <div
+                className="flex items-center justify-center rounded-xl transition-colors"
+                style={{ width: 40, height: 32, background: active ? "rgba(245,158,11,0.1)" : "transparent" }}
+              >
                 <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>{label}</span>
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>
+                {label}
+              </span>
             </>
           )}
         </Link>
@@ -334,7 +322,7 @@ export function KaitaiMobileNav() {
   const { adminMode } = useAppContext();
   if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       {adminMode ? <AdminMobileNav pathname={pathname} /> : <WorkerMobileNav pathname={pathname} />}
     </div>
   );
