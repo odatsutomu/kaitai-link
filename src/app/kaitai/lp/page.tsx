@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OperatorLoginButton } from "./operator-login-button";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -583,10 +584,13 @@ export default function KaitaiLpPage() {
             borderTop: `1px solid ${C.border}`,
             paddingTop: 24,
             display: "flex", flexWrap: "wrap",
-            justifyContent: "space-between", gap: 8,
+            justifyContent: "space-between", alignItems: "center", gap: 8,
           }}>
             <span style={{ fontSize: 12, color: C.textMuted }}>© 2026 解体LINK. All rights reserved.</span>
-            <span style={{ fontSize: 12, color: C.textMuted }}>解体LINKは現場管理を効率化するSaaSツールです。</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span style={{ fontSize: 12, color: C.textMuted }}>解体LINKは現場管理を効率化するSaaSツールです。</span>
+              <OperatorLoginButton />
+            </div>
           </div>
         </div>
       </footer>
