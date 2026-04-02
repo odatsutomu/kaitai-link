@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import { AppProvider } from "./lib/app-context";
-import { KaitaiNav } from "./components/kaitai-nav";
+import { KaitaiSidebar, KaitaiTopBar, KaitaiMobileNav } from "./components/kaitai-nav";
 import { ThemeWrapper } from "./components/theme-wrapper";
 
 const noto = Noto_Sans_JP({
@@ -40,9 +40,19 @@ export default function KaitaiLayout({
   return (
     <AppProvider>
       <ThemeWrapper fontClass={noto.className}>
-        {/* スマホ：pb-24（底辺ナビ分）、タブレット以上：pb-8（サイドバーナビのみ） */}
-        <main className="flex-1 overflow-y-auto pb-24 md:pb-8">{children}</main>
-        <KaitaiNav />
+        {/* サイドバー（fixed、フロー外） */}
+        <KaitaiSidebar />
+
+        {/* PCトップバー（sticky、mainより上に配置） */}
+        <KaitaiTopBar />
+
+        {/* メインコンテンツ */}
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
+          {children}
+        </main>
+
+        {/* モバイル底辺ナビ（md+では非表示） */}
+        <KaitaiMobileNav />
       </ThemeWrapper>
     </AppProvider>
   );

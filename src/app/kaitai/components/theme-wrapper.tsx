@@ -27,33 +27,33 @@ export function ThemeWrapper({
 
   return (
     <div
-      className={`${fontClass} min-h-screen`}
+      className={`${fontClass} min-h-screen flex`}
       style={{
-        background: noSidebar
-          ? (dark ? "#070E1A" : "#F0F2F5")
-          : (dark ? "#070E1A" : "#EEF0F4"),
+        background: dark ? "#070E1A" : "#EEF0F4",
         color: dark ? "#F1F5F9" : "#111111",
       }}
     >
+      {/*
+        ── サイドバーが存在するページでは「スペーサー」を挿入 ──
+        固定(fixed)サイドバーはドキュメントフローの外なので
+        同幅の透明スペーサーでコンテンツを右にズラす。
+        モバイル(<768px)：hidden → スペーサーなし＝全幅
+        タブレット(768-1024px)：w-16 (64px)
+        PC(1024px+)：w-64 (256px)
+      */}
+      {!noSidebar && (
+        <>
+          <div className="hidden lg:block w-64 flex-shrink-0" />
+          <div className="hidden md:block lg:hidden w-16 flex-shrink-0" />
+        </>
+      )}
+
+      {/* コンテンツ列：スペーサーの残りを埋める */}
       <div
-        className={[
-          "flex flex-col relative",
-          noSidebar
-            // サイドバーなし：常に中央480px
-            ? "mx-auto max-w-[480px] min-h-svh"
-            : [
-                // スマホ・タブレット：中央480px
-                "mx-auto max-w-[480px] min-h-svh",
-                // PC（lg以上）：サイドバー分オフセット・全幅
-                "lg:mx-0 lg:ml-64 lg:max-w-none",
-                // タブレット（md）：アイコンサイドバー分オフセット
-                "md:mx-0 md:ml-16 md:max-w-none",
-              ].join(" "),
-        ].join(" ")}
+        className="flex-1 min-w-0 flex flex-col"
         style={{
+          minHeight: "100svh",
           background: dark ? "#0F1928" : "#FFFFFF",
-          // スマホ中央表示のときだけ影
-          boxShadow: noSidebar ? "0 0 40px rgba(0,0,0,0.15)" : undefined,
         }}
       >
         {children}
