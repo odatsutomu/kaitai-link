@@ -62,8 +62,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { setAuthLevel, setCompany, addLog } = useAppContext();
 
-  const [loginId,  setLoginId]  = useState("");
-  const [password, setPassword] = useState("");
+  const [loginId,  setLoginId]  = useState("kaitai-demo");
+  const [password, setPassword] = useState("kaitai2026");
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -177,7 +177,7 @@ export default function LoginPage() {
 
           {/* Demo hint */}
           <div className="mt-4 rounded-2xl p-4" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-            <p style={{ fontSize: 11, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント</p>
+            <p style={{ fontSize: 11, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント（タップで切り替え）</p>
             <div className="flex flex-col gap-1">
               {[
                 { id: "kaitai-demo", pw: "kaitai2026", company: "解体工業株式会社" },

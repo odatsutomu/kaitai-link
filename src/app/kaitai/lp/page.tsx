@@ -56,14 +56,26 @@ export default function KaitaiLpPage() {
         <span style={{ fontSize: 20, fontWeight: 900, color: C.orange, letterSpacing: "-0.02em" }}>
           解体LINK
         </span>
-        <Link href="/kaitai/demo" style={{
-          background: C.orange, color: "#fff",
-          padding: "8px 20px", borderRadius: 8,
-          fontWeight: 700, fontSize: 14, textDecoration: "none",
-          whiteSpace: "nowrap",
-        }}>
-          デモを試す
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link href="/kaitai/login" style={{
+            border: `1.5px solid ${C.border}`,
+            color: C.textSub,
+            padding: "7px 18px", borderRadius: 8,
+            fontWeight: 700, fontSize: 14, textDecoration: "none",
+            whiteSpace: "nowrap",
+            background: "transparent",
+          }}>
+            ログイン
+          </Link>
+          <Link href="/kaitai/demo" style={{
+            background: C.orange, color: "#fff",
+            padding: "8px 20px", borderRadius: 8,
+            fontWeight: 700, fontSize: 14, textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}>
+            デモを試す
+          </Link>
+        </div>
       </nav>
 
       {/* ── 2. Hero ────────────────────────────────────────────────────────── */}
@@ -128,16 +140,16 @@ export default function KaitaiLpPage() {
           }}>
             デモを体験する（ログイン不要）
           </Link>
-          <a href="#features" style={{
-            border: `1.5px solid ${C.border}`,
-            color: C.textSub,
+          <Link href="/kaitai/login" style={{
+            border: `1.5px solid rgba(255,255,255,0.2)`,
+            color: C.textPri,
             padding: "16px 32px", borderRadius: 12,
             fontWeight: 700, fontSize: 17, textDecoration: "none",
-            background: "transparent",
+            background: "rgba(255,255,255,0.06)",
             letterSpacing: "-0.01em",
           }}>
-            機能を見る
-          </a>
+            ログインする →
+          </Link>
         </div>
 
         {/* Stats */}
