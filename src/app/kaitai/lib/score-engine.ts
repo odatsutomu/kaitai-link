@@ -1,17 +1,30 @@
 /**
- * 減衰型スコア算出エンジン
+ * 減衰型スコア算出エンジン（1000点満点）
+ *
+ * 3要素合計:
+ *   基礎スキル点  MAX 200  — 資格数 × LICENSE_POINTS（上限4資格分）
+ *   実績・ボーナス点 MAX 500 — 月次評価加重平均 + 指導ボーナス + 成長ボーナス
+ *   信頼性点     MAX 300  — 出勤率 × 200 + 日報提出率 × 100
  *
  * - 月次評価は直近90日（3ヶ月）のみ使用
- * - 加重移動平均: 当月 * 0.5 + 先月 * 0.3 + 先々月 * 0.2
- * - 資格ベースポイント: 1資格あたり LICENSE_POINTS pt（減衰対象外）
+ * - 加重移動平均: 当月 × 0.5 + 先月 × 0.3 + 先々月 × 0.2
  */
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-/** Points per license (floor component, immune to decay) */
+/** Points per license (max 4 licenses counted = 200 pts) */
 export const LICENSE_POINTS = 50;
 
-/** Score floor — skilled workers never drop below this */
+/** Max base skill score */
+const BASE_MAX = 200;
+
+/** Max performance score */
+const PERF_MAX = 500;
+
+/** Max reliability score */
+const RELIABILITY_MAX = 300;
+
+/** Score floor — licensed workers never drop below this */
 export const SCORE_FLOOR = 200;
 
 /** Weights for weighted moving average (index 0 = current month) */
@@ -20,8 +33,14 @@ const MONTH_WEIGHTS = [0.5, 0.3, 0.2] as const;
 /** Max possible evaluation score per month (5 criteria × 5 points each) */
 const MAX_MONTHLY_RAW = 25;
 
-/** Normalized scale: raw monthly score mapped to this range */
-const NORMALIZED_MAX = 500;
+/** Normalized eval scale: raw monthly score mapped to 0–400 (leaving room for bonuses within 500 cap) */
+const NORMALIZED_EVAL_MAX = 400;
+
+/** Points per teaching event (90-day decay) */
+export const TEACHING_POINTS = 15;
+
+/** Points per skill learned (90-day decay) */
+export const LEARNING_POINTS = 20;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,25 +61,27 @@ export type MemberScoreInput = {
   teachingCount?: number;
   /** Number of skills this member learned (within 90-day window) */
   learningCount?: number;
+  /** Attendance percentage 0–100 */
+  attendancePct?: number;
+  /** Report submission percentage 0–100 */
+  reportPct?: number;
 };
-
-/** Points per teaching event (90-day decay) */
-export const TEACHING_POINTS = 15;
-
-/** Points per skill learned (90-day decay) */
-export const LEARNING_POINTS = 20;
 
 export type ComputedScore = {
   memberId: string;
-  /** Weighted moving average of normalized monthly scores (0–500) */
+  /** 基礎スキル点 (0–200): licenses × LICENSE_POINTS, capped */
+  baseScore: number;
+  /** 実績・ボーナス点 (0–500): eval avg + teaching + growth, capped */
+  perfScore: number;
+  /** Eval component within perfScore (0–400) */
   evalScore: number;
-  /** License-based floor points (licenses.length × LICENSE_POINTS) */
-  licenseFloor: number;
-  /** Teaching bonus: teachingCount × TEACHING_POINTS */
+  /** Teaching bonus within perfScore */
   teachingBonus: number;
-  /** Growth momentum: learningCount × LEARNING_POINTS */
+  /** Growth bonus within perfScore */
   growthBonus: number;
-  /** Total = max(evalScore + licenseFloor + teachingBonus + growthBonus, SCORE_FLOOR if licenses > 0) */
+  /** 信頼性点 (0–300): attendance + report rates */
+  reliabilityScore: number;
+  /** Total = baseScore + perfScore + reliabilityScore (0–1000) */
   totalScore: number;
   /** Per-criteria weighted averages (1–5 scale) */
   criteria: {
@@ -70,7 +91,7 @@ export type ComputedScore = {
     score4: number;
     score5: number;
   };
-  /** How many months of data were used (0–3) */
+  /** How many months of eval data were used (0–3) */
   monthsUsed: number;
   /** Grade label based on total score */
   grade: string;
@@ -96,15 +117,15 @@ function rawMonthlyScore(ev: MonthlyEvalRecord): number {
 }
 
 function normalizeScore(raw: number): number {
-  return (raw / MAX_MONTHLY_RAW) * NORMALIZED_MAX;
+  return (raw / MAX_MONTHLY_RAW) * NORMALIZED_EVAL_MAX;
 }
 
 function gradeFromScore(total: number): { grade: string; color: string } {
-  if (total >= 600) return { grade: "S", color: "#7C3AED" };
-  if (total >= 500) return { grade: "A", color: "#16A34A" };
-  if (total >= 400) return { grade: "B", color: "#3B82F6" };
-  if (total >= 300) return { grade: "C", color: "#F59E0B" };
-  if (total >= 200) return { grade: "D", color: "#F97316" };
+  if (total >= 900) return { grade: "S", color: "#7C3AED" };
+  if (total >= 750) return { grade: "A", color: "#16A34A" };
+  if (total >= 600) return { grade: "B", color: "#3B82F6" };
+  if (total >= 450) return { grade: "C", color: "#F59E0B" };
+  if (total >= 300) return { grade: "D", color: "#F97316" };
   return { grade: "E", color: "#EF4444" };
 }
 
@@ -124,12 +145,15 @@ export function computeScore(
     }
   }
 
-  // Weighted moving average
+  // ── 1. 基礎スキル点 (MAX 200) ──
+  const baseScore = Math.min(input.licenses.length * LICENSE_POINTS, BASE_MAX);
+
+  // ── 2. 実績・ボーナス点 (MAX 500) ──
+  // Weighted moving average of evaluations
   let weightedSum = 0;
   let weightTotal = 0;
   let monthsUsed = 0;
 
-  // Per-criteria weighted sums
   const criteriaSum = { score1: 0, score2: 0, score3: 0, score4: 0, score5: 0 };
 
   for (let i = 0; i < windowMonths.length; i++) {
@@ -137,7 +161,7 @@ export function computeScore(
     if (!ev) continue;
 
     const raw = rawMonthlyScore(ev);
-    if (raw === 0) continue; // Skip months with no actual scores
+    if (raw === 0) continue;
 
     const weight = MONTH_WEIGHTS[i];
     weightedSum += normalizeScore(raw) * weight;
@@ -153,7 +177,6 @@ export function computeScore(
 
   const evalScore = weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 0;
 
-  // Normalize per-criteria to 1–5 scale
   const criteria = weightTotal > 0
     ? {
         score1: Math.round((criteriaSum.score1 / weightTotal) * 10) / 10,
@@ -164,15 +187,21 @@ export function computeScore(
       }
     : { score1: 0, score2: 0, score3: 0, score4: 0, score5: 0 };
 
-  // License floor
-  const licenseFloor = input.licenses.length * LICENSE_POINTS;
-
-  // Skill-based bonuses (90-day decay built-in via windowed counts)
   const teachingBonus = (input.teachingCount ?? 0) * TEACHING_POINTS;
   const growthBonus = (input.learningCount ?? 0) * LEARNING_POINTS;
 
-  // Total with floor protection
-  let totalScore = evalScore + licenseFloor + teachingBonus + growthBonus;
+  const perfScore = Math.min(evalScore + teachingBonus + growthBonus, PERF_MAX);
+
+  // ── 3. 信頼性点 (MAX 300) ──
+  // attendance rate contributes up to 200, report rate up to 100
+  const attendancePart = Math.round(((input.attendancePct ?? 0) / 100) * 200);
+  const reportPart = Math.round(((input.reportPct ?? 0) / 100) * 100);
+  const reliabilityScore = Math.min(attendancePart + reportPart, RELIABILITY_MAX);
+
+  // ── Total ──
+  let totalScore = baseScore + perfScore + reliabilityScore;
+
+  // Floor protection for licensed workers
   if (input.licenses.length > 0 && totalScore < SCORE_FLOOR) {
     totalScore = SCORE_FLOOR;
   }
@@ -181,10 +210,12 @@ export function computeScore(
 
   return {
     memberId: input.memberId,
+    baseScore,
+    perfScore,
     evalScore,
-    licenseFloor,
     teachingBonus,
     growthBonus,
+    reliabilityScore,
     totalScore,
     criteria,
     monthsUsed,

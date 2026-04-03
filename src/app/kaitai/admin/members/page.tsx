@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import {
   Search, Award, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X, ClipboardList,
+  AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X,
 } from "lucide-react";
 import {
   MEMBER_STATS, LICENSE_LABELS,
@@ -51,9 +50,10 @@ const C = {
 type ScoreData = { memberId: string; totalScore: number; grade: string; gradeColor: string };
 
 function scoreColor(total: number): string {
-  if (total >= 700) return T.primary;
-  if (total >= 500) return "#16A34A";
-  if (total >= 400) return "#3B82F6";
+  if (total >= 900) return "#7C3AED";
+  if (total >= 750) return T.primary;
+  if (total >= 600) return "#16A34A";
+  if (total >= 450) return "#3B82F6";
   return "#EF4444";
 }
 
@@ -187,7 +187,6 @@ function SkillMap({ members: MEMBERS }: { members: Member[] }) {
 
 // ─── Member card (admin) ──────────────────────────────────────────────────────
 function MemberCard({ m, rank, score }: { m: Member; rank: number; score?: ScoreData }) {
-  const router = useRouter();
   const yrs = experienceYears(m);
   const lvl = experienceLevel(yrs);
   const s   = getStats(m.id);
@@ -263,18 +262,6 @@ function MemberCard({ m, rank, score }: { m: Member; rank: number; score?: Score
           <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: C.muted }}>
             日当 ¥{m.dayRate?.toLocaleString("ja-JP") ?? "—"}
           </span>
-        </div>
-        {/* Skill sheet link */}
-        <div
-          onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/kaitai/admin/skills/member?id=${m.id}`); }}
-          className="flex items-center justify-center gap-2 mt-3 pt-3 active:scale-[0.98] transition-all cursor-pointer"
-          style={{
-            borderTop: `1px solid ${C.border}`, padding: "10px 0",
-            fontSize: 13, fontWeight: 700, color: C.amber,
-          }}
-        >
-          <ClipboardList size={14} />
-          スキルチェックシート
         </div>
       </div>
     </Link>

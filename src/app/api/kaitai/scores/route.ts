@@ -72,6 +72,8 @@ export async function GET(req: NextRequest) {
   }
 
   // Build input for scoring engine
+  // Note: attendancePct and reportPct default to 95/90 as placeholder
+  // until a real attendance tracking system is built
   const inputs: MemberScoreInput[] = members.map(m => ({
     memberId: m.id,
     licenses: m.licenses,
@@ -85,6 +87,8 @@ export async function GET(req: NextRequest) {
     })),
     teachingCount: teachingCounts.get(m.id) ?? 0,
     learningCount: learningCounts.get(m.id) ?? 0,
+    attendancePct: 95,
+    reportPct: 90,
   }));
 
   const scores = computeAllScores(inputs, month);

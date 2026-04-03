@@ -10,8 +10,10 @@ import { LICENSE_POINTS } from "../../lib/score-engine";
 
 type ComputedScore = {
   memberId: string;
+  baseScore: number;
+  perfScore: number;
   evalScore: number;
-  licenseFloor: number;
+  reliabilityScore: number;
   totalScore: number;
   criteria: { score1: number; score2: number; score3: number; score4: number; score5: number };
   monthsUsed: number;
@@ -546,10 +548,10 @@ export default function AdminMonthlyEvalPage() {
                 </div>
 
                 <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: sc.evalScore > 0 ? T.text : T.muted }}>
-                    {sc.evalScore}
+                  <span style={{ fontSize: 16, fontWeight: 700, color: sc.perfScore > 0 ? T.text : T.muted }}>
+                    {sc.perfScore}
                   </span>
-                  <span style={{ fontSize: 11, color: T.muted }}> pt</span>
+                  <span style={{ fontSize: 11, color: T.muted }}> /500</span>
                   {sc.monthsUsed > 0 && (
                     <div style={{ fontSize: 10, color: T.muted }}>{sc.monthsUsed}ヶ月分</div>
                   )}
@@ -558,10 +560,10 @@ export default function AdminMonthlyEvalPage() {
                 <div style={{ textAlign: "center" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                     <Shield size={12} style={{ color: "#3B82F6" }} />
-                    <span style={{ fontSize: 16, fontWeight: 700, color: sc.licenseFloor > 0 ? "#3B82F6" : T.muted }}>
-                      {sc.licenseFloor}
+                    <span style={{ fontSize: 16, fontWeight: 700, color: sc.baseScore > 0 ? "#3B82F6" : T.muted }}>
+                      {sc.baseScore}
                     </span>
-                    <span style={{ fontSize: 11, color: T.muted }}>pt</span>
+                    <span style={{ fontSize: 11, color: T.muted }}>/200</span>
                   </div>
                 </div>
 

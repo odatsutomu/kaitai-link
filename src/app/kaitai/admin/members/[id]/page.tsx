@@ -26,8 +26,9 @@ type ApiMember = {
 };
 
 type ScoreData = {
-  memberId: string; evalScore: number; licenseFloor: number;
-  teachingBonus: number; growthBonus: number;
+  memberId: string; baseScore: number; perfScore: number;
+  evalScore: number; teachingBonus: number; growthBonus: number;
+  reliabilityScore: number;
   totalScore: number; grade: string; gradeColor: string;
   criteria: { score1: number; score2: number; score3: number; score4: number; score5: number };
   monthsUsed: number;
@@ -481,14 +482,13 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
               <Card style={{ padding: 20 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    { label: "月次評価スコア", value: score.evalScore, color: ACCENT },
-                    { label: "資格ベースポイント", value: score.licenseFloor, color: "#3B82F6" },
-                    { label: "教育ボーナス", value: score.teachingBonus, color: "#7C3AED" },
-                    { label: "成長モメンタム", value: score.growthBonus, color: "#10B981" },
+                    { label: "基礎スキル点", value: score.baseScore, color: "#3B82F6", max: 200 },
+                    { label: "実績・ボーナス点", value: score.perfScore, color: ACCENT, max: 500 },
+                    { label: "信頼性点", value: score.reliabilityScore, color: "#10B981", max: 300 },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 14, color: T.sub }}>{label}</span>
-                      <span style={{ fontSize: 16, fontWeight: 700, color }}>+{value} pt</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color }}>{value} pt</span>
                     </div>
                   ))}
                   <div style={{ borderTop: `2px solid ${T.border}`, paddingTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
