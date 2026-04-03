@@ -32,9 +32,9 @@ const C_MEM = {
   amber: "#F59E0B", amberDk: "#D97706",
 };
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`rounded-xl ${className}`} style={{ background: C_MEM.card, border: `1px solid ${C_MEM.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+    <div className={`rounded-xl ${className}`} style={{ background: C_MEM.card, border: `1px solid ${C_MEM.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", ...style }}>
       {children}
     </div>
   );
