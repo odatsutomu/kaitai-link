@@ -1,17 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search, Star, Award, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, Zap, Users, Clock, Plus, BarChart2,
+  AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X,
 } from "lucide-react";
 import {
-  MEMBERS, MEMBER_STATS, LICENSE_LABELS,
+  MEMBER_STATS, LICENSE_LABELS,
   experienceYears, experienceLevel,
-  type License,
+  type Member, type License,
 } from "../../lib/members";
 import { T } from "../../lib/design-tokens";
+
+// ─── API member → local Member adapter ───────────────────────────────────────
+type ApiMember = {
+  id: string; name: string; kana?: string | null;
+  type?: string | null; company2?: string | null;
+  role?: string | null; birthDate?: string | null;
+  hireDate?: string | null; address?: string | null;
+  emergency?: string | null; licenses?: string[] | null;
+  preYears?: number | null; siteCount?: number | null;
+  dayRate?: number | null; avatar?: string | null;
+};
+
+function toMember(a: ApiMember): Member {
+  return {
+    id: a.id, name: a.name,
+    kana: a.kana ?? "", type: (a.type as "直用" | "外注") ?? "直用",
+    company: a.company2 ?? undefined,
+    birthDate: a.birthDate ?? "", hireDate: a.hireDate ?? "",
+    address: a.address ?? "", emergency: a.emergency ?? "",
+    licenses: (a.licenses ?? []) as License[],
+    preYears: a.preYears ?? 0, siteCount: a.siteCount ?? 0,
+    dayRate: a.dayRate ?? 0, role: a.role ?? "作業員",
+    avatar: a.avatar ?? "👤",
+  };
+}
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -34,8 +59,21 @@ function Stars({ n, color }: { n: number; color: string }) {
 
 type SortOrder = "名前" | "経験" | "スコア";
 
-function activityScore(m: (typeof MEMBERS)[0]): number {
-  const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+const EMPTY_STATS = {
+  memberId: "", workDays: 0, lateDays: 0, absentDays: 0, totalHours: 0,
+  avgOvertime: 0, attendancePct: 0, calendar: [] as ("出勤" | "遅刻" | "欠勤" | "休日" | "未来")[],
+  radar: { attendance: 50, safety: 50, skill: 50, communication: 50, efficiency: 50 },
+  efficiencyDelta: 0, ruleViolations: 0, positiveFeedback: [] as string[],
+  troubles: [] as { id: string; date: string; site: string; type: string; detail: string; adminScore: number | null; adminMemo?: string }[],
+  siteEvals: [] as { date: string; site: string; role: string; tags: string[]; memo?: string }[],
+};
+
+function getStats(memberId: string) {
+  return MEMBER_STATS.find(x => x.memberId === memberId) ?? { ...EMPTY_STATS, memberId };
+}
+
+function activityScore(m: Member): number {
+  const s = getStats(m.id);
   const att = s.attendancePct * 0.5;
   const eff = (50 + Math.max(-50, Math.min(50, s.efficiencyDelta))) * 0.3;
   const lic = Math.min(15, m.licenses.length * 3);
@@ -64,13 +102,13 @@ function MiniRadar({ radar }: { radar: Record<string, number> }) {
 }
 
 // ─── Alert section ────────────────────────────────────────────────────────────
-function AlertSection() {
+function AlertSection({ members: MEMBERS }: { members: Member[] }) {
   const warnings = MEMBERS.filter(m => {
-    const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+    const s = getStats(m.id);
     return s.troubles.length > 0 || s.ruleViolations > 1 || s.lateDays >= 3;
   });
   const rising = MEMBERS.filter(m => {
-    const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+    const s = getStats(m.id);
     return s.efficiencyDelta >= 10;
   });
   if (warnings.length === 0 && rising.length === 0) return null;
@@ -87,7 +125,7 @@ function AlertSection() {
           </div>
           <div className="flex flex-col gap-2">
             {warnings.map(m => {
-              const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+              const s = getStats(m.id);
               const reasons = [
                 s.ruleViolations > 0 && `ルール違反 ${s.ruleViolations}件`,
                 s.troubles.length > 0 && `トラブル ${s.troubles.length}件`,
@@ -121,7 +159,7 @@ function AlertSection() {
           </div>
           <div className="flex flex-col gap-2">
             {rising.map(m => {
-              const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+              const s = getStats(m.id);
               return (
                 <Link key={m.id} href={`/kaitai/admin/members/${m.id}`}>
                   <div className="flex items-center gap-3 py-1.5 hover:opacity-80 transition-opacity">
@@ -144,7 +182,7 @@ function AlertSection() {
 }
 
 // ─── Skill map ────────────────────────────────────────────────────────────────
-function SkillMap() {
+function SkillMap({ members: MEMBERS }: { members: Member[] }) {
   const stats = Object.entries(LICENSE_LABELS).map(([key, label]) => ({
     key, label,
     count: MEMBERS.filter(m => m.licenses.includes(key as License)).length,
@@ -177,10 +215,10 @@ function SkillMap() {
 }
 
 // ─── Member card (admin) ──────────────────────────────────────────────────────
-function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
+function MemberCard({ m, rank }: { m: Member; rank: number }) {
   const yrs = experienceYears(m);
   const lvl = experienceLevel(yrs);
-  const s   = MEMBER_STATS.find(x => x.memberId === m.id)!;
+  const s   = getStats(m.id);
 
   const hasWarning  = s.troubles.length > 0 || s.ruleViolations > 1 || s.lateDays >= 3;
   const isRising    = s.efficiencyDelta >= 10;
@@ -261,6 +299,212 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
   );
 }
 
+// ─── Add Member Modal ─────────────────────────────────────────────────────────
+const AVATAR_OPTIONS = ["👤", "👷", "🔧", "🏗", "🚜", "🦺", "💪", "⛑", "🔨", "🪖"];
+
+function AddMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: "", kana: "", type: "直用" as "直用" | "外注",
+    company2: "", role: "作業員", birthDate: "", hireDate: "",
+    address: "", emergency: "", preYears: "0", dayRate: "0",
+    avatar: "👷", licenses: [] as string[],
+  });
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const toggleLicense = (lic: string) =>
+    setForm(f => ({
+      ...f,
+      licenses: f.licenses.includes(lic)
+        ? f.licenses.filter(l => l !== lic)
+        : [...f.licenses, lic],
+    }));
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { setError("名前を入力してください"); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/kaitai/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          kana: form.kana.trim() || null,
+          type: form.type,
+          company2: form.type === "外注" ? form.company2.trim() || null : null,
+          role: form.role.trim() || "作業員",
+          birthDate: form.birthDate || null,
+          hireDate: form.hireDate || null,
+          address: form.address.trim() || null,
+          emergency: form.emergency.trim() || null,
+          licenses: form.licenses,
+          preYears: parseInt(form.preYears) || 0,
+          dayRate: parseInt(form.dayRate) || 0,
+          avatar: form.avatar,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "保存に失敗しました");
+      }
+      onSaved();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputStyle = {
+    width: "100%", padding: "10px 14px", fontSize: 15, borderRadius: 10,
+    border: `1px solid ${T.border}`, background: T.bg, color: T.text,
+    outline: "none",
+  } as const;
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: T.sub, marginBottom: 4, display: "block" } as const;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)" }} onClick={onClose} />
+      <div style={{
+        position: "relative", background: T.surface, borderRadius: 16, width: "100%", maxWidth: 560,
+        maxHeight: "90vh", overflow: "auto", padding: 0,
+      }}>
+        {/* Header */}
+        <div style={{ position: "sticky", top: 0, background: T.surface, padding: "20px 24px 16px",
+          borderBottom: `1px solid ${T.border}`, zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: T.text }}>メンバー追加</h2>
+          <button onClick={onClose} style={{ padding: 8, borderRadius: 8, color: T.sub, background: "transparent", border: "none", cursor: "pointer" }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {error && (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", fontSize: 14 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Avatar */}
+          <div>
+            <label style={labelStyle}>アバター</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {AVATAR_OPTIONS.map(a => (
+                <button key={a} onClick={() => set("avatar", a)} style={{
+                  width: 44, height: 44, borderRadius: 12, fontSize: 20, border: form.avatar === a ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                  background: form.avatar === a ? T.primaryLt : T.bg, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>{a}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name row */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>名前 <span style={{ color: "#DC2626" }}>*</span></label>
+              <input style={inputStyle} placeholder="山田 太郎" value={form.name} onChange={e => set("name", e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>フリガナ</label>
+              <input style={inputStyle} placeholder="ヤマダ タロウ" value={form.kana} onChange={e => set("kana", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Type + Role */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>雇用区分</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["直用", "外注"] as const).map(t => (
+                  <button key={t} onClick={() => set("type", t)} style={{
+                    flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer",
+                    border: form.type === t ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                    background: form.type === t ? T.primaryLt : T.bg,
+                    color: form.type === t ? T.primaryDk : T.sub,
+                  }}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>役職</label>
+              <input style={inputStyle} placeholder="作業員" value={form.role} onChange={e => set("role", e.target.value)} />
+            </div>
+          </div>
+
+          {form.type === "外注" && (
+            <div>
+              <label style={labelStyle}>外注先会社名</label>
+              <input style={inputStyle} placeholder="株式会社○○" value={form.company2} onChange={e => set("company2", e.target.value)} />
+            </div>
+          )}
+
+          {/* Dates */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>生年月日</label>
+              <input type="date" style={inputStyle} value={form.birthDate} onChange={e => set("birthDate", e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>入社日</label>
+              <input type="date" style={inputStyle} value={form.hireDate} onChange={e => set("hireDate", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Experience + Day rate */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>前職経験年数</label>
+              <input type="number" style={inputStyle} min="0" value={form.preYears} onChange={e => set("preYears", e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>日当（円）</label>
+              <input type="number" style={inputStyle} min="0" step="1000" value={form.dayRate} onChange={e => set("dayRate", e.target.value)} />
+            </div>
+          </div>
+
+          {/* Address + Emergency */}
+          <div>
+            <label style={labelStyle}>住所</label>
+            <input style={inputStyle} placeholder="岡山県岡山市..." value={form.address} onChange={e => set("address", e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>緊急連絡先</label>
+            <input style={inputStyle} placeholder="090-XXXX-XXXX（妻）" value={form.emergency} onChange={e => set("emergency", e.target.value)} />
+          </div>
+
+          {/* Licenses */}
+          <div>
+            <label style={labelStyle}>保有資格</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {Object.entries(LICENSE_LABELS).map(([key, label]) => {
+                const selected = form.licenses.includes(key);
+                return (
+                  <button key={key} onClick={() => toggleLicense(key)} style={{
+                    padding: "6px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    border: selected ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                    background: selected ? T.primaryLt : T.bg,
+                    color: selected ? T.primaryDk : T.sub,
+                  }}>{label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button onClick={handleSubmit} disabled={saving} style={{
+            width: "100%", padding: "14px 0", borderRadius: 12, fontSize: 16, fontWeight: 700,
+            background: saving ? T.muted : T.primary, color: T.surface, border: "none", cursor: saving ? "default" : "pointer",
+            marginTop: 4,
+          }}>
+            {saving ? "保存中..." : "追加する"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 type Tab = "一覧" | "勤怠" | "資格";
 
@@ -269,6 +513,23 @@ export default function AdminMembersPage() {
   const [query, setQuery]         = useState("");
   const [typeFilter, setTypeFilter] = useState<"全員" | "直用" | "外注">("全員");
   const [sortOrder, setSortOrder]   = useState<SortOrder>("名前");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMembers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/kaitai/members");
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.members)) {
+        setMembers(data.members.map(toMember));
+      }
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+  const MEMBERS = members; // alias for compatibility with existing code
 
   const sorted = [...MEMBERS].sort((a, b) => {
     if (sortOrder === "経験") {
@@ -288,17 +549,33 @@ export default function AdminMembersPage() {
 
   const direct   = MEMBERS.filter(m => m.type === "直用").length;
   const outside  = MEMBERS.filter(m => m.type === "外注").length;
-  const avgAtt   = Math.round(MEMBER_STATS.reduce((s, x) => s + x.attendancePct, 0) / MEMBER_STATS.length);
-  const totalTrouble = MEMBER_STATS.reduce((s, x) => s + x.troubles.length, 0);
+  const memberStats = MEMBERS.map(m => getStats(m.id));
+  const avgAtt   = memberStats.length > 0 ? Math.round(memberStats.reduce((s, x) => s + x.attendancePct, 0) / memberStats.length) : 0;
+  const totalTrouble = memberStats.reduce((s, x) => s + x.troubles.length, 0);
 
   const attRanked = [...MEMBERS].sort((a, b) => {
-    const sa = MEMBER_STATS.find(x => x.memberId === a.id)!;
-    const sb = MEMBER_STATS.find(x => x.memberId === b.id)!;
+    const sa = getStats(a.id);
+    const sb = getStats(b.id);
     return sb.attendancePct - sa.attendancePct;
   });
 
+  if (loading) {
+    return (
+      <div className="py-6 flex flex-col items-center justify-center" style={{ minHeight: 400 }}>
+        <p style={{ fontSize: 15, color: T.sub }}>読み込み中...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="py-6 flex flex-col gap-6 pb-8">
+
+      {showAddModal && (
+        <AddMemberModal
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => { setShowAddModal(false); fetchMembers(); }}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -309,9 +586,9 @@ export default function AdminMembersPage() {
           </p>
         </div>
         <button
+          onClick={() => setShowAddModal(true)}
           className="inline-flex items-center gap-2 flex-shrink-0 transition-all active:scale-95 hover:opacity-90"
-          style={{ background: T.primary, color: T.surface, fontSize: 15, fontWeight: 600, padding: "12px 20px", borderRadius: 12,
- }}
+          style={{ background: T.primary, color: T.surface, fontSize: 15, fontWeight: 600, padding: "12px 20px", borderRadius: 12 }}
         >
           <Plus size={16} />
           メンバー追加
@@ -340,8 +617,8 @@ export default function AdminMembersPage() {
 
         {/* Left sidebar */}
         <div className="lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4">
-          <AlertSection />
-          <SkillMap />
+          <AlertSection members={MEMBERS} />
+          <SkillMap members={MEMBERS} />
         </div>
 
         {/* Right: list */}
@@ -423,7 +700,7 @@ export default function AdminMembersPage() {
               </p>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {attRanked.map(m => {
-                  const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+                  const s = getStats(m.id);
                   const lvl = experienceLevel(experienceYears(m));
                   const attColor = s.attendancePct >= 95 ? C.green : s.attendancePct >= 80 ? C.amber : C.red;
                   return (
@@ -516,7 +793,7 @@ export default function AdminMembersPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {MEMBERS.map(m => {
-            const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+            const s = getStats(m.id);
             const score = activityScore(m);
             const scoreColor = score >= 70 ? C.green : score >= 50 ? C.amberDk : T.sub;
             const lvl = experienceLevel(experienceYears(m));

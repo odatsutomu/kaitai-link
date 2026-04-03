@@ -37,7 +37,9 @@ export type Member = {
 // ─── 経験レベル計算 ────────────────────────────────────────────────────────────
 
 export function experienceYears(m: Member): number {
+  if (!m.hireDate) return m.preYears;
   const hired = new Date(m.hireDate);
+  if (isNaN(hired.getTime())) return m.preYears;
   const now   = new Date("2026-04-02");
   const inHouseYears = (now.getTime() - hired.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   return Math.round((m.preYears + inHouseYears) * 10) / 10;
