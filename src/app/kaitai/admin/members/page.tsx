@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Search, Star, Award, Shield, TrendingUp, TrendingDown,
+  Search, Award, Shield, TrendingUp, TrendingDown,
   AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X, ClipboardList,
 } from "lucide-react";
 import {
@@ -47,14 +48,13 @@ const C = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function Stars({ n, color }: { n: number; color: string }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={12} fill={i < n ? color : "transparent"} style={{ color: i < n ? color : T.border }} />
-      ))}
-    </span>
-  );
+type ScoreData = { memberId: string; totalScore: number; grade: string; gradeColor: string };
+
+function scoreColor(total: number): string {
+  if (total >= 700) return T.primary;
+  if (total >= 500) return "#16A34A";
+  if (total >= 400) return "#3B82F6";
+  return "#EF4444";
 }
 
 type SortOrder = "名前" | "経験" | "スコア";
@@ -70,35 +70,6 @@ const EMPTY_STATS = {
 
 function getStats(memberId: string) {
   return MEMBER_STATS.find(x => x.memberId === memberId) ?? { ...EMPTY_STATS, memberId };
-}
-
-function activityScore(m: Member): number {
-  const s = getStats(m.id);
-  const att = s.attendancePct * 0.5;
-  const eff = (50 + Math.max(-50, Math.min(50, s.efficiencyDelta))) * 0.3;
-  const lic = Math.min(15, m.licenses.length * 3);
-  const pen = s.ruleViolations * 5 + s.lateDays * 2;
-  return Math.max(0, Math.min(100, Math.round(att + eff + lic - pen)));
-}
-
-// ─── Mini radar sparkline ──────────────────────────────────────────────────────
-function MiniRadar({ radar }: { radar: Record<string, number> }) {
-  const vals = Object.values(radar);
-  const n = vals.length;
-  const cx = 24, cy = 24, r = 18;
-  const angles = vals.map((_, i) => (i * 2 * Math.PI) / n - Math.PI / 2);
-  const pts = vals.map((v, i) => {
-    const x = cx + (r * v / 100) * Math.cos(angles[i]);
-    const y = cy + (r * v / 100) * Math.sin(angles[i]);
-    return `${x},${y}`;
-  }).join(" ");
-  const bgPts = angles.map(a => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`).join(" ");
-  return (
-    <svg viewBox="0 0 48 48" width={40} height={40}>
-      <polygon points={bgPts} fill="none" stroke={T.border} strokeWidth="0.8" />
-      <polygon points={pts} fill={T.primaryMd} stroke={T.primary} strokeWidth="1.2" />
-    </svg>
-  );
 }
 
 // ─── Alert section ────────────────────────────────────────────────────────────
@@ -215,7 +186,8 @@ function SkillMap({ members: MEMBERS }: { members: Member[] }) {
 }
 
 // ─── Member card (admin) ──────────────────────────────────────────────────────
-function MemberCard({ m, rank }: { m: Member; rank: number }) {
+function MemberCard({ m, rank, score }: { m: Member; rank: number; score?: ScoreData }) {
+  const router = useRouter();
   const yrs = experienceYears(m);
   const lvl = experienceLevel(yrs);
   const s   = getStats(m.id);
@@ -224,6 +196,8 @@ function MemberCard({ m, rank }: { m: Member; rank: number }) {
   const isRising    = s.efficiencyDelta >= 10;
   const attendColor = s.attendancePct >= 95 ? C.green : s.attendancePct >= 80 ? C.amber : C.red;
   const effColor    = s.efficiencyDelta > 0 ? C.green : C.red;
+  const sc = score?.totalScore ?? 0;
+  const scColor = scoreColor(sc);
 
   return (
     <Link href={`/kaitai/admin/members/${m.id}`}>
@@ -241,7 +215,7 @@ function MemberCard({ m, rank }: { m: Member; rank: number }) {
               width: 28, height: 28, fontSize: 14, fontWeight: 700,
               ...(rank === 0 ? { background: T.primaryLt, color: T.primaryDk }
               : rank === 1 ? { background: T.bg, color: T.sub }
-              : rank === 2 ? { background: "${T.primaryLt}", color: "#92400E" }
+              : rank === 2 ? { background: T.primaryLt, color: "#92400E" }
               : { background: T.bg, color: T.muted })
             }}
           >
@@ -260,11 +234,21 @@ function MemberCard({ m, rank }: { m: Member; rank: number }) {
               {isRising && <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#F5F3FF", color: "#7C3AED" }}>⚡ 急成長</span>}
             </div>
             <div className="flex items-center gap-2">
-              <Stars n={lvl.stars} color={lvl.color} />
-              <span style={{ fontSize: 13, color: C.muted }}>{yrs}年・{m.siteCount}現場</span>
+              <span style={{ fontSize: 13, color: C.muted }}>{lvl.label} ・ {yrs}年・{m.siteCount}現場</span>
             </div>
           </div>
-          <MiniRadar radar={s.radar} />
+          {/* Score badge */}
+          <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 64 }}>
+            <span style={{ fontSize: 24, fontWeight: 800, color: scColor, lineHeight: 1 }}>{sc}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: scColor, marginTop: 2 }}>pt</span>
+            {score && (
+              <span style={{
+                fontSize: 11, fontWeight: 800, marginTop: 4,
+                padding: "2px 8px", borderRadius: 6,
+                background: `${score.gradeColor}18`, color: score.gradeColor,
+              }}>{score.grade}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3 mt-3 pt-3 px-1" style={{ borderTop: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-1">
@@ -273,40 +257,25 @@ function MemberCard({ m, rank }: { m: Member; rank: number }) {
           </div>
           <div style={{ width: 1, height: 12, background: C.border }} />
           <div className="flex items-center gap-1">
-            {s.efficiencyDelta >= 0 ? <TrendingUp size={12} style={{ color: effColor }} /> : <TrendingDown size={12} style={{ color: effColor }} />}
-            <span style={{ fontSize: 13, fontWeight: 600, color: effColor }}>効率 {s.efficiencyDelta > 0 ? "+" : ""}{s.efficiencyDelta}%</span>
-          </div>
-          <div style={{ width: 1, height: 12, background: C.border }} />
-          <div className="flex items-center gap-1">
             <Award size={12} style={{ color: T.primaryDk }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: T.primaryDk }}>資格 {m.licenses.length}</span>
           </div>
-          {s.troubles.length > 0 && (
-            <>
-              <div style={{ width: 1, height: 12, background: C.border }} />
-              <div className="flex items-center gap-1">
-                <AlertTriangle size={12} style={{ color: C.red }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.red }}>トラブル {s.troubles.length}件</span>
-              </div>
-            </>
-          )}
           <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: C.muted }}>
             日当 ¥{m.dayRate?.toLocaleString("ja-JP") ?? "—"}
           </span>
         </div>
         {/* Skill sheet link */}
-        <Link
-          href={`/kaitai/admin/skills/member?id=${m.id}`}
-          onClick={e => e.stopPropagation()}
-          className="flex items-center justify-center gap-2 mt-3 pt-3 active:scale-[0.98] transition-all"
+        <div
+          onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/kaitai/admin/skills/member?id=${m.id}`); }}
+          className="flex items-center justify-center gap-2 mt-3 pt-3 active:scale-[0.98] transition-all cursor-pointer"
           style={{
             borderTop: `1px solid ${C.border}`, padding: "10px 0",
-            fontSize: 13, fontWeight: 700, color: C.amber, textDecoration: "none",
+            fontSize: 13, fontWeight: 700, color: C.amber,
           }}
         >
           <ClipboardList size={14} />
           スキルチェックシート
-        </Link>
+        </div>
       </div>
     </Link>
   );
@@ -528,15 +497,28 @@ export default function AdminMembersPage() {
   const [sortOrder, setSortOrder]   = useState<SortOrder>("名前");
   const [showAddModal, setShowAddModal] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
+  const [scores, setScores] = useState<Map<string, ScoreData>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const fetchMembers = useCallback(async () => {
     try {
-      const res = await fetch("/api/kaitai/members");
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.members)) {
-        setMembers(data.members.map(toMember));
+      const memRes = await fetch("/api/kaitai/members");
+      const memData = await memRes.json();
+      if (memData.ok && Array.isArray(memData.members)) {
+        setMembers(memData.members.map(toMember));
       }
+      // Scores fetch is optional — graceful failure
+      try {
+        const scoreRes = await fetch(`/api/kaitai/scores?month=${new Date().toISOString().slice(0, 7)}`);
+        const scoreData = await scoreRes.json();
+        if (scoreData.ok && Array.isArray(scoreData.scores)) {
+          const map = new Map<string, ScoreData>();
+          for (const s of scoreData.scores) {
+            map.set(s.memberId, s);
+          }
+          setScores(map);
+        }
+      } catch { /* scores unavailable */ }
     } catch { /* ignore */ } finally { setLoading(false); }
   }, []);
 
@@ -549,7 +531,7 @@ export default function AdminMembersPage() {
       const diff = b.siteCount - a.siteCount;
       return diff !== 0 ? diff : experienceYears(b) - experienceYears(a);
     }
-    if (sortOrder === "スコア") return activityScore(b) - activityScore(a);
+    if (sortOrder === "スコア") return (scores.get(b.id)?.totalScore ?? 0) - (scores.get(a.id)?.totalScore ?? 0);
     return a.kana.localeCompare(b.kana, "ja");
   });
 
@@ -701,7 +683,7 @@ export default function AdminMembersPage() {
           {/* Tab: 一覧 */}
           {tab === "一覧" && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {filtered.map((m, i) => <MemberCard key={m.id} m={m} rank={i} />)}
+              {filtered.map((m, i) => <MemberCard key={m.id} m={m} rank={i} score={scores.get(m.id)} />)}
             </div>
           )}
 
@@ -806,9 +788,9 @@ export default function AdminMembersPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {MEMBERS.map(m => {
-            const s = getStats(m.id);
-            const score = activityScore(m);
-            const scoreColor = score >= 70 ? C.green : score >= 50 ? C.amberDk : T.sub;
+            const sc = scores.get(m.id);
+            const total = sc?.totalScore ?? 0;
+            const scCol = scoreColor(total);
             const lvl = experienceLevel(experienceYears(m));
             return (
               <Link key={m.id} href={`/kaitai/admin/members/${m.id}`}>
@@ -823,13 +805,15 @@ export default function AdminMembersPage() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span style={{ fontSize: 11, color: C.muted }}>出勤率</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: s.attendancePct >= 90 ? C.green : C.amber }}>{s.attendancePct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
                     <span style={{ fontSize: 11, color: C.muted }}>スコア</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor }}>{score}pt</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: scCol }}>{total} pt</span>
                   </div>
+                  {sc && (
+                    <div className="flex items-center justify-between mt-1">
+                      <span style={{ fontSize: 11, color: C.muted }}>グレード</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: sc.gradeColor }}>{sc.grade}</span>
+                    </div>
+                  )}
                 </div>
               </Link>
             );

@@ -38,6 +38,31 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  // 90-day window for skill bonuses
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  // Fetch user skills within 90-day window for teaching & learning bonuses
+  const recentSkills = await prisma.kaitaiUserSkill.findMany({
+    where: {
+      companyId: session.companyId,
+      achievedAt: { gte: ninetyDaysAgo },
+    },
+    select: { memberId: true, taughtBy: true },
+  });
+
+  // Count teaching events per member (where they appear as taughtBy)
+  const teachingCounts = new Map<string, number>();
+  const learningCounts = new Map<string, number>();
+  for (const skill of recentSkills) {
+    // Learning count
+    learningCounts.set(skill.memberId, (learningCounts.get(skill.memberId) ?? 0) + 1);
+    // Teaching count
+    if (skill.taughtBy) {
+      teachingCounts.set(skill.taughtBy, (teachingCounts.get(skill.taughtBy) ?? 0) + 1);
+    }
+  }
+
   // Group evaluations by member
   const evalsByMember = new Map<string, typeof evals>();
   for (const ev of evals) {
@@ -58,6 +83,8 @@ export async function GET(req: NextRequest) {
       score4: ev.score4,
       score5: ev.score5,
     })),
+    teachingCount: teachingCounts.get(m.id) ?? 0,
+    learningCount: learningCounts.get(m.id) ?? 0,
   }));
 
   const scores = computeAllScores(inputs, month);

@@ -38,7 +38,17 @@ export type MemberScoreInput = {
   memberId: string;
   licenses: string[];
   evaluations: MonthlyEvalRecord[];
+  /** Number of skills this member taught others (within 90-day window) */
+  teachingCount?: number;
+  /** Number of skills this member learned (within 90-day window) */
+  learningCount?: number;
 };
+
+/** Points per teaching event (90-day decay) */
+export const TEACHING_POINTS = 15;
+
+/** Points per skill learned (90-day decay) */
+export const LEARNING_POINTS = 20;
 
 export type ComputedScore = {
   memberId: string;
@@ -46,7 +56,11 @@ export type ComputedScore = {
   evalScore: number;
   /** License-based floor points (licenses.length × LICENSE_POINTS) */
   licenseFloor: number;
-  /** Total = max(evalScore + licenseFloor, SCORE_FLOOR if licenses > 0) */
+  /** Teaching bonus: teachingCount × TEACHING_POINTS */
+  teachingBonus: number;
+  /** Growth momentum: learningCount × LEARNING_POINTS */
+  growthBonus: number;
+  /** Total = max(evalScore + licenseFloor + teachingBonus + growthBonus, SCORE_FLOOR if licenses > 0) */
   totalScore: number;
   /** Per-criteria weighted averages (1–5 scale) */
   criteria: {
@@ -153,8 +167,12 @@ export function computeScore(
   // License floor
   const licenseFloor = input.licenses.length * LICENSE_POINTS;
 
+  // Skill-based bonuses (90-day decay built-in via windowed counts)
+  const teachingBonus = (input.teachingCount ?? 0) * TEACHING_POINTS;
+  const growthBonus = (input.learningCount ?? 0) * LEARNING_POINTS;
+
   // Total with floor protection
-  let totalScore = evalScore + licenseFloor;
+  let totalScore = evalScore + licenseFloor + teachingBonus + growthBonus;
   if (input.licenses.length > 0 && totalScore < SCORE_FLOOR) {
     totalScore = SCORE_FLOOR;
   }
@@ -165,6 +183,8 @@ export function computeScore(
     memberId: input.memberId,
     evalScore,
     licenseFloor,
+    teachingBonus,
+    growthBonus,
     totalScore,
     criteria,
     monthsUsed,
