@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target, ChevronLeft, Calendar } from "lucide-react";
 import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -10,14 +10,14 @@ const C = {
   text: T.text, sub: T.sub, muted: T.muted,
   border: T.border, card: T.surface,
   amber: T.primary, amberDk: T.primaryDk,
-  brand: T.primary,   // revenue bar
-  slate: "#475569",   // cost bar
+  brand: T.primary,
+  slate: "#475569",
   green: "#10B981", red: "#EF4444",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Period = "thisMonth" | "lastMonth" | "thisYear" | "lastYear";
+type ViewMode = "month" | "year";
 
 type PeriodStats = {
   revenue: number;
@@ -48,87 +48,79 @@ type SiteRank = {
   alert?: string;
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Mock data generator ─────────────────────────────────────────────────────
 
-const STATS: Record<Period, PeriodStats> = {
-  thisMonth: {
-    revenue:     8_800_000,
-    wasteCost:   2_040_000,
-    laborCost:   1_440_000,
-    vehicleCost:   380_000,
-    otherCost:     460_000,
-    yoyRevenue:  7_200_000,
-    yoyProfit:   1_900_000,
-    forecast:    5_200_000,
-    target:      6_000_000,
-  },
-  lastMonth: {
-    revenue:     8_400_000,
-    wasteCost:   2_100_000,
-    laborCost:   2_800_000,
-    vehicleCost:   480_000,
-    otherCost:     720_000,
-    yoyRevenue:  6_800_000,
-    yoyProfit:   1_620_000,
-  },
-  thisYear: {
-    revenue:    26_400_000,
-    wasteCost:   6_240_000,
-    laborCost:   5_840_000,
-    vehicleCost: 1_280_000,
-    otherCost:   2_200_000,
-    yoyRevenue: 22_100_000,
-    yoyProfit:   4_800_000,
-    target:     18_000_000,
-  },
-  lastYear: {
-    revenue:    48_600_000,
-    wasteCost:  12_400_000,
-    laborCost:  10_200_000,
-    vehicleCost: 2_800_000,
-    otherCost:   3_600_000,
-    yoyRevenue: 41_200_000,
-    yoyProfit:   9_200_000,
-  },
-};
+function generateMonthStats(year: number, month: number): PeriodStats {
+  const seed = year * 100 + month;
+  const base = 6_000_000 + (seed % 17) * 400_000;
+  const seasonFactor = [0.8, 0.85, 1.1, 1.05, 0.95, 0.9, 0.85, 0.75, 0.9, 1.05, 1.15, 1.2][month - 1] ?? 1;
+  const yearFactor = 1 + (year - 2023) * 0.12;
+  const revenue = Math.round(base * seasonFactor * yearFactor);
+  const wastePct = 0.22 + (seed % 7) * 0.01;
+  const laborPct = 0.28 + (seed % 5) * 0.01;
+  const vehiclePct = 0.06 + (seed % 3) * 0.005;
+  const otherPct = 0.08 + (seed % 4) * 0.005;
+  return {
+    revenue,
+    wasteCost: Math.round(revenue * wastePct),
+    laborCost: Math.round(revenue * laborPct),
+    vehicleCost: Math.round(revenue * vehiclePct),
+    otherCost: Math.round(revenue * otherPct),
+    yoyRevenue: Math.round(revenue * 0.88),
+    yoyProfit: Math.round(revenue * 0.3 * 0.85),
+    forecast: month === new Date().getMonth() + 1 && year === new Date().getFullYear()
+      ? Math.round(revenue * 0.62) : undefined,
+    target: Math.round(revenue * 1.1),
+  };
+}
 
-const MONTHLY_BARS: Record<Period, MonthBar[]> = {
-  thisMonth: [
-    { label: "W1", revenue: 1_800_000, cost: 1_200_000 },
-    { label: "W2", revenue: 2_400_000, cost: 1_580_000 },
-    { label: "W3", revenue: 2_600_000, cost: 1_680_000 },
-    { label: "W4", revenue: 2_000_000, cost: 1_320_000 },
-  ],
-  lastMonth: [
-    { label: "W1", revenue: 2_000_000, cost: 1_560_000 },
-    { label: "W2", revenue: 2_400_000, cost: 1_920_000 },
-    { label: "W3", revenue: 2_200_000, cost: 1_840_000 },
-    { label: "W4", revenue: 1_800_000, cost: 1_500_000 },
-  ],
-  thisYear: [
-    { label: "1月", revenue: 4_200_000, cost: 3_200_000, prevRevenue: 3_800_000, prevCost: 2_900_000 },
-    { label: "2月", revenue: 6_800_000, cost: 5_100_000, prevRevenue: 5_200_000, prevCost: 4_100_000 },
-    { label: "3月", revenue: 8_400_000, cost: 6_100_000, prevRevenue: 7_100_000, prevCost: 5_400_000 },
-    { label: "4月", revenue: 7_000_000, cost: 4_780_000, prevRevenue: 6_000_000, prevCost: 4_200_000 },
-  ],
-  lastYear: [
-    { label: "1月",  revenue: 3_800_000, cost: 2_900_000 },
-    { label: "2月",  revenue: 5_200_000, cost: 4_100_000 },
-    { label: "3月",  revenue: 7_100_000, cost: 5_400_000 },
-    { label: "4月",  revenue: 6_000_000, cost: 4_200_000 },
-    { label: "5月",  revenue: 4_200_000, cost: 3_100_000 },
-    { label: "6月",  revenue: 3_800_000, cost: 2_800_000 },
-    { label: "7月",  revenue: 3_600_000, cost: 2_700_000 },
-    { label: "8月",  revenue: 2_800_000, cost: 2_100_000 },
-    { label: "9月",  revenue: 3_900_000, cost: 2_900_000 },
-    { label: "10月", revenue: 5_400_000, cost: 4_000_000 },
-    { label: "11月", revenue: 6_300_000, cost: 4_700_000 },
-    { label: "12月", revenue: 6_500_000, cost: 5_100_000 },
-  ],
-};
+function generateYearStats(year: number): PeriodStats {
+  const months = Array.from({ length: 12 }, (_, i) => generateMonthStats(year, i + 1));
+  const sum = (fn: (s: PeriodStats) => number) => months.reduce((a, m) => a + fn(m), 0);
+  return {
+    revenue: sum(m => m.revenue),
+    wasteCost: sum(m => m.wasteCost),
+    laborCost: sum(m => m.laborCost),
+    vehicleCost: sum(m => m.vehicleCost),
+    otherCost: sum(m => m.otherCost),
+    yoyRevenue: sum(m => m.yoyRevenue),
+    yoyProfit: sum(m => m.yoyProfit),
+    target: sum(m => m.target ?? 0),
+  };
+}
+
+function generateMonthBars(year: number, month: number): MonthBar[] {
+  const s = generateMonthStats(year, month);
+  const weeks = 4;
+  return Array.from({ length: weeks }, (_, i) => {
+    const pct = [0.22, 0.28, 0.3, 0.2][i];
+    return {
+      label: `W${i + 1}`,
+      revenue: Math.round(s.revenue * pct),
+      cost: Math.round((s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost) * pct),
+    };
+  });
+}
+
+function generateYearBars(year: number): MonthBar[] {
+  const prevYear = year - 1;
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = generateMonthStats(year, i + 1);
+    const pm = generateMonthStats(prevYear, i + 1);
+    const cost = m.wasteCost + m.laborCost + m.vehicleCost + m.otherCost;
+    const prevCost = pm.wasteCost + pm.laborCost + pm.vehicleCost + pm.otherCost;
+    return {
+      label: `${i + 1}月`,
+      revenue: m.revenue,
+      cost,
+      prevRevenue: pm.revenue,
+      prevCost,
+    };
+  });
+}
 
 const SITE_RANKS: SiteRank[] = [
-  { id: "s4", name: "旧工場棟解体（第1期）", contract: 8_400_000, cost: 6_100_000, status: "完工",  alert: "原価超過リスク" },
+  { id: "s4", name: "旧工場棟解体（第1期）", contract: 8_400_000, cost: 6_100_000, status: "完工", alert: "原価超過リスク" },
   { id: "s1", name: "山田邸解体工事",        contract: 3_200_000, cost: 1_840_000, status: "解体中" },
   { id: "s2", name: "旧田中倉庫解体",        contract: 5_600_000, cost: 2_100_000, status: "解体中" },
   { id: "s3", name: "松本アパート解体",      contract: 2_800_000, cost:         0, status: "着工前" },
@@ -205,7 +197,7 @@ function DonutChart({
   );
 }
 
-// ─── SVG Bar chart (revenue=brand orange, cost=dark slate, thinner bars) ─────
+// ─── SVG Bar chart ───────────────────────────────────────────────────────────
 
 function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boolean }) {
   const H = 100;
@@ -213,7 +205,6 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
   const n = bars.length;
   const VW = 340;
   const groupW = VW / n;
-  // Thinner bars: compare=6px, single=8px
   const bw = compare ? 6 : 8;
 
   return (
@@ -228,7 +219,6 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
           <g key={i}>
             {compare && b.prevRevenue && (
               <>
-                {/* prev year: ghost bars */}
                 <rect
                   x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / maxVal) * H, 2)}
                   width={bw} height={Math.max((b.prevRevenue / maxVal) * H, 2)}
@@ -239,7 +229,6 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
                   width={bw} height={Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
                   rx={3} fill="rgba(71,85,105,0.2)"
                 />
-                {/* current year: solid bars */}
                 <rect x={cx + 2} y={H - revH} width={bw} height={revH} rx={3} fill={C.brand} />
                 <rect x={cx + bw + 4} y={H - costH} width={bw} height={costH} rx={3} fill={C.slate} />
               </>
@@ -260,7 +249,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
   );
 }
 
-// ─── Panel A: Gap chart (estimate vs actual) ──────────────────────────────────
+// ─── Panel A: Gap chart ─────────────────────────────────────────────────────
 
 function GapChart() {
   const H = 90;
@@ -280,14 +269,11 @@ function GapChart() {
         const over = d.actual != null && d.actual > d.estimate;
         return (
           <g key={i}>
-            {/* estimate bar */}
             <rect x={cx - bw - 1} y={H - estH} width={bw} height={estH} rx={3} fill={T.primaryMd} />
-            {/* actual bar */}
             {d.actual != null && d.actual > 0 && (
               <rect x={cx + 1} y={H - actH} width={bw} height={actH} rx={3}
                 fill={over ? "#EF4444" : "#10B981"} fillOpacity={0.8} />
             )}
-            {/* gap indicator: red dot if over */}
             {over && (
               <circle cx={cx + 1 + bw / 2} cy={H - actH - 5} r={3} fill="#EF4444" />
             )}
@@ -301,7 +287,7 @@ function GapChart() {
   );
 }
 
-// ─── Panel B: Client profit horizontal bars ───────────────────────────────────
+// ─── Panel B: Client profit horizontal bars ─────────────────────────────────
 
 function ClientBars() {
   const sorted = [...CLIENT_RANKS].sort((a, b) => (b.profit / b.revenue) - (a.profit / a.revenue));
@@ -341,7 +327,7 @@ function ClientBars() {
   );
 }
 
-// ─── Panel C: Waste trend line chart ─────────────────────────────────────────
+// ─── Panel C: Waste trend line chart ────────────────────────────────────────
 
 function WasteTrendChart() {
   const W = 300, H = 90, PAD = 24;
@@ -358,21 +344,16 @@ function WasteTrendChart() {
 
   return (
     <svg viewBox={`0 0 ${W} ${H + 18}`} width="100%" style={{ display: "block" }}>
-      {/* area fill */}
       <path d={areaD} fill="url(#wasteGrad)" fillOpacity={0.3} />
-      {/* line */}
       <path d={pathD} fill="none" stroke={C.brand} strokeWidth={2} strokeLinejoin="round" />
-      {/* dots */}
       {points.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r={3} fill={C.brand} stroke="#fff" strokeWidth={1.5} />
       ))}
-      {/* labels */}
       {WASTE_TREND.map((d, i) => (
         <text key={i} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={8} fill={T.muted}>
           {d.month}
         </text>
       ))}
-      {/* unit prices as small text above dots */}
       {points.map((p, i) => (
         <text key={i} x={p.x} y={p.y - 6} textAnchor="middle" fontSize={7} fill={C.amberDk} fontWeight={700}>
           ¥{WASTE_TREND[i].unit.toLocaleString("ja-JP")}
@@ -392,8 +373,7 @@ function WasteTrendChart() {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`,
- borderRadius: 16 }}>
+    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}>
       {children}
     </div>
   );
@@ -411,33 +391,128 @@ function fmt(n: number) {
   return `¥${Math.round(n).toLocaleString("ja-JP")}`;
 }
 
+// ─── Period Picker ───────────────────────────────────────────────────────────
+
+function PeriodPicker({
+  mode, year, month,
+  onModeChange, onYearChange, onMonthChange,
+}: {
+  mode: ViewMode; year: number; month: number;
+  onModeChange: (m: ViewMode) => void;
+  onYearChange: (y: number) => void;
+  onMonthChange: (m: number) => void;
+}) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Mode toggle */}
+      <div className="flex gap-1 p-1 rounded-lg" style={{ background: T.bg }}>
+        {(["month", "year"] as const).map(m => (
+          <button
+            key={m}
+            onClick={() => onModeChange(m)}
+            className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
+            style={mode === m
+              ? { background: C.amber, color: T.surface }
+              : { color: C.sub }
+            }
+          >
+            {m === "month" ? "月別" : "年間"}
+          </button>
+        ))}
+      </div>
+
+      {/* Year selector */}
+      <div className="flex items-center gap-2">
+        <button onClick={() => onYearChange(year - 1)}
+          className="w-8 h-8 flex items-center justify-center rounded-lg"
+          style={{ border: `1px solid ${C.border}`, color: C.sub }}>
+          <ChevronLeft size={16} />
+        </button>
+        <span style={{ fontSize: 16, fontWeight: 800, color: C.text, minWidth: 60, textAlign: "center" }}>
+          {year}年
+        </span>
+        <button onClick={() => onYearChange(Math.min(year + 1, currentYear))}
+          disabled={year >= currentYear}
+          className="w-8 h-8 flex items-center justify-center rounded-lg"
+          style={{ border: `1px solid ${C.border}`, color: year >= currentYear ? C.muted : C.sub, opacity: year >= currentYear ? 0.4 : 1 }}>
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Month grid (only in month mode) */}
+      {mode === "month" && (
+        <div className="grid grid-cols-6 gap-1">
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+            const isFuture = year === currentYear && m > now.getMonth() + 1;
+            return (
+              <button
+                key={m}
+                onClick={() => !isFuture && onMonthChange(m)}
+                disabled={isFuture}
+                className="py-1.5 rounded-md text-sm font-bold transition-all"
+                style={month === m
+                  ? { background: C.amber, color: "#FFF" }
+                  : isFuture
+                  ? { color: C.muted, opacity: 0.3 }
+                  : { color: C.sub, background: T.bg }
+                }
+              >
+                {m}月
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Quick links */}
+      <div className="flex gap-1 flex-wrap">
+        {[
+          { label: "今月", action: () => { onModeChange("month"); onYearChange(currentYear); onMonthChange(now.getMonth() + 1); } },
+          { label: "先月", action: () => {
+            const pm = now.getMonth() === 0 ? 12 : now.getMonth();
+            const py = now.getMonth() === 0 ? currentYear - 1 : currentYear;
+            onModeChange("month"); onYearChange(py); onMonthChange(pm);
+          }},
+          { label: `${currentYear}年`, action: () => { onModeChange("year"); onYearChange(currentYear); } },
+          { label: `${currentYear - 1}年`, action: () => { onModeChange("year"); onYearChange(currentYear - 1); } },
+        ].map(q => (
+          <button key={q.label} onClick={q.action}
+            className="px-2.5 py-1 rounded-md text-xs font-bold transition-all"
+            style={{ background: T.bg, color: C.sub, border: `1px solid ${C.border}` }}>
+            {q.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const PERIOD_TABS: { key: Period; label: string }[] = [
-  { key: "thisMonth", label: "今月" },
-  { key: "lastMonth", label: "先月" },
-  { key: "thisYear",  label: "今年" },
-  { key: "lastYear",  label: "昨年" },
-];
-
 export default function AdminPage() {
-  const [period, setPeriod] = useState<Period>("thisMonth");
+  const now = new Date();
+  const [mode, setMode] = useState<ViewMode>("month");
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [compare, setCompare] = useState(false);
   const [sortBy, setSortBy] = useState<"profitRate" | "profitAmt">("profitRate");
+  const [showPicker, setShowPicker] = useState(false);
 
-  const s = STATS[period];
+  const s = mode === "year" ? generateYearStats(year) : generateMonthStats(year, month);
   const totalCost = s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost;
   const profit = s.revenue - totalCost;
   const profitRate = s.revenue > 0 ? Math.round((profit / s.revenue) * 1000) / 10 : 0;
   const yoyChange = s.yoyProfit > 0 ? Math.round(((profit - s.yoyProfit) / s.yoyProfit) * 1000) / 10 : 0;
   const isYoyUp = yoyChange >= 0;
 
-  // KPI progress bar: forecast vs target
-  const kpiValue = period === "thisMonth" && s.forecast ? s.forecast : profit;
+  const kpiValue = mode === "month" && s.forecast ? s.forecast : profit;
   const kpiTarget = s.target;
   const kpiProgress = kpiTarget ? Math.min(Math.round((kpiValue / kpiTarget) * 100), 100) : null;
 
-  const canCompare = period === "thisYear";
+  const canCompare = mode === "year";
 
   const alertSites = SITE_RANKS.filter(r => {
     if (r.cost === 0) return false;
@@ -453,13 +528,15 @@ export default function AdminPage() {
     return (b.contract - b.cost) - (a.contract - a.cost);
   });
 
-  const bars = MONTHLY_BARS[period];
+  const bars = mode === "year" ? generateYearBars(year) : generateMonthBars(year, month);
   const pieSlices = [
     { value: s.wasteCost,   color: "#F87171", label: "産廃費" },
     { value: s.laborCost,   color: "#FB923C", label: "労務費" },
     { value: s.vehicleCost, color: "#92400E", label: "車両・燃料" },
     { value: s.otherCost,   color: T.muted, label: "その他" },
   ];
+
+  const periodLabel = mode === "year" ? `${year}年 年間` : `${year}年${month}月`;
 
   return (
     <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
@@ -470,25 +547,39 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>経営分析</h1>
           <p className="text-sm mt-1" style={{ color: C.sub }}>収支・利益をリアルタイム集計</p>
         </div>
-        {/* Period tabs */}
-        <div className="flex gap-1 p-1 rounded-lg" style={{ background: T.bg }}>
-          {PERIOD_TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => { setPeriod(t.key); if (t.key !== "thisYear") setCompare(false); }}
-              className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
-              style={period === t.key
-                ? { background: C.amber, color: T.surface }
-                : { color: C.sub }
-              }
-            >
-              {t.label}
-            </button>
-          ))}
+
+        {/* Period display + picker toggle */}
+        <div className="relative">
+          <button
+            onClick={() => setShowPicker(v => !v)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
+            style={{ background: T.bg, border: `1.5px solid ${C.border}`, color: C.text }}
+          >
+            <Calendar size={15} style={{ color: C.amber }} />
+            {periodLabel}
+          </button>
+
+          {/* Dropdown picker */}
+          {showPicker && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
+              <div
+                className="absolute right-0 top-full mt-2 z-50 p-4 rounded-xl"
+                style={{ background: C.card, border: `1.5px solid ${C.border}`, width: 320, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+              >
+                <PeriodPicker
+                  mode={mode} year={year} month={month}
+                  onModeChange={m => { setMode(m); if (m === "year") setCompare(false); }}
+                  onYearChange={setYear}
+                  onMonthChange={m => { setMonth(m); setShowPicker(false); }}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Alert banner (red when sites below threshold) ── */}
+      {/* ── Alert banner ── */}
       {alertSites.length > 0 && (
         <div
           className="flex items-center gap-3 px-5 py-4 rounded-xl"
@@ -506,7 +597,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ── Top: main grid left 2/3 + right 1/3 ── */}
+      {/* ── Top: main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Left column (2/3) ── */}
@@ -562,8 +653,7 @@ export default function AdminPage() {
               <button
                 onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
- }}
+                style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text }}
               >
                 <ArrowUpDown size={12} />
                 {sortBy === "profitRate" ? "利益率順" : "利益額順"}
@@ -617,7 +707,7 @@ export default function AdminPage() {
                             style={site.status === "完工"
                               ? { background: "#F0FDF4", color: "#16A34A" }
                               : site.status === "解体中"
-                              ? { background: "${T.primaryLt}", color: C.amberDk }
+                              ? { background: T.primaryLt, color: C.amberDk }
                               : { background: T.bg, color: C.muted }}
                           >
                             {site.status}
@@ -657,21 +747,20 @@ export default function AdminPage() {
         {/* ── Right column (1/3) ── */}
         <div className="flex flex-col gap-6">
 
-          {/* Hero KPI card with progress bar */}
+          {/* Hero KPI card */}
           <Card className="p-6">
             <p className="text-sm uppercase tracking-widest font-bold mb-1" style={{ color: C.muted }}>
-              {period === "thisMonth" ? "今月 着地予測粗利" : "期間粗利（実績）"}
+              {mode === "month" && s.forecast ? "今月 着地予測粗利" : `${periodLabel} 粗利（実績）`}
             </p>
             <p className="font-bold font-numeric" style={{ fontSize: 40, lineHeight: 1, color: kpiValue >= 0 ? C.green : C.red }}>
               {fmt(kpiValue)}
             </p>
-            {period === "thisMonth" && s.forecast && (
+            {mode === "month" && s.forecast && (
               <p className="text-sm mt-1" style={{ color: C.muted }}>
                 確定粗利 <span style={{ color: C.sub, fontWeight: 700 }}>{fmt(profit)}</span>
               </p>
             )}
 
-            {/* Progress bar vs target */}
             {kpiProgress != null && kpiTarget && (
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1.5">
@@ -805,7 +894,6 @@ export default function AdminPage() {
                 <span className="text-sm" style={{ color: C.muted }}>実績（超過）</span>
               </div>
             </div>
-            {/* gap summary */}
             <div className="mt-4 flex flex-col gap-2">
               {GAP_DATA.filter(d => d.actual != null && d.actual > 0).map(d => {
                 const gap = (d.actual ?? 0) - d.estimate;
@@ -847,7 +935,6 @@ export default function AdminPage() {
             <p className="text-sm font-bold mb-1" style={{ color: C.text }}>産廃コスト・トレンド</p>
             <p className="text-sm mb-4" style={{ color: C.muted }}>月次コスト推移と単価</p>
             <WasteTrendChart />
-            {/* mini stats */}
             <div className="grid grid-cols-2 gap-2 mt-4">
               {(() => {
                 const latest = WASTE_TREND[WASTE_TREND.length - 1];
