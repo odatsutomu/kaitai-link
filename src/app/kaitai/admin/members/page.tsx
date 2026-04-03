@@ -77,11 +77,11 @@ function AlertSection() {
   return (
     <div className="flex flex-col gap-3">
       {warnings.length > 0 && (
-        <div className="rounded-2xl p-4" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={16} style={{ color: "#DC2626" }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#DC2626" }}>要注意メンバー</span>
-            <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#FEE2E2", color: "#DC2626", marginLeft: "auto" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#FEE2E2", color: "#DC2626", marginLeft: "auto" }}>
               {warnings.length}名
             </span>
           </div>
@@ -111,11 +111,11 @@ function AlertSection() {
         </div>
       )}
       {rising.length > 0 && (
-        <div className="rounded-2xl p-4" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE" }}>
           <div className="flex items-center gap-2 mb-3">
             <Zap size={16} style={{ color: "#7C3AED" }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#7C3AED" }}>パフォーマンス急上昇</span>
-            <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#EDE9FE", color: "#7C3AED", marginLeft: "auto" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#EDE9FE", color: "#7C3AED", marginLeft: "auto" }}>
               {rising.length}名
             </span>
           </div>
@@ -190,7 +190,7 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
   return (
     <Link href={`/kaitai/admin/members/${m.id}`}>
       <div
-        className="p-4 hover:shadow-md active:scale-[0.99] transition-all"
+        className="p-5 hover:shadow-md active:scale-[0.99] transition-all"
         style={{
           background: C.card,
           border: hasWarning ? "1.5px solid #FECACA" : `1px solid ${C.border}`,
@@ -216,10 +216,10 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
               <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
-              {m.type === "外注" && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#EFF6FF", color: "#2563EB" }}>外注</span>}
-              {hasWarning && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#FEF2F2", color: "#DC2626" }}>⚠ 要注意</span>}
-              {isRising && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#F5F3FF", color: "#7C3AED" }}>⚡ 急成長</span>}
+              <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+              {m.type === "外注" && <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#EFF6FF", color: "#2563EB" }}>外注</span>}
+              {hasWarning && <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#FEF2F2", color: "#DC2626" }}>⚠ 要注意</span>}
+              {isRising && <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#F5F3FF", color: "#7C3AED" }}>⚡ 急成長</span>}
             </div>
             <div className="flex items-center gap-2">
               <Stars n={lvl.stars} color={lvl.color} />
@@ -469,14 +469,14 @@ export default function AdminMembersPage() {
                 const lvl = experienceLevel(experienceYears(m));
                 return (
                   <Link key={m.id} href={`/kaitai/admin/members/${m.id}`}>
-                    <div className="p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`,
+                    <div className="p-5 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`,
  borderRadius: 16 }}>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 36, height: 36, background: lvl.bg, color: lvl.color, fontSize: 14 }}>
                           {m.avatar}
                         </div>
                         <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
-                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
                         <div className="flex items-center gap-1 ml-auto">
                           <Award size={14} style={{ color: T.primaryDk }} />
                           <span style={{ fontSize: 14, fontWeight: 700, color: T.primaryDk }}>{m.licenses.length}</span>

@@ -693,7 +693,7 @@ export default function EquipmentPage() {
                   <span style={{ fontSize: 18 }}>{TYPE_ICON[e.type]}</span>
                   <span className="text-sm font-semibold truncate" style={{ color: C.text }}>{e.name}</span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-sm font-bold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.color }}>
                     {e.status}
                   </span>

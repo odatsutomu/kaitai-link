@@ -69,7 +69,7 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
   return (
     <Link href={`/kaitai/members/${m.id}`}>
       <div
-        className="p-4 hover:shadow-md active:scale-[0.99] transition-all"
+        className="p-5 hover:shadow-md active:scale-[0.99] transition-all"
         style={{
           background: C.card,
           border: `1px solid ${C.border}`,
@@ -98,11 +98,11 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
               <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>
+              <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>
                 {lvl.label}
               </span>
               {m.type === "外注" && (
-                <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#EFF6FF", color: "#2563EB" }}>外注</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#EFF6FF", color: "#2563EB" }}>外注</span>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
               <span style={{ fontSize: 13, fontWeight: 600, color: T.primaryDk }}>{m.licenses.length}資格</span>
             </div>
             <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{ background: `${scoreColor}18`, border: `1px solid ${scoreColor}40` }}
             >
               <Zap size={11} style={{ color: scoreColor }} />
@@ -145,7 +145,7 @@ function ForemanBanner({
 
   return (
     <div
-      className="rounded-2xl p-4"
+      className="rounded-2xl p-5"
       style={{ background: T.primaryLt, border: "1px solid #E5E7EB" }}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -156,7 +156,7 @@ function ForemanBanner({
         {current && (
           <button
             onClick={() => setViewerMemberId(null)}
-            className="ml-auto rounded-lg px-2 py-0.5"
+            className="ml-auto rounded-lg px-3 py-1"
             style={{ fontSize: 13, color: "#92400E", background: "rgba(0,0,0,0.06)" }}
           >
             解除
@@ -247,7 +247,7 @@ export default function MembersPage() {
         {kpiTiles.map(({ label, value, unit, color, note }) => (
           <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`,
  borderRadius: 16, padding: "20px" }}>
-            <p style={{ fontSize: 14, color: C.sub, marginBottom: 6 }}>{label}</p>
+            <p style={{ fontSize: 14, color: C.sub, marginBottom: 8 }}>{label}</p>
             <p style={{ fontSize: 32, fontWeight: 800, color, lineHeight: 1 }}>{value}<span style={{ fontSize: 16, fontWeight: 600 }}>{unit}</span></p>
             <p style={{ fontSize: 14, marginTop: 4, color: C.muted }}>{note}</p>
           </div>
@@ -373,14 +373,14 @@ export default function MembersPage() {
                 const lvl = experienceLevel(experienceYears(m));
                 return (
                   <Link key={m.id} href={`/kaitai/members/${m.id}`}>
-                    <div className="p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`,
+                    <div className="p-5 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`,
  borderRadius: 16 }}>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 36, height: 36, background: lvl.bg, color: lvl.color, fontSize: 14 }}>
                           {m.avatar}
                         </div>
                         <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
-                        <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
                         <div className="flex items-center gap-1 ml-auto">
                           <Award size={14} style={{ color: T.primaryDk }} />
                           <span style={{ fontSize: 14, fontWeight: 700, color: T.primaryDk }}>{m.licenses.length}</span>

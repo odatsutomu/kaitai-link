@@ -158,7 +158,7 @@ export default function ReportPage() {
                 <p style={{ fontSize: 18, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{site.name}</p>
                 <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>{site.address}</p>
                 {!site.active && (
-                  <span style={{ display: "inline-block", marginTop: 8, fontSize: 14, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: T.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+                  <span style={{ display: "inline-block", marginTop: 8, fontSize: 14, fontWeight: 600, padding: "5px 12px", borderRadius: 20, background: T.bg, color: C.muted, border: `1px solid ${C.border}` }}>
                     着工前
                   </span>
                 )}
@@ -314,7 +314,7 @@ export default function ReportPage() {
       </div>
 
       {/* Action grid */}
-      <div className="grid grid-cols-2 gap-4 max-w-2xl">
+      <div className="grid grid-cols-2 gap-5 max-w-2xl">
         <ActionTile
           emoji="🏁"
           label="勤務開始"

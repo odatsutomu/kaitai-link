@@ -147,7 +147,7 @@ export default function DocsPage() {
                 background: T.primaryLt,
                 border: "1px solid #E5E7EB",
                 borderRadius: 20,
-                padding: "3px 10px",
+                padding: "5px 12px",
               }}
             >
               {meta.emoji} {meta.label}
@@ -231,7 +231,7 @@ export default function DocsPage() {
                       style={{
                         fontSize: 14,
                         fontWeight: 700,
-                        padding: "2px 8px",
+                        padding: "5px 12px",
                         borderRadius: 20,
                         display: "inline-block",
                         marginTop: 4,

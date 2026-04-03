@@ -146,7 +146,7 @@ function TroubleCard({ t, onScore }: { t: TroubleRecord; onScore: (id: string, s
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span style={{ fontSize: 13, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${typeColor}1A`, color: typeColor }}>{t.type}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: `${typeColor}1A`, color: typeColor }}>{t.type}</span>
             <span style={{ fontSize: 13, color: T.sub }}>{t.date}・{t.site}</span>
           </div>
           <p style={{ fontSize: 13, color: T.muted }} className="line-clamp-2">{t.detail}</p>
@@ -263,9 +263,9 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span style={{ fontSize: 13, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
-              {member.type === "外注" && <span style={{ fontSize: 13, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>}
-              {s.troubles.length > 0 && <span style={{ fontSize: 13, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>}
+              <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+              {member.type === "外注" && <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>}
+              {s.troubles.length > 0 && <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>}
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: T.bg }}>{member.name}</h1>
             <p style={{ fontSize: 14, marginTop: 2, color: T.sub }}>{member.kana}</p>
@@ -387,7 +387,7 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
                     <p style={{ fontSize: 15, fontWeight: 600, color: T.bg }}>{e.site}</p>
                     <p style={{ fontSize: 13, color: T.sub }}>{e.date}</p>
                   </div>
-                  {e.role === "責任者" && <span style={{ fontSize: 13, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>}
+                  {e.role === "責任者" && <span style={{ fontSize: 13, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>}
                 </Card>
               ))}
             </section>
@@ -517,7 +517,7 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
                     <div className="flex items-center gap-2 mb-2">
                       <span style={{ fontSize: 13, color: T.sub }}>{e.date}</span>
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.bg }}>・{e.site}</span>
-                      {e.role === "責任者" && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: "auto", background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>}
+                      {e.role === "責任者" && <span style={{ fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 20, marginLeft: "auto", background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>}
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {e.tags.map(tag => { const ts = tagStyle(tag); return <span key={tag} style={{ fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: ts.bg, color: ts.color }}>{tag}</span>; })}

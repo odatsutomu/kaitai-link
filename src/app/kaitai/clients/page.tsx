@@ -383,7 +383,7 @@ export default function ClientsPage() {
           return (
             <div
               key={c.id}
-              className="rounded-2xl p-4"
+              className="rounded-2xl p-5"
               style={{
                 background: C.card,
                 border: `1px solid ${C.border}`,
@@ -411,7 +411,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span
-                    style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: sm.bg, color: sm.color }}
+                    style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: sm.bg, color: sm.color }}
                   >
                     {sm.label}
                   </span>

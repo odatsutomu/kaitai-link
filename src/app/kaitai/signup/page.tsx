@@ -228,13 +228,13 @@ export default function SignupPage() {
               <p style={{ fontSize: 14, color: "#888888", marginTop: 4 }}>2種類のパスワードで権限を分離します</p>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="rounded-2xl p-4" style={{ background: "${T.primaryLt}", border: "1.5px solid #FED7AA" }}>
+              <div className="rounded-2xl p-5" style={{ background: "${T.primaryLt}", border: "1.5px solid #FED7AA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#B45309", marginBottom: 2 }}>第一パスワード（全従業員共有）</p>
                 <p style={{ fontSize: 11, color: "#92400E" }}>現場確認・スケジュール・勤怠報告に使用</p>
               </div>
               {field("第一パスワード", pw1, setPw1, { placeholder: "4文字以上", type: "password", key: "pw1" })}
 
-              <div className="rounded-2xl p-4" style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
+              <div className="rounded-2xl p-5" style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 2 }}>第二パスワード（管理者専用）</p>
                 <p style={{ fontSize: 11, color: "#7F1D1D" }}>経営分析・メンバー評価・支払い管理に使用</p>
               </div>

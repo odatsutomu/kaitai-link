@@ -100,12 +100,12 @@ export default function MenuPage() {
             <p style={{ fontSize: 16, marginTop: 2, color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
               {planStyle.label}
             </span>
             <span
               style={{
-                fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20,
                 ...(isAdmin
                   ? { background: "#FEF2F2", color: C.red }
                   : { background: T.bg, color: C.muted })

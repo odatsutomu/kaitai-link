@@ -895,7 +895,7 @@ export default function AdminEvaluationPage() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            padding: "3px 10px",
+                            padding: "5px 12px",
                             borderRadius: 8,
                             background: flagBg,
                             color: flagColor,

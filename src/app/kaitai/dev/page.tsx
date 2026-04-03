@@ -57,13 +57,13 @@ const PLAN_LABEL = { free: "Free", standard: "Standard", business: "Business", e
 
 function StatusBadge({ hasStripe }: { hasStripe: boolean }) {
   if (hasStripe) return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.25)" }}>
+    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.25)" }}>
       <CheckCircle size={10} style={{ color: "#4ADE80" }} />
       <span style={{ fontSize: 14, fontWeight: 700, color: "#4ADE80" }}>有効</span>
     </div>
   );
   return (
-    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)" }}>
+    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)" }}>
       <XCircle size={10} style={{ color: "#F87171" }} />
       <span style={{ fontSize: 14, fontWeight: 700, color: "#F87171" }}>未設定</span>
     </div>
@@ -118,7 +118,7 @@ export default function DevPage() {
             <Shield size={18} style={{ color: T.primary }} />
             <span style={{ fontSize: 16, fontWeight: 900, color: T.bg }}>Dev Dashboard</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
             <AlertTriangle size={10} style={{ color: "#F87171" }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#F87171" }}>Internal Only</span>
           </div>
@@ -160,7 +160,7 @@ export default function DevPage() {
 
         {/* ── Tab: companies ── */}
         {tab === "companies" && allCompanies.map(c => (
-          <div key={c.id} className="rounded-2xl p-4" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
+          <div key={c.id} className="rounded-2xl p-5" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
             {/* Row 1: name + plan + status */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 min-w-0">

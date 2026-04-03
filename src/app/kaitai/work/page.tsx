@@ -62,7 +62,7 @@ export default function WorkSelectPage() {
                       {site.name}
                     </p>
                     <span
-                      style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, flexShrink: 0, background: "${T.primaryLt}", color: C.amberDk }}
+                      style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, flexShrink: 0, background: "${T.primaryLt}", color: C.amberDk }}
                     >
                       {site.status}
                     </span>

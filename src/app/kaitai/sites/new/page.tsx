@@ -1116,7 +1116,7 @@ export default function SiteNewPage() {
                     {files.map((f, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
                         style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
                       >
                         <FileText size={12} style={{ color: "#3B82F6" }} />

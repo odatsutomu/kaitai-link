@@ -177,7 +177,7 @@ export default function AdminProjectsPage() {
               {/* 粗利率 */}
               {pct !== null && mc ? (
                 <span
-                  className="px-2 py-0.5 rounded text-xs font-bold w-fit"
+                  className="px-2.5 py-1 rounded text-xs font-bold w-fit"
                   style={{ background: mc.bg, color: mc.text, border: `1px solid ${mc.border}` }}
                 >
                   {pct}%

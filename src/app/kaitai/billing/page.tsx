@@ -249,7 +249,7 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "#FEF2F2" }}>
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl" style={{ background: "#FEF2F2" }}>
               <AlertCircle size={14} color="#EF4444" />
               <p style={{ fontSize: 14, color: "#EF4444" }}>{error}</p>
             </div>
@@ -356,7 +356,7 @@ function CheckoutModal({
           ) : (
             <>
               {/* Plan summary */}
-              <div className="rounded-2xl p-4" style={{ background: `${plan.color}10`, border: `1.5px solid ${plan.color}40` }}>
+              <div className="rounded-2xl p-5" style={{ background: `${plan.color}10`, border: `1.5px solid ${plan.color}40` }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p style={{ fontSize: 14, color: T.sub }}>プラン変更</p>
@@ -600,7 +600,7 @@ export default function BillingPage() {
               </div>
 
               {cp.price > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.7)" }}>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.7)" }}>
                   <Clock size={12} color={T.sub} />
                   <p style={{ fontSize: 14, color: T.sub }}>
                     次回請求日: <span style={{ fontWeight: 700, color: "#111" }}>{nextBillingDate}</span>
@@ -704,7 +704,7 @@ export default function BillingPage() {
             <section className="max-w-xl">
               <SectionLabel>登録カード</SectionLabel>
               {card ? (
-                <div className="rounded-2xl p-4" style={{ background: T.surface, border: "1.5px solid #E5E7EB" }}>
+                <div className="rounded-2xl p-5" style={{ background: T.surface, border: "1.5px solid #E5E7EB" }}>
                   {/* Card visual */}
                   <div
                     className="rounded-2xl p-5 mb-4 relative overflow-hidden"

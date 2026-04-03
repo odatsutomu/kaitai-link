@@ -389,7 +389,7 @@ function SiteCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{ fontSize: 14, fontWeight: 700, background: cfg.bg, color: cfg.fg }}
             >
               {site.status === "作業中" && (

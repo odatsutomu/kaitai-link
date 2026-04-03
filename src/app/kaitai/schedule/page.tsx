@@ -101,7 +101,7 @@ export default function SchedulePage() {
             {/* Site legend */}
             <div className="flex flex-wrap gap-2 mb-5">
               {SITES.map(s => (
-                <div key={s.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: `${s.color}12`, border: `1px solid ${s.color}30` }}>
+                <div key={s.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: `${s.color}12`, border: `1px solid ${s.color}30` }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
                   <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.name}</span>
                 </div>
@@ -134,7 +134,7 @@ export default function SchedulePage() {
                     onClick={() => isValid && setSelectedDay(isSelected ? null : dayNum)}
                     className="rounded-xl flex flex-col overflow-hidden transition-all"
                     style={{
-                      minHeight: 58,
+                      minHeight: 68,
                       background: isSelected
                         ? C.text
                         : isToday
@@ -153,7 +153,7 @@ export default function SchedulePage() {
                   >
                     {isValid && (
                       <>
-                        <div className="text-center pt-1.5 pb-0.5">
+                        <div className="text-center pt-2 pb-1">
                           <span style={{
                             fontSize: isToday || isSelected ? 16 : 14,
                             fontWeight: isToday || isSelected ? 700 : 500,
@@ -162,7 +162,7 @@ export default function SchedulePage() {
                             {dayNum}
                           </span>
                         </div>
-                        <div className="flex flex-col gap-0.5 px-1 pb-1.5">
+                        <div className="flex flex-col gap-0.5 px-1.5 pb-2">
                           {events?.sites.slice(0, 2).map(s => (
                             <div
                               key={s.id}
@@ -227,7 +227,7 @@ export default function SchedulePage() {
                   4月{selectedDay}日（{DAY_LABELS[(FIRST_DAY_OFFSET + selectedDay - 1) % 7]}）
                 </h2>
                 {isWeekend && (
-                  <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: "#FEF2F2", color: "#EF4444" }}>休日</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: "#FEF2F2", color: "#EF4444" }}>休日</span>
                 )}
               </div>
 
@@ -238,7 +238,7 @@ export default function SchedulePage() {
                     {selectedEvents.sites.map(s => (
                       <div
                         key={s.id}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                        className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
                         style={{ background: `${s.color}10`, border: `1.5px solid ${s.color}30`, borderRadius: 12 }}
                       >
                         <div style={{ width: 10, height: 28, borderRadius: 3, background: s.color, flexShrink: 0 }} />
@@ -258,7 +258,7 @@ export default function SchedulePage() {
                     {selectedEvents.staff.map(s => (
                       <div
                         key={s.name}
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl"
+                        className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
                         style={{ background: `${s.color}10`, border: `1px solid ${s.color}25`, borderRadius: 12 }}
                       >
                         <div
@@ -281,7 +281,7 @@ export default function SchedulePage() {
                     {selectedEvents.equipment.map(e => (
                       <div
                         key={e.name}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
                         style={{ background: `${e.color}10`, border: `1px solid ${e.color}25`, borderRadius: 10 }}
                       >
                         <span style={{ fontSize: 16 }}>🚜</span>

@@ -113,7 +113,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
         background: "rgba(255,255,255,0.92)",
         border: "1px solid #E2E8F0",
         borderRadius: 8,
-        padding: "4px 10px",
+        padding: "5px 12px",
         display: "flex", gap: 10, alignItems: "center",
       }}>
         {(["解体中", "着工前", "完工"] as const).map(s => (

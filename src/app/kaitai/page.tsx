@@ -193,16 +193,16 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
         {/* コンテンツ */}
         <div className="flex-1 min-w-0 p-6">
           {/* バッジ行 + 進捗 */}
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span
-                className="px-2.5 py-1 rounded-lg font-bold"
+                className="px-3 py-1.5 rounded-lg font-bold"
                 style={{ background: typeColor + "18", color: typeColor, fontSize: 13 }}
               >
                 {site.type}
               </span>
               <span
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold"
                 style={{ background: st.bg, color: st.text, fontSize: 13 }}
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: st.dot }} />
@@ -210,7 +210,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
               </span>
               {site.hasWorkToday && (
                 <span
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold"
                   style={{ background: "#F0FDF4", color: C.green, fontSize: 13 }}
                 >
                   <span className="w-2 h-2 rounded-full" style={{ background: C.green }} />
@@ -230,7 +230,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
           </div>
 
           {/* 進捗バー */}
-          <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: T.bg }}>
+          <div className="h-2 rounded-full overflow-hidden mb-5" style={{ background: T.bg }}>
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${site.progressPct}%`, background: st.dot }}
@@ -238,7 +238,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
           </div>
 
           {/* 現場名 */}
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 10 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 12 }}>
             {site.name}
           </h3>
 
@@ -267,7 +267,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
       {/* ─ 本日のスタッフ ─ */}
       {attendance.length > 0 && (
         <div
-          className="px-6 py-5"
+          className="px-6 py-6"
           style={{ background: T.bg, borderTop: `1px solid ${C.border}` }}
         >
           <p style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 12, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>
@@ -280,7 +280,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
               return (
                 <div
                   key={a.userId}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
                   style={{
                     background: sty.bg,
                     border: `1.5px solid ${sty.color}28`,
@@ -302,7 +302,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
 
       {/* ─ 詳細ボタン ─ */}
       <div
-        className="flex items-center justify-between px-6 py-4"
+        className="flex items-center justify-between px-6 py-5"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
         <span style={{ fontSize: 13, color: C.muted }}>{site.code}</span>
@@ -330,10 +330,10 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
   const done = sites.filter(s => s.status === "完工");
   return (
     <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+      <div className="px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>ステータス管理</h3>
       </div>
-      <div className="px-4 py-4 flex flex-col gap-2.5">
+      <div className="px-5 py-5 flex flex-col gap-3">
         {/* 着工前 */}
         <div className="flex items-center gap-2 mb-0.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.blue }} />
@@ -343,7 +343,7 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
         </div>
         {upcoming.map(s => (
           <Link key={s.id} href={`/kaitai/site/${s.id}`}>
-            <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-blue-50"
+            <div className="flex items-center justify-between px-4 py-3.5 rounded-lg transition-colors hover:bg-blue-50"
               style={{ background: "#EFF6FF", border: `1.5px solid #BFDBFE` }}>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{s.name}</p>
@@ -358,12 +358,12 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
         <div className="flex items-center gap-2 mt-3 mb-0.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.green }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: C.green }}>完工済 ({done.length})</span>
-          <span className="ml-auto px-2 py-0.5 rounded text-sm font-bold"
+          <span className="ml-auto px-2.5 py-1 rounded text-sm font-bold"
             style={{ background: "#F0FDF4", color: C.green, border: "1px solid #BBF7D0" }}>今月</span>
         </div>
         {done.map(s => (
           <Link key={s.id} href={`/kaitai/site/${s.id}`}>
-            <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-green-50"
+            <div className="flex items-center justify-between px-4 py-3.5 rounded-lg transition-colors hover:bg-green-50"
               style={{ background: "#F0FDF4", border: `1.5px solid #BBF7D0` }}>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{s.name}</p>
@@ -387,7 +387,7 @@ function MapPanel() {
   }));
   return (
     <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>現場マップ</h3>
         <ArrowUpRight size={14} style={{ color: C.muted }} />
       </div>
@@ -406,10 +406,10 @@ function WeatherPanel() {
   ];
   return (
     <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
-      <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+      <div className="px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>本日の天気（世田谷区）</h3>
       </div>
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
           <Sun size={36} style={{ color: "#92400E" }} />
           <div>
@@ -423,7 +423,7 @@ function WeatherPanel() {
         </div>
         <div className="grid grid-cols-4 gap-1 pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
           {forecast.map(({ label, icon: Icon, hi, lo }) => (
-            <div key={label} className="flex flex-col items-center gap-1 py-1">
+            <div key={label} className="flex flex-col items-center gap-1.5 py-2">
               <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
               <Icon size={14} style={{ color: C.sub }} />
               <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{hi}°</span>
@@ -506,7 +506,7 @@ export default function KaitaiHome() {
               <span className="w-1 h-5 rounded-full" style={{ background: C.amber }} />
               稼働中の現場
               <span
-                className="px-2.5 py-0.5 rounded-full font-bold"
+                className="px-3 py-1.5 rounded-full font-bold"
                 style={{ background: T.primaryLt, color: C.amberDk, fontSize: 13 }}
               >
                 {active.length}件
