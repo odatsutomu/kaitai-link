@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Star, Award, Phone, MapPin, Calendar,
+  ArrowLeft, Star, Award, Calendar,
   Briefcase, TrendingUp, TrendingDown, AlertTriangle,
   CheckCircle, XCircle, MinusCircle, MessageSquare,
   Shield, Clock, ChevronDown, ChevronUp, Lock,
@@ -13,7 +13,6 @@ import {
   experienceYears, experienceLevel,
   type License, type TroubleRecord,
 } from "../../lib/members";
-import { useAppContext } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -393,28 +392,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const attColor = s.attendancePct >= 95 ? "#4ADE80" : s.attendancePct >= 80 ? "#92400E" : "#F87171";
   const effColor = s.efficiencyDelta >= 0 ? "#4ADE80" : "#F87171";
 
-  // ─── Access control ─────────────────────────────────────────────────────────
-  const { viewerMemberId, attendanceLogs } = useAppContext();
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Foreman exception: viewer is 職長 AND shares an active site with this member today
-  const viewerMember = viewerMemberId ? MEMBERS.find(m => m.id === viewerMemberId) : null;
-  const isForeman = !!viewerMember && viewerMember.role === "職長";
-  const canSeeEmergency = (() => {
-    if (!isForeman || !viewerMemberId) return false;
-    const viewerActiveSites = new Set(
-      attendanceLogs
-        .filter(l => l.userId === viewerMemberId && l.timestamp.startsWith(today))
-        .map(l => l.siteId)
-    );
-    return attendanceLogs.some(l =>
-      l.userId === member.id &&
-      l.timestamp.startsWith(today) &&
-      viewerActiveSites.has(l.siteId) &&
-      (l.status === "clock_in" || l.status === "break_in" || l.status === "break_out")
-    );
-  })();
-
   const handleTroubleScore = (troubleId: string, score: 1 | 2 | 3, memo: string) => {
     setStatsState(prev => ({
       ...prev,
@@ -540,35 +517,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   </div>
                 ))}
 
-                {/* 住所: admin only 🔒 */}
-                <div className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: "1px solid #0F1928" }}>
-                  <MapPin size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p style={{ fontSize: 14, color: T.sub }}>住所</p>
-                      <Lock size={11} style={{ color: T.primary }} />
-                    </div>
-                    <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者のみ閲覧可</p>
-                  </div>
-                </div>
-
-                {/* 緊急連絡先: admin + foreman exception 🔒 */}
-                <div className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: "1px solid #0F1928" }}>
-                  <Phone size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p style={{ fontSize: 14, color: T.sub }}>緊急連絡先</p>
-                      <Lock size={11} style={{ color: T.primary }} />
-                      {canSeeEmergency && (
-                        <span style={{ fontSize: 12, color: T.primaryDk, fontStyle: "italic" }}>職長権限で表示中</span>
-                      )}
-                    </div>
-                    {canSeeEmergency
-                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: T.bg }}>{member.emergency}</p>
-                      : <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者または現場担当職長のみ閲覧可</p>
-                    }
-                  </div>
-                </div>
               </Card>
             </section>
 

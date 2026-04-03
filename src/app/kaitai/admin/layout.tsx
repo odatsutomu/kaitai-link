@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -46,6 +46,10 @@ function LoginScreen({
   const [shake, setShake] = useState(false);
   const [error, setError] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // PC: 自動フォーカス
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const verifyPin = useCallback(async (pinValue: string) => {
     setVerifying(true);
@@ -61,12 +65,12 @@ function LoginScreen({
       } else {
         setShake(true);
         setError("パスワードが違います");
-        setTimeout(() => { setShake(false); setPin(""); setError(""); }, 700);
+        setTimeout(() => { setShake(false); setPin(""); setError(""); inputRef.current?.focus(); }, 700);
       }
     } catch {
       setShake(true);
       setError("通信エラー");
-      setTimeout(() => { setShake(false); setPin(""); setError(""); }, 700);
+      setTimeout(() => { setShake(false); setPin(""); setError(""); inputRef.current?.focus(); }, 700);
     } finally {
       setVerifying(false);
     }
@@ -83,11 +87,42 @@ function LoginScreen({
     }
   }, [pin, verifying, verifyPin]);
 
+  // PC: テキスト入力対応
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (verifying) return;
+    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setPin(val);
+    setError("");
+    if (val.length === 4) {
+      verifyPin(val);
+    }
+  }, [verifying, verifyPin]);
+
   return (
     <div
       className="flex flex-col items-center justify-between"
       style={{ background: "#0F172A", minHeight: "100vh", paddingBottom: "env(safe-area-inset-bottom)" }}
+      onClick={() => inputRef.current?.focus()}
     >
+      {/* Hidden input for keyboard entry (PC) */}
+      <input
+        ref={inputRef}
+        type="password"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={4}
+        value={pin}
+        onChange={handleInputChange}
+        autoFocus
+        style={{
+          position: "absolute",
+          opacity: 0,
+          width: 1,
+          height: 1,
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Top */}
       <div className="pt-16 flex flex-col items-center gap-4">
         <div className="flex items-center justify-center w-16 h-16 rounded-2xl" style={{ background: TDark.primaryLt }}>
@@ -126,9 +161,13 @@ function LoginScreen({
         }}>
           {error || "　"}
         </p>
+        {/* PC: テキスト入力フィールド */}
+        <div className="hidden lg:flex flex-col items-center gap-2">
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>キーボードで入力、またはテンキーをタップ</p>
+        </div>
       </div>
 
-      {/* Numpad */}
+      {/* Numpad (mobile-first, also works on PC) */}
       <div
         className="w-full max-w-xs grid grid-cols-3 mb-8"
         style={{ gap: 12, padding: "0 24px" }}

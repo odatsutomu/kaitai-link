@@ -752,7 +752,7 @@ export default function KaitaiHome() {
                 {active.length}件
               </span>
             </h2>
-            <Link href="/kaitai/sites/new"
+            <Link href="/kaitai/schedule"
               className="flex items-center gap-1 font-medium" style={{ fontSize: 14, color: C.amber }}>
               全現場を表示 <ArrowUpRight size={13} />
             </Link>
