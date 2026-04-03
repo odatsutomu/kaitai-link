@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  Search, Star, Award, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, Zap, Users, Clock, Plus, Lock, Eye,
+  Search, Star, Award, Zap, Lock, Eye,
 } from "lucide-react";
 import {
   MEMBERS, MEMBER_STATS, LICENSE_LABELS,
@@ -58,28 +57,7 @@ function activityScore(m: (typeof MEMBERS)[0]): number {
   return Math.max(0, Math.min(100, Math.round(att + eff + lic - pen)));
 }
 
-// ─── Mini radar sparkline ──────────────────────────────────────────────────────
-
-function MiniRadar({ radar }: { radar: Record<string, number> }) {
-  const vals = Object.values(radar);
-  const n = vals.length;
-  const cx = 24, cy = 24, r = 18;
-  const angles = vals.map((_, i) => (i * 2 * Math.PI) / n - Math.PI / 2);
-  const pts = vals.map((v, i) => {
-    const x = cx + (r * v / 100) * Math.cos(angles[i]);
-    const y = cy + (r * v / 100) * Math.sin(angles[i]);
-    return `${x},${y}`;
-  }).join(" ");
-  const bgPts = angles.map(a => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`).join(" ");
-  return (
-    <svg viewBox="0 0 48 48" width={40} height={40}>
-      <polygon points={bgPts} fill="none" stroke="#E5E7EB" strokeWidth="0.8" />
-      <polygon points={pts} fill="rgba(245,158,11,0.15)" stroke="#F59E0B" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-// ─── Alert section (admin only) ───────────────────────────────────────────────
+// ─── Alert section (unused — admin version is at /kaitai/admin/members) ──────
 
 function AlertSection() {
   const warnings = MEMBERS.filter(m => {
@@ -468,7 +446,7 @@ function ForemanBanner({
 type Tab = "一覧" | "勤怠" | "資格";
 
 export default function MembersPage() {
-  const { adminMode, viewerMemberId, setViewerMemberId } = useAppContext();
+  const { viewerMemberId, setViewerMemberId } = useAppContext();
 
   const [tab, setTab]         = useState<Tab>("一覧");
   const [query, setQuery]     = useState("");
@@ -493,27 +471,11 @@ export default function MembersPage() {
 
   const direct  = MEMBERS.filter(m => m.type === "直用").length;
   const outside = MEMBERS.filter(m => m.type === "外注").length;
-  const avgAtt  = Math.round(MEMBER_STATS.reduce((s, x) => s + x.attendancePct, 0) / MEMBER_STATS.length);
-  const totalTrouble = MEMBER_STATS.reduce((s, x) => s + x.troubles.length, 0);
 
-  const attRanked = [...MEMBERS].sort((a, b) => {
-    const sa = MEMBER_STATS.find(x => x.memberId === a.id)!;
-    const sb = MEMBER_STATS.find(x => x.memberId === b.id)!;
-    return sb.attendancePct - sa.attendancePct;
-  });
-
-  // KPI tiles differ by role
-  const kpiTiles = adminMode
-    ? [
-        { label: "総メンバー数",   value: `${MEMBERS.length}`,  unit: "名", color: "#3B82F6", note: `直用${direct}・外注${outside}` },
-        { label: "当月出勤率",     value: `${avgAtt}`,           unit: "%", color: avgAtt >= 90 ? C.green : C.amber, note: "月間平均" },
-        { label: "トラブル件数",   value: `${totalTrouble}`,    unit: "件", color: totalTrouble > 0 ? C.red : C.green, note: "今月累計" },
-        { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: "#D97706", note: "全資格数" },
-      ]
-    : [
-        { label: "総メンバー数",   value: `${MEMBERS.length}`,  unit: "名", color: "#3B82F6", note: `直用${direct}・外注${outside}` },
-        { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: "#D97706", note: "全資格数" },
-      ];
+  const kpiTiles = [
+    { label: "総メンバー数",   value: `${MEMBERS.length}`,  unit: "名", color: "#3B82F6", note: `直用${direct}・外注${outside}` },
+    { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: "#D97706", note: "全資格数" },
+  ];
 
   return (
     <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
@@ -521,32 +483,21 @@ export default function MembersPage() {
       {/* ── Page header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: C.text }}>メンバー管理</h1>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>メンバー一覧</h1>
           <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>
             登録 {MEMBERS.length}名（直用 {direct}名・外注 {outside}社）
           </p>
         </div>
-        {adminMode && (
-          <button
-            className="inline-flex items-center gap-2 flex-shrink-0 transition-all active:scale-95 hover:opacity-90"
-            style={{ background: "#F59E0B", color: "#FFFFFF", fontSize: 15, fontWeight: 600, padding: "12px 20px", borderRadius: 12, boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
-          >
-            <Plus size={16} />
-            メンバー追加
-          </button>
-        )}
       </div>
 
       {/* ── Access mode banner ── */}
-      {!adminMode && (
-        <ForemanBanner
-          viewerMemberId={viewerMemberId}
-          setViewerMemberId={setViewerMemberId}
-        />
-      )}
+      <ForemanBanner
+        viewerMemberId={viewerMemberId}
+        setViewerMemberId={setViewerMemberId}
+      />
 
       {/* ── KPI strip ── */}
-      <div className={`grid gap-3 ${adminMode ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2"}`}>
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         {kpiTiles.map(({ label, value, unit, color, note }) => (
           <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16, padding: "20px" }}>
             <p style={{ fontSize: 14, color: C.sub, marginBottom: 6 }}>{label}</p>
@@ -554,39 +505,27 @@ export default function MembersPage() {
             <p style={{ fontSize: 14, marginTop: 4, color: C.muted }}>{note}</p>
           </div>
         ))}
-        {/* Locked KPI chips for non-admin */}
-        {!adminMode && (
-          <>
-            <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Lock size={13} style={{ color: "#94A3B8" }} />
-                <p style={{ fontSize: 14, color: "#94A3B8" }}>当月出勤率</p>
-              </div>
-              <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
-            </div>
-            <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Lock size={13} style={{ color: "#94A3B8" }} />
-                <p style={{ fontSize: 14, color: "#94A3B8" }}>トラブル件数</p>
-              </div>
-              <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
-            </div>
-          </>
-        )}
+        {/* Locked KPI chips */}
+        <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Lock size={13} style={{ color: "#94A3B8" }} />
+            <p style={{ fontSize: 14, color: "#94A3B8" }}>当月出勤率</p>
+          </div>
+          <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
+        </div>
+        <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Lock size={13} style={{ color: "#94A3B8" }} />
+            <p style={{ fontSize: 14, color: "#94A3B8" }}>トラブル件数</p>
+          </div>
+          <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
+        </div>
       </div>
 
-      {/* ── Main layout: 2-col for admin, 1-col for general ── */}
-      <div className={`flex gap-6 ${adminMode ? "flex-col lg:flex-row" : "flex-col"}`}>
+      {/* ── Main layout ── */}
+      <div className="flex flex-col gap-6">
 
-        {/* ── Left sidebar (admin only) ── */}
-        {adminMode && (
-          <div className="lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4">
-            <AlertSection />
-            <SkillMap />
-          </div>
-        )}
-
-        {/* ── Right: search + list (full width for general) ── */}
+        {/* ── Search + list ── */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
 
           {/* Search + type filter + sort */}
@@ -665,90 +604,17 @@ export default function MembersPage() {
           {/* ── Tab: 一覧 ── */}
           {tab === "一覧" && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {filtered.map((m, i) => adminMode
-                ? <MemberCardAdmin key={m.id} m={m} rank={i} />
-                : <MemberCardGeneral key={m.id} m={m} rank={i} />
-              )}
+              {filtered.map((m, i) => <MemberCardGeneral key={m.id} m={m} rank={i} />)}
             </div>
           )}
 
           {/* ── Tab: 勤怠 ── */}
           {tab === "勤怠" && (
-            adminMode ? (
-              <div className="flex flex-col gap-3">
-                <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 4px", color: C.amber }}>
-                  4月 出勤率ランキング
-                </p>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {attRanked.map((m) => {
-                    const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
-                    const lvl = experienceLevel(experienceYears(m));
-                    const attColor = s.attendancePct >= 95 ? C.green : s.attendancePct >= 80 ? C.amber : C.red;
-                    return (
-                      <Link key={m.id} href={`/kaitai/members/${m.id}?tab=勤怠`}>
-                        <div style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16, padding: "20px 20px 16px" }}>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 40, height: 40, background: lvl.bg, color: lvl.color, fontSize: 15 }}>
-                              {m.avatar}
-                            </div>
-                            <div className="flex-1">
-                              <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
-                              <p style={{ fontSize: 14, color: C.muted }}>
-                                出勤 {s.workDays}日・遅刻 {s.lateDays}・欠勤 {s.absentDays}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p style={{ fontSize: 28, fontWeight: 800, color: attColor, lineHeight: 1 }}>{s.attendancePct}%</p>
-                              <p style={{ fontSize: 14, color: C.muted }}>{s.totalHours}h</p>
-                            </div>
-                          </div>
-                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${s.attendancePct}%`, background: attColor }} />
-                          </div>
-                          <div className="flex gap-0.5 mt-2.5 flex-wrap">
-                            {s.calendar.slice(0, 20).map((status, di) => (
-                              <div
-                                key={di}
-                                className="w-3 h-3 rounded-sm"
-                                style={{
-                                  background:
-                                    status === "出勤" ? "#D1FAE5" :
-                                    status === "遅刻" ? "#FEF3C7" :
-                                    status === "欠勤" ? "#FEE2E2" :
-                                    status === "休日" ? "#F1F5F9" : "#F8FAFC",
-                                  border: status === "出勤" ? "1px solid #A7F3D0" :
-                                          status === "遅刻" ? "1px solid #FDE68A" :
-                                          status === "欠勤" ? "1px solid #FECACA" : "none",
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-4 px-2 pt-1">
-                  {[
-                    { status: "出勤", color: "#10B981" },
-                    { status: "遅刻", color: "#D97706" },
-                    { status: "欠勤", color: "#EF4444" },
-                    { status: "休日", color: "#94A3B8" },
-                  ].map(({ status, color }) => (
-                    <div key={status} className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm" style={{ background: color, opacity: 0.5 }} />
-                      <span style={{ fontSize: 14, color: C.muted }}>{status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 rounded-2xl gap-3" style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1" }}>
-                <Lock size={28} style={{ color: "#94A3B8" }} />
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B" }}>勤怠情報は管理者のみ閲覧できます</p>
-                <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者ダッシュボードからご確認ください</p>
-              </div>
-            )
+            <div className="flex flex-col items-center justify-center py-12 rounded-2xl gap-3" style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1" }}>
+              <Lock size={28} style={{ color: "#94A3B8" }} />
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B" }}>勤怠情報は管理者のみ閲覧できます</p>
+              <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者ダッシュボードからご確認ください</p>
+            </div>
           )}
 
           {/* ── Tab: 資格 ── */}

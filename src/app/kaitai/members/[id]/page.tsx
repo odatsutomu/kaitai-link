@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Star, Award, Phone, MapPin, Calendar,
   Briefcase, TrendingUp, TrendingDown, AlertTriangle,
-  CheckCircle, XCircle, MinusCircle, Download, MessageSquare,
+  CheckCircle, XCircle, MinusCircle, MessageSquare,
   Shield, Clock, ChevronDown, ChevronUp, Lock,
 } from "lucide-react";
 import {
@@ -392,13 +392,13 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const effColor = s.efficiencyDelta >= 0 ? "#4ADE80" : "#F87171";
 
   // ─── Access control ─────────────────────────────────────────────────────────
-  const { adminMode, viewerMemberId, attendanceLogs } = useAppContext();
+  const { viewerMemberId, attendanceLogs } = useAppContext();
   const today = new Date().toISOString().slice(0, 10);
 
   // Foreman exception: viewer is 職長 AND shares an active site with this member today
   const viewerMember = viewerMemberId ? MEMBERS.find(m => m.id === viewerMemberId) : null;
   const isForeman = !!viewerMember && viewerMember.role === "職長";
-  const canSeeEmergency = adminMode || (() => {
+  const canSeeEmergency = (() => {
     if (!isForeman || !viewerMemberId) return false;
     const viewerActiveSites = new Set(
       attendanceLogs
@@ -449,24 +449,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               {member.type === "外注" && (
                 <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>
               )}
-              {adminMode && s.troubles.length > 0 && (
-                <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>
-              )}
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#F1F5F9" }}>{member.name}</h1>
             <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{member.kana}</p>
           </div>
-          {/* CSV export (admin only) */}
-          {adminMode && (
-            <button
-              onClick={() => exportCSV(member.name, s)}
-              className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl active:scale-95 transition-transform"
-              style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}
-            >
-              <Download size={16} style={{ color: "#F97316" }} />
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>CSV</span>
-            </button>
-          )}
         </div>
 
         {/* Stars + experience */}
@@ -493,10 +479,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       {/* ── Tabs ── */}
       <div className="py-1">
         <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#1A2535" }}>
-          {(adminMode
-            ? ["基本情報", "勤怠", "パフォーマンス", "評価"]
-            : ["基本情報", "勤怠"] as Tab[]
-          ).map(t => (
+          {(["基本情報", "勤怠"] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => setTab(t as Tab)}
@@ -562,12 +545,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     <div className="flex items-center gap-1.5">
                       <p style={{ fontSize: 14, color: "#64748B" }}>住所</p>
                       <Lock size={11} style={{ color: "#F97316" }} />
-                      {adminMode && <span style={{ fontSize: 12, color: "#64748B", fontStyle: "italic" }}>この情報はあなたにしか見えていません</span>}
                     </div>
-                    {adminMode
-                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{member.address}</p>
-                      : <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者のみ閲覧可</p>
-                    }
+                    <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者のみ閲覧可</p>
                   </div>
                 </div>
 
@@ -578,11 +557,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     <div className="flex items-center gap-1.5">
                       <p style={{ fontSize: 14, color: "#64748B" }}>緊急連絡先</p>
                       <Lock size={11} style={{ color: "#F97316" }} />
-                      {canSeeEmergency && !adminMode && (
+                      {canSeeEmergency && (
                         <span style={{ fontSize: 12, color: "#D97706", fontStyle: "italic" }}>職長権限で表示中</span>
-                      )}
-                      {adminMode && (
-                        <span style={{ fontSize: 12, color: "#64748B", fontStyle: "italic" }}>この情報はあなたにしか見えていません</span>
                       )}
                     </div>
                     {canSeeEmergency
@@ -605,20 +581,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   <p style={{ fontSize: 18, fontWeight: 700, color: lvl.color }}>{yrs}年</p>
                   <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>累計経験年数</p>
                 </Card>
-                {adminMode ? (
-                  <Card className="p-4 text-center" style={{ position: "relative" }}>
-                    <div className="flex items-center justify-center gap-1 mb-0.5">
-                      <Lock size={11} style={{ color: "#F97316" }} />
-                    </div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: "#4ADE80" }}>¥{member.dayRate.toLocaleString()}</p>
-                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
-                  </Card>
-                ) : (
-                  <Card className="p-4 text-center" style={{ opacity: 0.6 }}>
-                    <Lock size={18} style={{ color: "#64748B", marginLeft: "auto", marginRight: "auto" }} />
-                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
-                  </Card>
-                )}
+                <Card className="p-4 text-center" style={{ opacity: 0.6 }}>
+                  <Lock size={18} style={{ color: "#64748B", marginLeft: "auto", marginRight: "auto" }} />
+                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
+                </Card>
               </div>
             </section>
 
@@ -703,10 +669,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* ════════════════════════════════════════
-            TAB: パフォーマンス
-        ════════════════════════════════════════ */}
-        {tab === "パフォーマンス" && (
+        {/* パフォーマンス・評価タブは管理者ページ (/kaitai/admin/members/[id]) で確認可能 */}
+        {tab === "パフォーマンス__disabled" && (
           <>
             {/* Radar chart */}
             <section>
@@ -818,10 +782,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* ════════════════════════════════════════
-            TAB: 評価
-        ════════════════════════════════════════ */}
-        {tab === "評価" && (
+        {tab === "評価__disabled" && (
           <>
             {/* Existing evaluations */}
             <section>
@@ -925,23 +886,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* ── CSV export footer (admin only) ── */}
-        {adminMode && (
-          <div className="flex gap-2 pb-2">
-            <button
-              onClick={() => exportCSV(member.name, s)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm active:scale-[0.98] transition-transform"
-              style={{
-                background: "rgba(249,115,22,0.1)",
-                border: "1px solid rgba(249,115,22,0.2)",
-                color: "#F97316",
-              }}
-            >
-              <Download size={15} />
-              CSV出力（査定・給与計算用）
-            </button>
-          </div>
-        )}
 
       </div>
     </div>

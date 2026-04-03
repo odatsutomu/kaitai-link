@@ -19,9 +19,9 @@ const ADMIN_NAV = [
 ] as const;
 
 const EXTERNAL_NAV = [
-  { href: "/kaitai/members",  label: "メンバー管理", icon: Users    },
-  { href: "/kaitai/equipment",label: "機材管理",     icon: Truck    },
-  { href: "/kaitai/master",   label: "設定・権限",   icon: Settings },
+  { href: "/kaitai/admin/members",  label: "従業員管理", icon: Users    },
+  { href: "/kaitai/equipment",      label: "機材管理",   icon: Truck    },
+  { href: "/kaitai/master",         label: "設定・権限", icon: Settings },
 ] as const;
 
 const PAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
@@ -334,21 +334,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const isAuth = typeof sessionStorage !== "undefined"
-      && sessionStorage.getItem("kaitai_admin_auth") === "true";
+      && sessionStorage.getItem("kaitai_auth_level") === "admin";
     setAuthed(isAuth);
     if (isAuth) setAdminMode(true);
     setLoading(false);
   }, [setAdminMode]);
 
   const handleSuccess = useCallback(() => {
-    sessionStorage.setItem("kaitai_admin_auth", "true");
-    setAdminMode(true);
+    setAdminMode(true); // setAdminMode already writes kaitai_auth_level="admin" to sessionStorage
     setAuthed(true);
   }, [setAdminMode]);
 
   const handleExit = useCallback(() => {
-    sessionStorage.removeItem("kaitai_admin_auth");
-    setAdminMode(false);
+    setAdminMode(false); // clears kaitai_auth_level="worker" in sessionStorage
     setAuthed(false);
     router.push("/kaitai");
   }, [router, setAdminMode]);
