@@ -2,6 +2,7 @@
 
 import { useState, useRef, use } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   MapPin, Calendar, ChevronRight,
   Building2, Zap, Droplets, Flame, AlertTriangle,
@@ -9,6 +10,12 @@ import {
   Clock, Edit3, Plus, Info, Shield, ChevronDown,
 } from "lucide-react";
 import { useAppContext } from "../../../lib/app-context";
+import type { LatLng } from "../../../lib/geocode";
+
+const MapPicker = dynamic(
+  () => import("../../../components/map-picker").then(m => m.MapPicker),
+  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 12, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+);
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -257,6 +264,7 @@ export default function SiteEditPage({
   // Tab 1
   const [name, setName]               = useState(seed?.name ?? "");
   const [address, setAddress]         = useState(seed?.address ?? "");
+  const [mapPos, setMapPos]           = useState<LatLng | null>(null);
   const [startDate, setStartDate]     = useState(seed?.startDate ?? "");
   const [endDate, setEndDate]         = useState(seed?.endDate ?? "");
   const [extendedEnd, setExtendedEnd] = useState("");
@@ -467,28 +475,23 @@ export default function SiteEditPage({
 
                 <div>
                   <FieldLabel>住所</FieldLabel>
-                  <div className="flex gap-2">
-                    <InputField
-                      value={address}
-                      onChange={setAddress}
-                      placeholder="例：東京都世田谷区"
-                      className="flex-1"
-                    />
-                    <a
-                      href={address ? `https://www.google.com/maps/search/${encodeURIComponent(address)}` : "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-bold"
-                      style={{
-                        background: address ? "#FFF7ED" : C.bg,
-                        color: address ? "#EA580C" : "#CBD5E1",
-                        border: `1px solid ${address ? "#FED7AA" : C.border}`,
-                      }}
-                    >
-                      <MapPin size={13} />
-                      地図
-                    </a>
-                  </div>
+                  <InputField
+                    value={address}
+                    onChange={setAddress}
+                    placeholder="例：東京都世田谷区"
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel>
+                    <MapPin size={12} style={{ display: "inline", marginRight: 4, color: C.amber }} />
+                    現場位置（地図で確認・調整）
+                  </FieldLabel>
+                  <MapPicker
+                    address={address}
+                    value={mapPos}
+                    onChange={setMapPos}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

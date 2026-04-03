@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   MapPin, TrendingUp, Users, HardHat,
   CheckCircle2, Clock, ChevronRight, ArrowUpRight,
   Sun, Cloud, CloudRain, Wind,
 } from "lucide-react";
 import { KaitaiLogo } from "./components/kaitai-logo";
+
+const HomeMap = dynamic(
+  () => import("./components/home-map").then(m => m.HomeMap),
+  { ssr: false, loading: () => <div style={{ height: 200, background: "#F1F5F9", borderRadius: "0 0 12px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 12, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+);
 
 // ─── デザイントークン ─────────────────────────────────────────────────────────
 const C = {
@@ -39,6 +45,7 @@ const sites = [
     contract: 8_500_000, cost: 4_120_000,
     breakdown: { waste: 1_200_000, labor: 2_100_000, other: 820_000 },
     imgHue: "220",
+    lat: 35.6454, lng: 139.6530,
   },
   {
     id: "s2", code: "#2026-012",
@@ -50,6 +57,7 @@ const sites = [
     contract: 11_500_000, cost: 5_920_000,
     breakdown: { waste: 2_100_000, labor: 2_800_000, other: 1_020_000 },
     imgHue: "160",
+    lat: 35.5309, lng: 139.7025,
   },
   {
     id: "s3", code: "#2026-015",
@@ -61,6 +69,7 @@ const sites = [
     contract: 2_800_000, cost: 0,
     breakdown: { waste: 0, labor: 0, other: 0 },
     imgHue: "280",
+    lat: 35.8617, lng: 139.6455,
   },
   {
     id: "s4", code: "#2026-003",
@@ -72,6 +81,7 @@ const sites = [
     contract: 8_400_000, cost: 6_100_000,
     breakdown: { waste: 1_920_000, labor: 2_850_000, other: 1_330_000 },
     imgHue: "30",
+    lat: 35.6939, lng: 139.9847,
   },
 ];
 
@@ -341,42 +351,16 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
 
 // ─── 右パネル：現場マップ ─────────────────────────────────────────────────────
 function MapPanel() {
+  const mapSites = sites.map(s => ({
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status,
+  }));
   return (
     <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
       <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
         <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>現場マップ</h3>
         <ArrowUpRight size={14} style={{ color: C.muted }} />
       </div>
-      {/* マップ プレースホルダー */}
-      <div className="relative" style={{ height: 160, background: "#1E2D40", overflow: "hidden" }}>
-        {/* グリッドライン（地図風） */}
-        <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.15 }}>
-          {[20, 40, 60, 80].map(y => (
-            <line key={y} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke="#7CB9E8" strokeWidth="1" />
-          ))}
-          {[15, 35, 55, 75].map(x => (
-            <line key={x} x1={`${x}%`} y1="0" x2={`${x}%`} y2="100%" stroke="#7CB9E8" strokeWidth="1" />
-          ))}
-          {/* 斜め道路 */}
-          <line x1="0" y1="30%" x2="60%" y2="80%" stroke="#7CB9E8" strokeWidth="1.5" />
-          <line x1="20%" y1="0" x2="100%" y2="70%" stroke="#7CB9E8" strokeWidth="1.5" />
-        </svg>
-        {/* マーカー */}
-        {[
-          { x: "30%", y: "35%" }, { x: "55%", y: "55%" }, { x: "70%", y: "25%" },
-        ].map((pos, i) => (
-          <div key={i} className="absolute flex flex-col items-center"
-            style={{ left: pos.x, top: pos.y, transform: "translate(-50%, -100%)" }}>
-            <div className="w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: C.amber, boxShadow: `0 0 0 3px rgba(245,158,11,0.3)` }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-white" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="px-4 py-2">
-        <p style={{ fontSize: 11, color: C.muted }}>稼働中の現場位置情報を表示中</p>
-      </div>
+      <HomeMap sites={mapSites} height={200} />
     </div>
   );
 }
