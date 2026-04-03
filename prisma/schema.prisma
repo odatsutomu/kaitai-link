@@ -31,8 +31,11 @@ model KaitaiCompany {
   clients       KaitaiClient[]
   expenseLogs   KaitaiExpenseLog[]
   images        KaitaiImage[]
-  operationLogs KaitaiOperationLog[]
-  monthlyEvals  KaitaiMonthlyEval[]
+  operationLogs   KaitaiOperationLog[]
+  monthlyEvals    KaitaiMonthlyEval[]
+  skillCategories KaitaiSkillCategory[]
+  skills          KaitaiSkill[]
+  userSkills      KaitaiUserSkill[]
 }
 
 model KaitaiSession {
@@ -201,6 +204,54 @@ model KaitaiMonthlyEval {
   @@unique([companyId, memberId, month])
   @@index([companyId])
   @@index([memberId])
+}
+
+model KaitaiSkillCategory {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company KaitaiCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  skills  KaitaiSkill[]
+
+  @@index([companyId])
+}
+
+model KaitaiSkill {
+  id         String   @id @default(cuid())
+  companyId  String
+  categoryId String
+  name       String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company    KaitaiCompany       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category   KaitaiSkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  userSkills KaitaiUserSkill[]
+
+  @@index([companyId])
+  @@index([categoryId])
+}
+
+model KaitaiUserSkill {
+  id         String   @id @default(cuid())
+  companyId  String
+  memberId   String
+  skillId    String
+  taughtBy   String?           // memberId of teacher
+  achievedAt DateTime @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  skill   KaitaiSkill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, memberId, skillId])
+  @@index([companyId])
+  @@index([memberId])
+  @@index([skillId])
 }
 
 model KaitaiOperationLog {

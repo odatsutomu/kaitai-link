@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import {
   Search, Star, Award, Shield, TrendingUp, TrendingDown,
-  AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X,
+  AlertTriangle, Zap, Users, Clock, Plus, BarChart2, X, ClipboardList,
 } from "lucide-react";
 import {
   MEMBER_STATS, LICENSE_LABELS,
@@ -294,6 +294,19 @@ function MemberCard({ m, rank }: { m: Member; rank: number }) {
             日当 ¥{m.dayRate?.toLocaleString("ja-JP") ?? "—"}
           </span>
         </div>
+        {/* Skill sheet link */}
+        <Link
+          href={`/kaitai/admin/skills/member?id=${m.id}`}
+          onClick={e => e.stopPropagation()}
+          className="flex items-center justify-center gap-2 mt-3 pt-3 active:scale-[0.98] transition-all"
+          style={{
+            borderTop: `1px solid ${C.border}`, padding: "10px 0",
+            fontSize: 13, fontWeight: 700, color: C.amber, textDecoration: "none",
+          }}
+        >
+          <ClipboardList size={14} />
+          スキルチェックシート
+        </Link>
       </div>
     </Link>
   );

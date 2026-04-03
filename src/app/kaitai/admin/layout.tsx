@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
   LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2, Building2, CalendarDays,
+  Wrench, Activity,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -17,12 +18,14 @@ const ADMIN_NAV = [
   { href: "/kaitai/admin",            label: "経営分析",       icon: TrendingUp,   exact: true  },
   { href: "/kaitai/admin/projects",   label: "プロジェクト収支", icon: BarChart2,    exact: false },
   { href: "/kaitai/admin/evaluation", label: "月次評価",       icon: Star,         exact: false },
+  { href: "/kaitai/admin/activity",   label: "アクティビティ", icon: Activity,     exact: false },
 ] as const;
 
 const EXTERNAL_NAV = [
   { href: "/kaitai/admin/sites",     label: "現場管理",       icon: Building2 },
   { href: "/kaitai/admin/calendar",  label: "スケジュール管理", icon: CalendarDays },
   { href: "/kaitai/admin/members",   label: "従業員管理",     icon: Users    },
+  { href: "/kaitai/admin/skills",    label: "スキル管理",     icon: Wrench   },
   { href: "/kaitai/admin/equipment", label: "機材管理",       icon: Truck    },
   { href: "/kaitai/admin/docs",      label: "帳票出力",       icon: LayoutDashboard },
   { href: "/kaitai/admin/clients",   label: "元請け管理",     icon: Settings },
