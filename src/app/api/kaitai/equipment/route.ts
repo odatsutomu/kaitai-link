@@ -65,6 +65,9 @@ export async function PATCH(req: NextRequest) {
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
 
+  const existing = await prisma.kaitaiEquipment.findFirst({ where: { id, companyId: session.companyId } });
+  if (!existing) return NextResponse.json({ error: "機材が見つかりません" }, { status: 404 });
+
   const equipment = await prisma.kaitaiEquipment.update({
     where: { id },
     data:  patch,

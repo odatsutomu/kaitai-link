@@ -3,11 +3,14 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Find company by name or use first
+  // Find company by name — MUST specify company name to prevent accidental seeding
   const targetName = process.argv[2];
-  const company = targetName
-    ? await prisma.kaitaiCompany.findFirst({ where: { name: { contains: targetName } } })
-    : await prisma.kaitaiCompany.findFirst();
+  if (!targetName) {
+    console.error("Usage: npx ts-node scripts/seed-skills.ts <company-name>");
+    console.error("Company name is REQUIRED to prevent accidental cross-company data.");
+    process.exit(1);
+  }
+  const company = await prisma.kaitaiCompany.findFirst({ where: { name: { contains: targetName } } });
   if (!company) {
     console.error("No company found. Please create a company first.");
     process.exit(1);
