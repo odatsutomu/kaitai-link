@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
-  MapPin, Calendar, Edit3, ChevronRight, Search,
+  MapPin, Calendar, Edit3, ChevronRight, ChevronLeft, Search,
   Building2, CheckCircle, Clock, FileText, Handshake,
   ShieldCheck, Hammer, Truck, CreditCard, ClipboardCheck,
 } from "lucide-react";
@@ -70,6 +70,127 @@ function siteGroup(raw: string): string {
 
 const fmt = (n: number) => n > 0 ? `¥${Math.round(n).toLocaleString("ja-JP")}` : "—";
 
+// ─── Period filter ─────────────────────────────────────────────────────────
+
+type ViewMode = "all" | "month" | "year";
+
+function periodLabel(mode: ViewMode, year: number, month: number): string {
+  if (mode === "all") return "全期間";
+  if (mode === "year") return `${year}年`;
+  return `${year}年${month}月`;
+}
+
+function filterByPeriod(sites: SiteRow[], mode: ViewMode, year: number, month: number): SiteRow[] {
+  if (mode === "all") return sites;
+  return sites.filter(site => {
+    const periodStart = mode === "month"
+      ? `${year}-${String(month).padStart(2, "0")}-01`
+      : `${year}-01-01`;
+    const periodEnd = mode === "month"
+      ? `${year}-${String(month).padStart(2, "0")}-31`
+      : `${year}-12-31`;
+    const siteStart = site.startDate || "2000-01-01";
+    const siteEnd = site.endDate || "2099-12-31";
+    return siteStart <= periodEnd && siteEnd >= periodStart;
+  });
+}
+
+function PeriodPicker({
+  mode, year, month,
+  onModeChange, onYearChange, onMonthChange,
+}: {
+  mode: ViewMode; year: number; month: number;
+  onModeChange: (m: ViewMode) => void;
+  onYearChange: (y: number) => void;
+  onMonthChange: (m: number) => void;
+}) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-1 p-1 rounded-lg" style={{ background: T.bg }}>
+        {([["all", "全期間"], ["month", "月別"], ["year", "年間"]] as const).map(([m, label]) => (
+          <button
+            key={m}
+            onClick={() => onModeChange(m)}
+            className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
+            style={mode === m
+              ? { background: T.primary, color: T.surface }
+              : { color: T.sub }
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode !== "all" && (
+        <div className="flex items-center gap-2">
+          <button onClick={() => onYearChange(year - 1)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg"
+            style={{ border: `1px solid ${T.border}`, color: T.sub }}>
+            <ChevronLeft size={16} />
+          </button>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.text, minWidth: 60, textAlign: "center" }}>
+            {year}年
+          </span>
+          <button onClick={() => onYearChange(Math.min(year + 1, currentYear))}
+            disabled={year >= currentYear}
+            className="w-8 h-8 flex items-center justify-center rounded-lg"
+            style={{ border: `1px solid ${T.border}`, color: year >= currentYear ? T.muted : T.sub, opacity: year >= currentYear ? 0.4 : 1 }}>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {mode === "month" && (
+        <div className="grid grid-cols-6 gap-1">
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+            const isFuture = year === currentYear && m > now.getMonth() + 1;
+            return (
+              <button
+                key={m}
+                onClick={() => !isFuture && onMonthChange(m)}
+                disabled={isFuture}
+                className="py-1.5 rounded-md text-sm font-bold transition-all"
+                style={month === m
+                  ? { background: T.primary, color: "#FFF" }
+                  : isFuture
+                  ? { color: T.muted, opacity: 0.3 }
+                  : { color: T.sub, background: T.bg }
+                }
+              >
+                {m}月
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-1 flex-wrap">
+        {[
+          { label: "全期間", action: () => { onModeChange("all"); } },
+          { label: "今月", action: () => { onModeChange("month"); onYearChange(currentYear); onMonthChange(now.getMonth() + 1); } },
+          { label: "先月", action: () => {
+            const pm = now.getMonth() === 0 ? 12 : now.getMonth();
+            const py = now.getMonth() === 0 ? currentYear - 1 : currentYear;
+            onModeChange("month"); onYearChange(py); onMonthChange(pm);
+          }},
+          { label: `${currentYear}年`, action: () => { onModeChange("year"); onYearChange(currentYear); } },
+          { label: `${currentYear - 1}年`, action: () => { onModeChange("year"); onYearChange(currentYear - 1); } },
+        ].map(q => (
+          <button key={q.label} onClick={q.action}
+            className="px-2.5 py-1 rounded-md text-xs font-bold transition-all"
+            style={{ background: T.bg, color: T.sub, border: `1px solid ${T.border}` }}>
+            {q.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Status Dropdown ────────────────────────────────────────────────────────
 
 function StatusDropdown({
@@ -129,9 +250,17 @@ function StatusDropdown({
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function AdminSitesPage() {
+  const now = new Date();
   const [sites, setSites] = useState<SiteRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Period filter state
+  const [mode, setMode] = useState<ViewMode>("all");
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/kaitai/sites", { credentials: "include" })
@@ -157,11 +286,25 @@ export default function AdminSitesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Close picker on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    }
+    if (showPicker) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showPicker]);
+
   function handleStatusChange(siteId: string, newStatus: string) {
     setSites(prev => prev.map(s => s.id === siteId ? { ...s, status: newStatus } : s));
   }
 
-  const filtered = sites
+  // Apply period filter then text search
+  const periodFiltered = filterByPeriod(sites, mode, year, month);
+
+  const filtered = periodFiltered
     .filter(s => {
       if (!search) return true;
       const q = search.toLowerCase();
@@ -191,16 +334,46 @@ export default function AdminSitesPage() {
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>現場管理</h1>
           <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>
-            登録現場の確認・ステータス管理（{sites.length}件）
+            登録現場の確認・ステータス管理（{filtered.length}/{sites.length}件表示）
           </p>
         </div>
-        <Link
-          href="/kaitai/sites/new"
-          className="px-5 py-2.5 rounded-lg text-sm font-bold"
-          style={{ background: T.primary, color: "#fff", textDecoration: "none" }}
-        >
-          + 新規現場登録
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Period picker */}
+          <div className="relative" ref={pickerRef}>
+            <button
+              onClick={() => setShowPicker(!showPicker)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold transition-all"
+              style={{
+                background: showPicker ? "rgba(180,83,9,0.08)" : T.bg,
+                border: `1px solid ${showPicker ? T.primary : T.border}`,
+                color: showPicker ? T.primary : T.sub,
+              }}
+            >
+              <Calendar size={15} />
+              {periodLabel(mode, year, month)}
+            </button>
+            {showPicker && (
+              <div
+                className="absolute right-0 top-full mt-2 z-50 p-4 rounded-xl"
+                style={{ background: "#fff", border: `1px solid ${T.border}`, minWidth: 280 }}
+              >
+                <PeriodPicker
+                  mode={mode} year={year} month={month}
+                  onModeChange={m => { setMode(m); if (m === "all") setShowPicker(false); }}
+                  onYearChange={setYear}
+                  onMonthChange={m => { setMonth(m); setShowPicker(false); }}
+                />
+              </div>
+            )}
+          </div>
+          <Link
+            href="/kaitai/sites/new"
+            className="px-5 py-2.5 rounded-lg text-sm font-bold"
+            style={{ background: T.primary, color: "#fff", textDecoration: "none" }}
+          >
+            + 新規現場登録
+          </Link>
+        </div>
       </div>
 
       {/* ── Search ── */}
