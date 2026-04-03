@@ -8,6 +8,7 @@ import {
   CheckCircle2, PlayCircle, AlertCircle, Camera,
   Wifi, Activity,
 } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -136,10 +137,10 @@ const STATUS_CONFIG: Record<WorkStatus, {
   完了: {
     label: "完了",
     bg: "rgba(100,116,139,0.08)",
-    fg: "#64748B",
+    fg: T.sub,
     border: "rgba(100,116,139,0.2)",
     icon: CheckCircle2,
-    dot: "#64748B",
+    dot: T.sub,
   },
 };
 
@@ -152,7 +153,6 @@ function LiveBadge({ time }: { time: string }) {
         className="w-2 h-2 rounded-full flex-shrink-0"
         style={{
           background: "#4ADE80",
-          boxShadow: "0 0 0 3px rgba(74,222,128,0.25)",
           animation: "pulse 2s infinite",
         }}
       />
@@ -179,14 +179,14 @@ function MemberAvatars({ members }: { members: Member[] }) {
         <div className="relative flex-shrink-0">
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold"
-            style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24", border: "1.5px solid rgba(251,191,36,0.4)" }}
+            style={{ background: "rgba(251,191,36,0.15)", color: "#92400E", border: "1.5px solid rgba(251,191,36,0.4)" }}
           >
             {lead.avatar}
           </div>
           <Crown
             size={9}
-            fill="#FBBF24"
-            style={{ color: "#FBBF24", position: "absolute", top: -4, right: -2 }}
+            fill="#92400E"
+            style={{ color: "#92400E", position: "absolute", top: -4, right: -2 }}
           />
         </div>
       )}
@@ -195,7 +195,7 @@ function MemberAvatars({ members }: { members: Member[] }) {
         <div
           key={m.id}
           className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: "#1A2535", color: "#94A3B8", border: "1px solid #2D3E54" }}
+          style={{ background: "#1A2535", color: T.muted, border: "1px solid #2D3E54" }}
         >
           {m.avatar}
         </div>
@@ -203,12 +203,12 @@ function MemberAvatars({ members }: { members: Member[] }) {
       {overflow > 0 && (
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
+          style={{ background: "#1A2535", color: T.sub, border: "1px solid #2D3E54" }}
         >
           +{overflow}
         </div>
       )}
-      <span style={{ fontSize: 14, marginLeft: 4, color: "#64748B" }}>
+      <span style={{ fontSize: 14, marginLeft: 4, color: T.sub }}>
         計{members.length}名
       </span>
     </div>
@@ -259,7 +259,7 @@ function MapView({ sites, selected, onSelect }: {
 
         {/* Expressway */}
         <path d="M 20 200 Q 100 180 180 140 Q 240 110 320 90 Q 360 80 400 70"
-          stroke="rgba(249,115,22,0.3)" strokeWidth={3} fill="none" />
+          stroke={T.primaryMd} strokeWidth={3} fill="none" />
 
         {/* Site connection lines */}
         {sites.filter(s => s.status === "作業中").map((s) => (
@@ -304,7 +304,7 @@ function MapView({ sites, selected, onSelect }: {
                 textAnchor="middle"
                 fontSize={isSelected ? 9 : 8}
                 fontWeight={isSelected ? "700" : "500"}
-                fill={isSelected ? "#F1F5F9" : "#94A3B8"}
+                fill={isSelected ? T.bg : T.muted}
               >
                 {site.name.length > 7 ? site.name.slice(0, 7) + "…" : site.name}
               </text>
@@ -328,7 +328,7 @@ function MapView({ sites, selected, onSelect }: {
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: STATUS_CONFIG[s].dot }}
             />
-            <span style={{ fontSize: 14, color: "#64748B" }}>{s}</span>
+            <span style={{ fontSize: 14, color: T.sub }}>{s}</span>
           </div>
         ))}
       </div>
@@ -365,7 +365,7 @@ function SiteCard({
       className="rounded-2xl overflow-hidden transition-all cursor-pointer"
       style={{
         background: highlight ? "rgba(249,115,22,0.05)" : "#1A2535",
-        border: highlight ? "1.5px solid rgba(249,115,22,0.3)" : `1px solid ${cfg.border}`,
+        border: highlight ? `1.5px solid ${T.primaryMd}` : `1px solid ${cfg.border}`,
       }}
     >
       {/* Header row */}
@@ -407,7 +407,7 @@ function SiteCard({
               </span>
             )}
           </div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F1F5F9" }} className="truncate">
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: T.bg }} className="truncate">
             {site.name}
           </h3>
           <div className="flex items-center gap-1 mt-0.5">
@@ -421,7 +421,7 @@ function SiteCard({
             <p style={{ fontSize: 16, fontWeight: 700, color: "#F87171" }}>
               ¥{(site.wasteCost / 10_000).toFixed(1)}万
             </p>
-            <p style={{ fontSize: 14, color: "#64748B" }}>
+            <p style={{ fontSize: 14, color: T.sub }}>
               産廃 {site.wasteToday}㎥
             </p>
           </div>
@@ -445,15 +445,15 @@ function SiteCard({
         >
           <div
             className="w-6 h-6 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}
+            style={{ background: "rgba(251,191,36,0.12)", color: "#92400E" }}
           >
             {lead.avatar}
           </div>
           <div className="flex-1 min-w-0">
-            <span style={{ fontSize: 15, fontWeight: 600, color: "#F1F5F9" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: T.bg }}>
               {lead.name}
             </span>
-            <span style={{ fontSize: 14, marginLeft: 6, color: "#64748B" }}>
+            <span style={{ fontSize: 14, marginLeft: 6, color: T.sub }}>
               責任者
             </span>
           </div>
@@ -551,15 +551,15 @@ export default function TodayDashboard() {
         <Link
           href="/kaitai"
           className="inline-flex items-center gap-1.5 mb-3 text-sm"
-          style={{ color: "#64748B" }}
+          style={{ color: T.sub }}
         >
           <ArrowLeft size={15} /> 現場一覧
         </Link>
 
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p style={{ fontSize: 14, marginBottom: 2, color: "#64748B" }}>{dateStr}</p>
-            <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>
+            <p style={{ fontSize: 14, marginBottom: 2, color: T.sub }}>{dateStr}</p>
+            <h1 className="text-xl font-bold" style={{ color: T.bg }}>
               本日の稼働状況
             </h1>
           </div>
@@ -573,7 +573,7 @@ export default function TodayDashboard() {
               <RefreshCw
                 size={14}
                 style={{
-                  color: "#64748B",
+                  color: T.sub,
                   animation: syncing ? "spin 0.8s linear infinite" : "none",
                 }}
               />
@@ -586,8 +586,8 @@ export default function TodayDashboard() {
           {[
             { label: "作業中",   value: working,           color: "#4ADE80", sub: "現場" },
             { label: "準備中",   value: preparing,         color: "#818CF8", sub: "現場" },
-            { label: "完了",     value: done,              color: "#64748B", sub: "現場" },
-            { label: "稼働人数", value: totalWorkers,      color: "#F97316", sub: "名" },
+            { label: "完了",     value: done,              color: T.sub, sub: "現場" },
+            { label: "稼働人数", value: totalWorkers,      color: T.primary, sub: "名" },
           ].map(({ label, value, color, sub }) => (
             <div
               key={label}
@@ -596,9 +596,9 @@ export default function TodayDashboard() {
             >
               <p style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, color }}>
                 {value}
-                <span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: "#94A3B8" }}>{sub}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: T.muted }}>{sub}</span>
               </p>
-              <p style={{ fontSize: 14, marginTop: 4, color: "#64748B" }}>{label}</p>
+              <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>{label}</p>
             </div>
           ))}
         </div>
@@ -611,9 +611,9 @@ export default function TodayDashboard() {
           >
             <div className="flex items-center gap-2">
               <Activity size={13} style={{ color: "#F87171" }} />
-              <span style={{ fontSize: 14, color: "#94A3B8" }}>
+              <span style={{ fontSize: 14, color: T.muted }}>
                 本日の産廃計：
-                <span style={{ fontWeight: 700, marginLeft: 4, color: "#F1F5F9" }}>{totalWaste} ㎥</span>
+                <span style={{ fontWeight: 700, marginLeft: 4, color: T.bg }}>{totalWaste} ㎥</span>
               </span>
             </div>
             <span className="text-sm font-bold" style={{ color: "#F87171" }}>
@@ -637,8 +637,8 @@ export default function TodayDashboard() {
               style={{
                 fontSize: 15, fontWeight: 600,
                 ...(view === v
-                  ? { background: "rgba(249,115,22,0.15)", color: "#F97316" }
-                  : { color: "#64748B" })
+                  ? { background: T.primaryMd, color: T.primary }
+                  : { color: T.sub })
               }}
             >
               {v === "list" ? <List size={14} /> : <Map size={14} />}
@@ -688,7 +688,8 @@ export default function TodayDashboard() {
                 <div className="flex items-center gap-2 mb-2">
                   <span
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: "#4ADE80", boxShadow: "0 0 0 3px rgba(74,222,128,0.2)" }}
+                    style={{ background: "#4ADE80",
+ }}
                   />
                   <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#4ADE80" }}>
                     作業中 · {working}現場
@@ -744,7 +745,7 @@ export default function TodayDashboard() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ background: "#475569" }}
                   />
-                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#64748B" }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: T.sub }}>
                     完了 · {done}現場
                   </p>
                 </div>

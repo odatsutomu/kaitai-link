@@ -18,15 +18,16 @@ import {
   type EvalScore,
   type WorkerEval,
 } from "../lib/evaluation-data";
+import { T } from "../lib/design-tokens";
 
 const C = {
-  text: "#1E293B",
-  sub: "#64748B",
-  muted: "#94A3B8",
-  border: "#E2E8F0",
-  card: "#FFFFFF",
-  amber: "#F59E0B",
-  amberDk: "#D97706",
+  text: T.text,
+  sub: T.sub,
+  muted: T.muted,
+  border: T.border,
+  card: T.surface,
+  amber: T.primary,
+  amberDk: T.primaryDk,
 };
 
 const SITES = [
@@ -171,7 +172,7 @@ export default function EvaluationPage() {
                       height: 60,
                       borderRadius: 12,
                       border: `2px solid ${active ? C.amber : C.border}`,
-                      background: active ? "#FFFBEB" : C.card,
+                      background: active ? T.primaryLt : C.card,
                       color: active ? C.amberDk : C.text,
                       fontSize: 16,
                       fontWeight: active ? 700 : 500,
@@ -266,7 +267,7 @@ export default function EvaluationPage() {
                       height: 64,
                       borderRadius: 12,
                       border: `2px solid ${selected ? C.amber : C.border}`,
-                      background: selected ? "#FFFBEB" : C.card,
+                      background: selected ? T.primaryLt : C.card,
                       color: selected ? C.amberDk : C.text,
                       fontSize: 15,
                       fontWeight: selected ? 700 : 500,
@@ -315,7 +316,7 @@ export default function EvaluationPage() {
               boxShadow:
                 !selectedSite || selectedWorkers.length === 0
                   ? "none"
-                  : "0 4px 16px rgba(245,158,11,0.4)",
+                  : `0 4px 16px ${T.primaryMd}`,
               transition: "all 0.15s",
             }}
           >
@@ -335,7 +336,7 @@ export default function EvaluationPage() {
           <button
             onClick={() => setStep("select")}
             className="w-9 h-9 flex items-center justify-center rounded-xl"
-            style={{ background: "#F1F5F9", border: "none", cursor: "pointer", color: C.sub }}
+            style={{ background: T.bg, border: "none", cursor: "pointer", color: C.sub }}
           >
             <X size={20} />
           </button>
@@ -360,7 +361,6 @@ export default function EvaluationPage() {
                   background: C.card,
                   borderRadius: 16,
                   overflow: "hidden",
-                  boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
                   borderLeft: `4px solid ${C.amber}`,
                 }}
               >
@@ -379,7 +379,7 @@ export default function EvaluationPage() {
                       width: 36,
                       height: 36,
                       borderRadius: "50%",
-                      background: "#FFFBEB",
+                      background: T.primaryLt,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -531,7 +531,6 @@ export default function EvaluationPage() {
               color: "#fff",
               border: "none",
               cursor: "pointer",
-              boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
             }}
           >
             <Send size={18} />
@@ -553,7 +552,6 @@ export default function EvaluationPage() {
           maxWidth: 400,
           width: "100%",
           textAlign: "center",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -588,7 +586,7 @@ export default function EvaluationPage() {
         </div>
         <div
           style={{
-            background: "#F8FAFC",
+            background: T.bg,
             borderRadius: 12,
             padding: "12px 20px",
             width: "100%",
@@ -615,7 +613,6 @@ export default function EvaluationPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
           }}
         >
           ホームへ戻る

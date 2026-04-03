@@ -4,18 +4,19 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Delete, MapPin } from "lucide-react";
 import { useAppContext, countActiveStaff } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.sub,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
 };
 
 // ─── Mock sites ───────────────────────────────────────────────────────────────
 
 const SITES = [
-  { id: "s1", name: "山田邸解体工事",   address: "東京都世田谷区豪徳寺2-14-5",    color: "#F59E0B", active: true },
+  { id: "s1", name: "山田邸解体工事",   address: "東京都世田谷区豪徳寺2-14-5",    color: T.primary, active: true },
   { id: "s2", name: "旧田中倉庫解体",   address: "神奈川県川崎市幸区堀川町580",    color: "#3B82F6", active: true },
   { id: "s3", name: "松本アパート解体", address: "埼玉県さいたま市浦和区常盤6-4-21", color: "#8B5CF6", active: false },
 ];
@@ -43,7 +44,7 @@ function ActionTile({
       onClick={handleClick}
       className={`${wide ? "col-span-2" : ""} flex ${wide ? "flex-row items-center gap-5 px-6" : "flex-col items-center justify-center gap-2 py-6"} rounded-2xl transition-transform`}
       style={{
-        background: disabled ? "#F1F5F9" : bg,
+        background: disabled ? T.bg : bg,
         border: disabled ? "1.5px solid #E2E8F0" : border,
         borderRadius: 16,
         minHeight: wide ? 80 : 120,
@@ -53,8 +54,8 @@ function ActionTile({
     >
       <span style={{ fontSize: wide ? 32 : 40, filter: disabled ? "grayscale(1)" : "none" }}>{emoji}</span>
       <div className={wide ? "text-left flex-1" : "text-center"}>
-        <p style={{ fontSize: 18, fontWeight: 700, color: disabled ? "#94A3B8" : textColor }}>{label}</p>
-        <p style={{ fontSize: 14, color: disabled ? "#94A3B8" : textColor, opacity: 0.75, marginTop: 3 }}>{sub}</p>
+        <p style={{ fontSize: 18, fontWeight: 700, color: disabled ? T.muted : textColor }}>{label}</p>
+        <p style={{ fontSize: 14, color: disabled ? T.muted : textColor, opacity: 0.75, marginTop: 3 }}>{sub}</p>
       </div>
     </button>
   );
@@ -136,7 +137,7 @@ export default function ReportPage() {
               }}
               onMouseEnter={(e) => {
                 if (site.active) {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = T.primary;
                   (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-4px)";
                   (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 10px 15px rgba(0,0,0,0.1)";
                 }
@@ -149,7 +150,7 @@ export default function ReportPage() {
             >
               <div
                 className="flex items-center justify-center flex-shrink-0 rounded-xl"
-                style={{ width: 48, height: 48, background: site.active ? `${site.color}12` : "#F8FAFC" }}
+                style={{ width: 48, height: 48, background: site.active ? `${site.color}12` : T.bg }}
               >
                 <MapPin size={22} style={{ color: site.active ? site.color : C.muted }} />
               </div>
@@ -157,7 +158,7 @@ export default function ReportPage() {
                 <p style={{ fontSize: 18, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{site.name}</p>
                 <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>{site.address}</p>
                 {!site.active && (
-                  <span style={{ display: "inline-block", marginTop: 8, fontSize: 14, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#F8FAFC", color: C.muted, border: `1px solid ${C.border}` }}>
+                  <span style={{ display: "inline-block", marginTop: 8, fontSize: 14, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: T.bg, color: C.muted, border: `1px solid ${C.border}` }}>
                     着工前
                   </span>
                 )}
@@ -189,11 +190,11 @@ export default function ReportPage() {
             className="flex items-center justify-center rounded-2xl"
             style={{ width: 44, height: 44, background: "rgba(255,255,255,0.1)" }}
           >
-            <ChevronLeft size={22} color="#FFFFFF" />
+            <ChevronLeft size={22} color={T.surface} />
           </button>
           <div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>報告先</p>
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF" }}>{selectedSite?.name}</p>
+            <p style={{ fontSize: 16, fontWeight: 800, color: T.surface }}>{selectedSite?.name}</p>
           </div>
         </div>
 
@@ -253,10 +254,10 @@ export default function ReportPage() {
                   border: "1.5px solid rgba(255,255,255,0.1)",
                   fontSize: isBack ? 22 : 32,
                   fontWeight: 700,
-                  color: "#FFFFFF",
+                  color: T.surface,
                 }}
               >
-                {isBack ? <Delete size={26} color="#FFFFFF" /> : key}
+                {isBack ? <Delete size={26} color={T.surface} /> : key}
               </button>
             );
           })}
@@ -305,9 +306,9 @@ export default function ReportPage() {
       <div className="flex items-center gap-2">
         <div
           className="w-2 h-2 rounded-full"
-          style={{ background: activeCount > 0 ? "#10B981" : "#94A3B8" }}
+          style={{ background: activeCount > 0 ? "#10B981" : T.muted }}
         />
-        <span style={{ fontSize: 14, color: activeCount > 0 ? "#166534" : "#94A3B8", fontWeight: 600 }}>
+        <span style={{ fontSize: 14, color: activeCount > 0 ? "#166534" : T.muted, fontWeight: 600 }}>
           現在 出勤中: {activeCount}名
         </span>
       </div>
@@ -338,9 +339,9 @@ export default function ReportPage() {
           emoji="🚪"
           label="退勤"
           sub="退勤を記録"
-          bg="#FFFBEB"
-          border="1.5px solid #FDE68A"
-          textColor="#92400E"
+          bg={T.primaryLt}
+          border="1.5px solid #E5E7EB"
+          textColor={T.primaryDk}
           disabled={activeCount === 0}
           onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
           onClick={() => router.push(`/kaitai/report/clockout?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
@@ -349,7 +350,7 @@ export default function ReportPage() {
           emoji="🚚"
           label="終了報告"
           sub="廃材・経費入力"
-          bg="#F8FAFC"
+          bg={T.bg}
           border={`1.5px solid ${C.border}`}
           textColor={C.text}
           onClick={() => router.push(`/kaitai/report/finish?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
@@ -383,11 +384,10 @@ export default function ReportPage() {
         <div
           className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl z-50 pointer-events-none"
           style={{
-            background: "#1E293B",
-            color: "#FFFFFF",
+            background: T.text,
+            color: T.surface,
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
             whiteSpace: "nowrap",
           }}
         >

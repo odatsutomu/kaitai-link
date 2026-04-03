@@ -7,13 +7,14 @@ import {
   Building2, ChevronDown,
 } from "lucide-react";
 import { useAppContext, Client, ClientStatus } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF", bg: "#F8FAFC",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface, bg: T.bg,
+  amber: T.primary, amberDk: T.primaryDk,
   red: "#EF4444", green: "#10B981",
 };
 
@@ -21,7 +22,7 @@ const C = {
 
 const STATUS_META: Record<ClientStatus, { label: string; bg: string; color: string }> = {
   active:    { label: "取引中",   bg: "#F0FDF4", color: "#16A34A" },
-  past:      { label: "過去取引", bg: "#F8FAFC", color: "#64748B" },
+  past:      { label: "過去取引", bg: T.bg, color: T.sub },
   suspended: { label: "停止",     bg: "#FEF2F2", color: "#EF4444" },
 };
 
@@ -287,7 +288,8 @@ export default function ClientsPage() {
           <button
             onClick={() => setModal({ mode: "add" })}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90 flex-shrink-0"
-            style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
+            style={{ background: T.primary,
+ }}
           >
             <Plus size={16} />
             元請けを追加
@@ -359,7 +361,7 @@ export default function ClientsPage() {
             onClick={() => setShowArchived(v => !v)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold"
             style={showArchived
-              ? { background: "#FFFBEB", color: C.amberDk, border: `1px solid ${C.amber}40` }
+              ? { background: T.primaryLt, color: C.amberDk, border: `1px solid ${C.amber}40` }
               : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }}
           >
             <Archive size={13} />
@@ -393,7 +395,7 @@ export default function ClientsPage() {
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div
                     className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
-                    style={{ background: "#FFFBEB" }}
+                    style={{ background: T.primaryLt }}
                   >
                     <Building2 size={16} color={C.amber} />
                   </div>
@@ -416,14 +418,16 @@ export default function ClientsPage() {
                   <button
                     onClick={() => setModal({ mode: "edit", client: c })}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                    style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                    style={{ background: T.surface, border: "1.5px solid #E2E8F0", color: T.text,
+ }}
                   >
                     <Edit3 size={13} />
                   </button>
                   <button
                     onClick={() => handleArchive(c)}
                     className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                    style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                    style={{ background: T.surface, border: "1.5px solid #E2E8F0", color: T.text,
+ }}
                   >
                     {c.archived
                       ? <ArchiveRestore size={13} color={C.green} />

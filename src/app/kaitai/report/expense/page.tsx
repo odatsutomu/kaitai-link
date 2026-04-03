@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
 import type { ExpenseCategory } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 // ─── Category definitions ─────────────────────────────────────────────────────
 
@@ -26,9 +27,9 @@ const CATEGORIES: {
     label: "燃料費",
     icon: Fuel,
     emoji: "⛽",
-    bg: "#FFF7ED",
+    bg: "${T.primaryLt}",
     border: "#FED7AA",
-    color: "#EA580C",
+    color: T.primaryDk,
     hint: "重機・車両への給油",
   },
   {
@@ -66,9 +67,9 @@ const CATEGORIES: {
     label: "食費・雑費",
     icon: Coffee,
     emoji: "🍱",
-    bg: "#FFFBEB",
-    border: "#FDE68A",
-    color: "#D97706",
+    bg: T.primaryLt,
+    border: T.primaryMd,
+    color: T.primaryDk,
     hint: "現場弁当・飲料・雑費",
   },
   {
@@ -76,8 +77,8 @@ const CATEGORIES: {
     label: "その他",
     icon: MoreHorizontal,
     emoji: "📋",
-    bg: "#F8FAFC",
-    border: "#E2E8F0",
+    bg: T.bg,
+    border: T.border,
     color: "#475569",
     hint: "上記に当てはまらない支出",
   },
@@ -182,13 +183,13 @@ function ExpenseContent() {
         <p className="text-2xl font-black" style={{ color: "#15803D" }}>経費を報告しました</p>
         <div
           className="px-6 py-3 rounded-2xl flex flex-col items-center gap-1"
-          style={{ background: "#FFFFFF", border: "1.5px solid #BBF7D0" }}
+          style={{ background: T.surface, border: "1.5px solid #BBF7D0" }}
         >
           <p className="text-sm font-bold" style={{ color: "#475569" }}>{cat?.emoji} {category}</p>
           <p className="text-2xl font-black" style={{ color: "#15803D" }}>
             ¥{displayAmount.toLocaleString()}
           </p>
-          <p className="text-sm" style={{ color: "#9CA3AF" }}>{siteName}</p>
+          <p className="text-sm" style={{ color: T.muted }}>{siteName}</p>
         </div>
         <p className="text-sm" style={{ color: "#86EFAC" }}>現場トップに戻ります…</p>
       </div>
@@ -206,14 +207,14 @@ function ExpenseContent() {
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm mb-3"
-          style={{ color: "#9CA3AF" }}
+          style={{ color: T.muted }}
         >
           <ChevronLeft size={17} /> 戻る
         </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black" style={{ color: "#111827" }}>経費報告</h1>
-            <p className="text-sm" style={{ color: "#9CA3AF" }}>{siteName}</p>
+            <p className="text-sm" style={{ color: T.muted }}>{siteName}</p>
           </div>
           {category && cat && (
             <div
@@ -242,7 +243,7 @@ function ExpenseContent() {
                 className="flex flex-col items-center justify-center rounded-3xl transition-all active:scale-[0.97]"
                 style={{
                   minHeight: 110,
-                  background: category === c.key ? c.bg : "#FFFFFF",
+                  background: category === c.key ? c.bg : T.surface,
                   border: `2px solid ${category === c.key ? c.color : "#F3F4F6"}`,
                   boxShadow: category === c.key ? `0 4px 16px ${c.border}` : "none",
                   gap: 6,
@@ -252,7 +253,7 @@ function ExpenseContent() {
                 <p className="font-black" style={{ fontSize: 15, color: category === c.key ? c.color : "#374151" }}>
                   {c.label}
                 </p>
-                <p style={{ fontSize: 14, color: category === c.key ? c.color : "#9CA3AF" }}>
+                <p style={{ fontSize: 14, color: category === c.key ? c.color : T.muted }}>
                   {c.hint}
                 </p>
               </button>
@@ -270,7 +271,7 @@ function ExpenseContent() {
                 {siteEquipment.length === 0 ? (
                   <div
                     className="py-4 rounded-2xl text-center text-sm"
-                    style={{ background: "#F3F4F6", color: "#9CA3AF" }}
+                    style={{ background: "#F3F4F6", color: T.muted }}
                   >
                     この現場にアサインされた機材がありません
                   </div>
@@ -283,8 +284,8 @@ function ExpenseContent() {
                         className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
                         style={
                           selectedEqId === eq.id
-                            ? { background: "#FFF7ED", border: "2px solid #EA580C" }
-                            : { background: "#FFFFFF", border: "1.5px solid #F3F4F6" }
+                            ? { background: "${T.primaryLt}", border: "2px solid #92400E" }
+                            : { background: T.surface, border: "1.5px solid #F3F4F6" }
                         }
                       >
                         <span style={{ fontSize: 22 }}>
@@ -292,10 +293,10 @@ function ExpenseContent() {
                         </span>
                         <div className="flex-1 text-left">
                           <p className="text-sm font-bold" style={{ color: "#111827" }}>{eq.name}</p>
-                          <p className="text-sm" style={{ color: "#9CA3AF" }}>{eq.supplier}</p>
+                          <p className="text-sm" style={{ color: T.muted }}>{eq.supplier}</p>
                         </div>
                         {selectedEqId === eq.id && (
-                          <CheckCircle size={18} style={{ color: "#EA580C" }} />
+                          <CheckCircle size={18} style={{ color: T.primaryDk }} />
                         )}
                       </button>
                     ))}
@@ -313,24 +314,24 @@ function ExpenseContent() {
                         onChange={e => setLiters(e.target.value)}
                         placeholder="0"
                         className="w-full px-4 py-4 rounded-2xl text-xl font-bold text-center outline-none"
-                        style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#111827" }}
+                        style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: "#111827" }}
                       />
                       <span
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold"
-                        style={{ color: "#9CA3AF" }}
+                        style={{ color: T.muted }}
                       >L</span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>単価（円/L）</p>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: "#9CA3AF" }}>¥</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: T.muted }}>¥</span>
                       <input
                         type="number"
                         value={pricePerL}
                         onChange={e => setPricePerL(e.target.value)}
                         className="w-full pl-7 pr-3 py-4 rounded-2xl text-lg font-bold outline-none"
-                        style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#111827" }}
+                        style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: "#111827" }}
                       />
                     </div>
                   </div>
@@ -340,10 +341,10 @@ function ExpenseContent() {
                 {litersNum > 0 && (
                   <div
                     className="flex items-center justify-between px-4 py-3.5 rounded-2xl"
-                    style={{ background: "#FFF7ED", border: "1.5px solid #FED7AA" }}
+                    style={{ background: "${T.primaryLt}", border: "1.5px solid #FED7AA" }}
                   >
-                    <span className="text-sm" style={{ color: "#9CA3AF" }}>燃料費合計</span>
-                    <span className="text-2xl font-black" style={{ color: "#EA580C" }}>
+                    <span className="text-sm" style={{ color: T.muted }}>燃料費合計</span>
+                    <span className="text-2xl font-black" style={{ color: T.primaryDk }}>
                       ¥{fuelTotal.toLocaleString()}
                     </span>
                   </div>
@@ -359,11 +360,11 @@ function ExpenseContent() {
                   <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>金額</p>
                   <div
                     className="relative rounded-3xl overflow-hidden"
-                    style={{ background: "#FFFFFF", border: `2px solid ${cat?.border ?? "#E5E7EB"}` }}
+                    style={{ background: T.surface, border: `2px solid ${cat?.border ?? T.border}` }}
                   >
                     <span
                       className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-black"
-                      style={{ color: cat?.color ?? "#9CA3AF" }}
+                      style={{ color: cat?.color ?? T.muted }}
                     >¥</span>
                     <input
                       type="number"
@@ -395,7 +396,7 @@ function ExpenseContent() {
                     }
                     className="w-full px-4 py-3.5 rounded-2xl text-sm outline-none"
                     style={{
-                      background: "#FFFFFF",
+                      background: T.surface,
                       border: "1.5px solid #E5E7EB",
                       color: "#111827",
                       fontFamily: "inherit",
@@ -415,7 +416,7 @@ function ExpenseContent() {
                 rows={2}
                 className="w-full px-4 py-3 rounded-2xl text-sm outline-none resize-none"
                 style={{
-                  background: "#FFFFFF",
+                  background: T.surface,
                   border: "1.5px solid #E5E7EB",
                   color: "#111827",
                   fontFamily: "inherit",
@@ -430,20 +431,20 @@ function ExpenseContent() {
               style={
                 hasPhoto
                   ? { background: "#F0FDF4", border: "1.5px solid #86EFAC" }
-                  : { background: "#FFFFFF", border: "1.5px dashed #E5E7EB" }
+                  : { background: T.surface, border: "1.5px dashed #E5E7EB" }
               }
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: hasPhoto ? "#DCFCE7" : "#F3F4F6" }}
               >
-                <Camera size={18} style={{ color: hasPhoto ? "#16A34A" : "#9CA3AF" }} />
+                <Camera size={18} style={{ color: hasPhoto ? "#16A34A" : T.muted }} />
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold" style={{ color: hasPhoto ? "#15803D" : "#374151" }}>
                   {hasPhoto ? "レシート添付済み ✓" : "レシート・領収書を撮影"}
                 </p>
-                <p className="text-sm" style={{ color: "#9CA3AF" }}>
+                <p className="text-sm" style={{ color: T.muted }}>
                   {hasPhoto ? "タップで取り直し" : "任意 — 後で精算に使用"}
                 </p>
               </div>
@@ -456,7 +457,7 @@ function ExpenseContent() {
       {/* ── Submit button ── */}
       <div className="pt-2">
         {!category && (
-          <p className="text-center text-sm pb-1" style={{ color: "#D1D5DB" }}>
+          <p className="text-center text-sm pb-1" style={{ color: T.border }}>
             経費の種類を選んでください
           </p>
         )}
@@ -466,9 +467,9 @@ function ExpenseContent() {
           className="w-full py-5 rounded-3xl font-black text-lg transition-all active:scale-[0.98]"
           style={{
             background: canSubmit
-              ? (cat ? `linear-gradient(135deg, ${cat.color}, ${cat.color}CC)` : "linear-gradient(135deg, #F97316, #EA580C)")
-              : "#E5E7EB",
-            color: canSubmit ? "#FFFFFF" : "#9CA3AF",
+              ? (cat ? `linear-gradient(135deg, ${cat.color}, ${cat.color}CC)` : "linear-gradient(135deg, #B45309, #92400E)")
+              : T.border,
+            color: canSubmit ? T.surface : T.muted,
             boxShadow: canSubmit ? `0 8px 24px ${cat?.border ?? "#FED7AA"}` : "none",
           }}
         >
@@ -486,7 +487,7 @@ function ExpenseContent() {
 
 export default function ExpensePage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100dvh", background: "#F9FAFB" }} />}>
+    <Suspense fallback={<div style={{ minHeight: "100dvh", background: T.bg }} />}>
       <ExpenseContent />
     </Suspense>
   );

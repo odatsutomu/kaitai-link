@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
 import { mockSites } from "../../page";
+import { T } from "../../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
   green: "#10B981", red: "#EF4444", blue: "#3B82F6",
 };
 
@@ -16,7 +17,7 @@ const fmt = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
 
 function marginColor(pct: number) {
   if (pct >= 30) return { text: C.green,   bg: "#F0FDF4", border: "#BBF7D0" };
-  if (pct >= 15) return { text: C.amberDk, bg: "#FFFBEB", border: "#FDE68A" };
+  if (pct >= 15) return { text: C.amberDk, bg: T.primaryLt, border: T.primaryMd };
   return              { text: C.red,      bg: "#FEF2F2", border: "#FECACA" };
 }
 
@@ -82,7 +83,8 @@ export default function AdminProjectsPage() {
           { label: "粗利合計",   value: fmt(totalProfit),  color: C.green,   icon: null },
           { label: "平均粗利率", value: `${avgMargin}%`,   color: avgMargin >= 25 ? C.green : avgMargin >= 15 ? C.amberDk : C.red, icon: null },
         ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px",
+ }}>
             <p style={{ fontSize: 13, color: C.sub, marginBottom: 6 }}>{label}</p>
             <p style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
           </div>
@@ -90,14 +92,15 @@ export default function AdminProjectsPage() {
       </div>
 
       {/* ── Table ── */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden",
+ }}>
 
         {/* Table header */}
         <div
           className="grid items-center px-5 py-3"
           style={{
             gridTemplateColumns: "1fr 120px 130px 130px 110px 80px 90px",
-            background: "#F8FAFC",
+            background: T.bg,
             borderBottom: `1px solid ${C.border}`,
             gap: 8,
           }}
@@ -118,7 +121,7 @@ export default function AdminProjectsPage() {
           const mc     = pct !== null ? marginColor(pct) : null;
 
           const statusStyle: Record<string, { bg: string; color: string; dot: string }> = {
-            "解体中": { bg: "#FFFBEB", color: "#92400E", dot: C.amber },
+            "解体中": { bg: T.primaryLt, color: "#92400E", dot: C.amber },
             "着工前": { bg: "#EFF6FF", color: "#1D4ED8", dot: C.blue  },
             "完工":   { bg: "#F0FDF4", color: "#166534", dot: C.green },
           };
@@ -196,7 +199,7 @@ export default function AdminProjectsPage() {
           className="grid items-center px-5 py-3"
           style={{
             gridTemplateColumns: "1fr 120px 130px 130px 110px 80px 90px",
-            background: "#F1F5F9",
+            background: T.bg,
             borderTop: `2px solid ${C.border}`,
             gap: 8,
           }}
@@ -214,7 +217,8 @@ export default function AdminProjectsPage() {
       </div>
 
       {/* ── Cost breakdown ── */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px",
+ }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.sub, marginBottom: 16 }}>原価内訳（全現場合計）</p>
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -222,7 +226,7 @@ export default function AdminProjectsPage() {
             { label: "労務費",       value: mockSites.reduce((s, x) => s + x.breakdown.labor, 0),  color: C.blue  },
             { label: "その他経費",   value: mockSites.reduce((s, x) => s + x.breakdown.other, 0),  color: C.muted },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
+            <div key={label} style={{ background: T.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
               <p style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{label}</p>
               <p style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>{fmt(value)}</p>
               <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>

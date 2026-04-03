@@ -39,7 +39,7 @@ export function InvoiceDoc({ site, docNo, issueDate = todayStr() }: Props) {
         {/* Payment deadline */}
         <div style={{
           display: "flex", justifyContent: "space-between",
-          padding: "8px 14px", background: "#FFF7ED",
+          padding: "8px 14px", background: "${T.primaryLt}",
           border: "1px solid #FED7AA", borderRadius: 4, marginBottom: 16,
           fontSize: 11,
         }}>

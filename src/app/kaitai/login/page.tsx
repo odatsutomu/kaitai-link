@@ -7,6 +7,7 @@ import Link from "next/link";
 import { KaitaiLogo } from "../components/kaitai-logo";
 import { useAppContext } from "../lib/app-context";
 import type { Company } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Mock company registry ────────────────────────────────────────────────────
 // 実際のシステムではDBから取得する
@@ -95,7 +96,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col min-h-screen" style={{ background: "#FFFFFF" }}>
+    <div className="max-w-md mx-auto flex flex-col min-h-screen" style={{ background: T.surface }}>
 
       {/* Top area */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12 pb-8">
@@ -125,7 +126,7 @@ export default function LoginPage() {
                 height: 56,
                 fontSize: 15,
                 fontWeight: 600,
-                background: "#F9FAFB",
+                background: T.bg,
                 border: error ? "2px solid #EF4444" : "2px solid #EEEEEE",
                 color: "#111111",
               }}
@@ -145,7 +146,7 @@ export default function LoginPage() {
                 height: 56,
                 fontSize: 16,
                 fontWeight: 700,
-                background: "#F9FAFB",
+                background: T.bg,
                 border: error ? "2px solid #EF4444" : "2px solid #EEEEEE",
                 color: "#111111",
               }}
@@ -169,14 +170,14 @@ export default function LoginPage() {
             style={{
               height: 60, fontSize: 18,
               background: loading ? "#CCCCCC" : "#111111",
-              color: "#FFFFFF",
+              color: T.surface,
             }}
           >
             {loading ? "確認中..." : <>ログイン <ChevronRight size={22} /></>}
           </button>
 
           {/* Demo hint */}
-          <div className="mt-4 rounded-2xl p-4" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+          <div className="mt-4 rounded-2xl p-4" style={{ background: "${T.primaryLt}", border: "1px solid #FED7AA" }}>
             <p style={{ fontSize: 14, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント（タップで切り替え）</p>
             <div className="flex flex-col gap-1">
               {[
@@ -213,7 +214,7 @@ export default function LoginPage() {
         </Link>
         <p style={{ fontSize: 14, color: "#888888" }}>
           アカウントをお持ちでない方は{" "}
-          <Link href="/kaitai/signup" style={{ color: "#F59E0B", fontWeight: 700 }}>
+          <Link href="/kaitai/signup" style={{ color: T.primary, fontWeight: 700 }}>
             新規会社登録
           </Link>
         </p>

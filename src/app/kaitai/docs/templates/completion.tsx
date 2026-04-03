@@ -1,6 +1,7 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, FOOTER_BRANDING, todayStr, fmtDate } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, ProjectInfo, NotesBox, DocFooter, PrintStyles } from "./shared";
+import { T } from "../../lib/design-tokens";
 
 interface Props {
   site: DocSite;
@@ -64,9 +65,9 @@ export function CompletionDoc({ site, docNo, issueDate = todayStr() }: Props) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
             <thead>
               <tr>
-                <th style={{ background: "#1E293B", color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B", width: 280 }}>工程</th>
-                <th style={{ background: "#1E293B", color: "#fff", padding: "6px 10px", textAlign: "center", fontWeight: 700, border: "1px solid #1E293B", width: 60 }}>実施</th>
-                <th style={{ background: "#1E293B", color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B" }}>備考・確認事項</th>
+                <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B", width: 280 }}>工程</th>
+                <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "center", fontWeight: 700, border: "1px solid #1E293B", width: 60 }}>実施</th>
+                <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B" }}>備考・確認事項</th>
               </tr>
             </thead>
             <tbody>
@@ -106,7 +107,7 @@ export function CompletionDoc({ site, docNo, issueDate = todayStr() }: Props) {
         <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
           {["施工確認（発注者）", "施工確認（元請け）", "施工責任者"].map((label) => (
             <div key={label} style={{ flex: 1, border: "1px solid #bbb", borderRadius: 3 }}>
-              <div style={{ background: "#F1F5F9", padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "#555", borderBottom: "1px solid #ddd" }}>
+              <div style={{ background: T.bg, padding: "4px 8px", fontSize: 9, fontWeight: 700, color: "#555", borderBottom: "1px solid #ddd" }}>
                 {label}
               </div>
               <div style={{ height: 52, padding: "6px 8px" }}>

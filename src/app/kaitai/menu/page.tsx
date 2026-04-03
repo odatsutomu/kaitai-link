@@ -10,20 +10,21 @@ import {
 import { useAppContext } from "../lib/app-context";
 import { PinPad } from "../components/pin-pad";
 import { PLAN_LIMITS } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.sub,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
   red: "#EF4444",
 };
 
 // ─── Plan badge styles ────────────────────────────────────────────────────────
 
 const PLAN_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
-  free:       { bg: "#F1F5F9", fg: "#475569", label: "Free" },
-  standard:   { bg: "#FFFBEB", fg: "#D97706", label: "Standard" },
+  free:       { bg: T.bg, fg: "#475569", label: "Free" },
+  standard:   { bg: T.primaryLt, fg: T.primaryDk, label: "Standard" },
   business:   { bg: "#EFF6FF", fg: "#2563EB", label: "Business" },
   enterprise: { bg: "#F5F3FF", fg: "#7C3AED", label: "Enterprise" },
 };
@@ -85,11 +86,12 @@ export default function MenuPage() {
         {/* ── Profile card ── */}
         <div
           className="rounded-2xl px-5 py-5 flex items-center gap-4"
-          style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
+          style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}
         >
           <div
             className="flex items-center justify-center flex-shrink-0 rounded-2xl font-bold"
-            style={{ width: 56, height: 56, background: "#FFFBEB", color: C.amber, fontSize: 22, borderRadius: 14 }}
+            style={{ width: 56, height: 56, background: T.primaryLt, color: C.amber, fontSize: 22, borderRadius: 14 }}
           >
             {company?.adminName?.charAt(0) ?? "田"}
           </div>
@@ -106,7 +108,7 @@ export default function MenuPage() {
                 fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
                 ...(isAdmin
                   ? { background: "#FEF2F2", color: C.red }
-                  : { background: "#F1F5F9", color: C.muted })
+                  : { background: T.bg, color: C.muted })
               }}
             >
               {isAdmin ? "管理者モード" : "作業員モード"}
@@ -127,7 +129,7 @@ export default function MenuPage() {
           </div>
           {isAdmin && (
             <Link href="/kaitai/billing">
-              <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl" style={{ fontSize: 14, fontWeight: 700, background: planStyle.fg, color: "#FFFFFF", borderRadius: 12 }}>
+              <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl" style={{ fontSize: 14, fontWeight: 700, background: planStyle.fg, color: T.surface, borderRadius: 12 }}>
                 <CreditCard size={14} />
                 変更
               </div>
@@ -140,10 +142,11 @@ export default function MenuPage() {
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.sub }}>
             クイックアクション
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
             <Link href="/kaitai/evaluation">
               <div className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors" style={{ minHeight: 72 }}>
-                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: "#FFFBEB" }}>
+                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: T.primaryLt }}>
                   <Star size={20} style={{ color: C.amber }} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -161,13 +164,14 @@ export default function MenuPage() {
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.amber }}>
             管理者機能
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
 
             {/* Toggle row */}
             <div className="px-5 flex items-center gap-3" style={{ minHeight: 72 }}>
               <div
                 className="flex items-center justify-center flex-shrink-0 rounded-xl"
-                style={{ width: 44, height: 44, background: isAdmin ? "#FEF2F2" : "#F1F5F9" }}
+                style={{ width: 44, height: 44, background: isAdmin ? "#FEF2F2" : T.bg }}
               >
                 <Shield size={22} style={{ color: isAdmin ? C.red : C.muted }} />
               </div>
@@ -182,12 +186,13 @@ export default function MenuPage() {
                 className="relative flex-shrink-0 transition-all"
                 style={{
                   width: 48, height: 28, borderRadius: 14,
-                  background: isAdmin ? "#EF4444" : "#E2E8F0",
+                  background: isAdmin ? "#EF4444" : T.border,
                 }}
               >
                 <div
                   className="absolute top-1 transition-all rounded-full"
-                  style={{ width: 20, height: 20, background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", left: isAdmin ? 26 : 4 }}
+                  style={{ width: 20, height: 20, background: T.surface,
+ left: isAdmin ? 26 : 4 }}
                 />
               </button>
             </div>
@@ -234,7 +239,8 @@ export default function MenuPage() {
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.muted }}>
             一般設定
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
             {[
               { icon: Bell,    label: "通知設定",     sub: "作業開始・終了のリマインダー" },
               { icon: Lock,    label: "PINコード変更", sub: "現場報告の認証コード" },
@@ -245,7 +251,7 @@ export default function MenuPage() {
                 className="w-full px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
                 style={{ minHeight: 72, borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
               >
-                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: "#F1F5F9" }}>
+                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: T.bg }}>
                   <Icon size={22} style={{ color: C.muted }} />
                 </div>
                 <div className="flex-1 text-left min-w-0">

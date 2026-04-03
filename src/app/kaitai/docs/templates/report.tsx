@@ -1,6 +1,7 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, FOOTER_BRANDING, todayStr, fmtDate, yen } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, ProjectInfo, NotesBox, DocFooter, PrintStyles } from "./shared";
+import { T } from "../../lib/design-tokens";
 
 interface Props {
   site: DocSite;
@@ -65,7 +66,7 @@ export function ReportDoc({ site, docNo, issueDate = todayStr() }: Props) {
               <tr>
                 {["日付", "作業内容", "人数"].map((h, i) => (
                   <th key={h} style={{
-                    background: "#1E293B", color: "#fff", padding: "6px 8px",
+                    background: T.text, color: "#fff", padding: "6px 8px",
                     textAlign: i === 2 ? "center" : "left",
                     fontWeight: 700, border: "1px solid #1E293B",
                     width: i === 0 ? 52 : i === 2 ? 48 : undefined,
@@ -138,7 +139,7 @@ export function ReportDoc({ site, docNo, issueDate = todayStr() }: Props) {
         <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
           {["報告者（担当）", "確認（現場責任者）", "承認（管理者）"].map((label) => (
             <div key={label} style={{ flex: 1, border: "1px solid #bbb", borderRadius: 3 }}>
-              <div style={{ background: "#F1F5F9", padding: "3px 8px", fontSize: 9, fontWeight: 700, color: "#555", borderBottom: "1px solid #ddd" }}>
+              <div style={{ background: T.bg, padding: "3px 8px", fontSize: 9, fontWeight: 700, color: "#555", borderBottom: "1px solid #ddd" }}>
                 {label}
               </div>
               <div style={{ height: 44 }}>

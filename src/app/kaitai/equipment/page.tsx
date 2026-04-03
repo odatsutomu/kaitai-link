@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { Plus, Edit3, X, AlertTriangle, Search } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
   green: "#10B981", red: "#EF4444", blue: "#3B82F6",
 };
 
@@ -165,8 +166,8 @@ const SEED_ASSIGNMENTS: EquipmentAssignment[] = [
 
 const STATUS_STYLE: Record<EquipmentStatus, { bg: string; color: string }> = {
   "稼働中":   { bg: "#EFF6FF", color: "#2563EB" },
-  "待機中":   { bg: "#F1F5F9", color: "#64748B" },
-  "修理中":   { bg: "#FFFBEB", color: "#D97706" },
+  "待機中":   { bg: T.bg, color: T.sub },
+  "修理中":   { bg: T.primaryLt, color: T.primaryDk },
   "返却済み": { bg: "#F0FDF4", color: "#16A34A" },
 };
 
@@ -240,7 +241,7 @@ function ChipGroup<T extends string>({
             className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
             style={{
               border: active ? `1.5px solid ${C.amber}` : `1.5px solid ${C.border}`,
-              background: active ? "rgba(245,158,11,0.1)" : C.card,
+              background: active ? T.primaryLt : C.card,
               color: active ? C.amberDk : C.sub,
             }}
           >
@@ -301,7 +302,7 @@ function EquipmentModal({
   const needsDeadline = form.category === "リース" || form.category === "レンタル";
 
   const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all";
-  const inputStyle = { border: `1.5px solid ${C.border}`, background: "#F8FAFC", color: C.text };
+  const inputStyle = { border: `1.5px solid ${C.border}`, background: T.bg, color: C.text };
   const labelCls = "block text-sm font-bold mb-1.5 uppercase tracking-wide";
 
   return (
@@ -312,7 +313,8 @@ function EquipmentModal({
     >
       <div
         className="w-full rounded-2xl flex flex-col"
-        style={{ maxWidth: 640, background: C.card, boxShadow: "0 20px 60px rgba(0,0,0,0.15)", maxHeight: "90dvh" }}
+        style={{ maxWidth: 640, background: C.card,
+ maxHeight: "90dvh" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Modal header */}
@@ -432,7 +434,8 @@ function EquipmentModal({
           <button
             onClick={submit}
             className="flex-2 px-8 py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
-            style={{ background: C.amber, boxShadow: "0 2px 12px rgba(245,158,11,0.35)", minWidth: 160 }}
+            style={{ background: C.amber,
+ minWidth: 160 }}
           >
             保存する
           </button>
@@ -450,7 +453,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
       style={active
-        ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: `1.5px solid rgba(245,158,11,0.35)` }
+        ? { background: T.primaryLt, color: C.amberDk, border: `1.5px solid ${T.primaryMd}` }
         : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }
       }
     >
@@ -562,7 +565,8 @@ export default function EquipmentPage() {
         <button
           onClick={() => setModalTarget("new")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm text-white flex-shrink-0 transition-all hover:opacity-90"
-          style={{ background: C.amber, boxShadow: "0 2px 10px rgba(245,158,11,0.35)" }}
+          style={{ background: C.amber,
+ }}
         >
           <Plus size={16} />
           機材を追加
@@ -577,7 +581,8 @@ export default function EquipmentPage() {
           { label: "修理中",    value: equipment.filter(e => e.status === "修理中").length,        color: C.amber,   note: "要確認" },
           { label: "返却期限近", value: nearDeadlineCount, color: nearDeadlineCount > 0 ? C.red : C.green, note: "14日以内" },
         ].map(({ label, value, color, note }) => (
-          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
+          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`,
+ }}>
             <p className="text-sm mb-1" style={{ color: C.sub }}>{label}</p>
             <p className="text-3xl font-bold font-numeric" style={{ color }}>{value}</p>
             <p className="text-sm mt-1" style={{ color: C.muted }}>{note}</p>
@@ -637,14 +642,15 @@ export default function EquipmentPage() {
       </div>
 
       {/* ── Equipment table ── */}
-      <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
+      <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
+ }}>
         {/* Table header */}
         <div
           className="grid items-center px-5 py-3 text-sm font-bold uppercase tracking-wider"
           style={{
             gridTemplateColumns: "2.5fr 90px 90px 140px 110px 120px 80px",
             borderBottom: `1px solid ${C.border}`,
-            background: "#F8FAFC",
+            background: T.bg,
             color: C.muted,
           }}
         >
@@ -739,7 +745,8 @@ export default function EquipmentPage() {
                 <button
                   onClick={() => setModalTarget(e)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                  style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                  style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
+ }}
                 >
                   <Edit3 size={12} />
                   編集
@@ -756,10 +763,11 @@ export default function EquipmentPage() {
           <h2 className="text-sm font-bold tracking-widest uppercase mb-4" style={{ color: C.amber }}>
             現場アサイン状況
           </h2>
-          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
+ }}>
             <div
               className="grid px-5 py-3 text-sm font-bold uppercase tracking-wider"
-              style={{ gridTemplateColumns: "2fr 2fr 200px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC", color: C.muted }}
+              style={{ gridTemplateColumns: "2fr 2fr 200px", borderBottom: `1px solid ${C.border}`, background: T.bg, color: C.muted }}
             >
               <span>機材</span>
               <span>現場</span>

@@ -7,6 +7,7 @@ import {
   Camera, CheckSquare, Square, Plus, Minus,
   Upload, CheckCircle2, Truck,
 } from "lucide-react";
+import { T } from "../../lib/design-tokens";
 
 // ─── Mock ──────────────────────────────────────────────────────────────────────
 
@@ -102,29 +103,29 @@ export default function WorkEndPage({
         >
           <CheckCircle2 size={36} style={{ color: "#4ADE80" }} />
         </div>
-        <h2 className="text-2xl font-bold mb-2" style={{ color: "#F1F5F9" }}>
+        <h2 className="text-2xl font-bold mb-2" style={{ color: T.bg }}>
           作業終了を記録しました
         </h2>
-        <p className="text-sm mb-1" style={{ color: "#94A3B8" }}>{siteName}</p>
+        <p className="text-sm mb-1" style={{ color: T.muted }}>{siteName}</p>
         <p className="text-3xl font-bold mb-3" style={{ color: "#4ADE80" }}>{timeStr}</p>
         <div
           className="px-4 py-2 rounded-2xl mb-2"
           style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)" }}
         >
-          <p className="text-sm" style={{ color: "#94A3B8" }}>
+          <p className="text-sm" style={{ color: T.muted }}>
             産廃処分費（概算）：
             <span className="font-bold text-lg" style={{ color: "#F87171" }}>
               　¥{totalWasteCost.toLocaleString()}
             </span>
           </p>
         </div>
-        <p className="text-sm mb-8" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-8" style={{ color: T.sub }}>
           産廃 {activeWaste.length}品目 · 写真 {Object.values(photos).reduce((a, b) => a + b, 0)}枚
         </p>
         <Link href="/kaitai">
           <button
             className="rounded-2xl px-8 py-4 font-bold text-base"
-            style={{ background: "#1A2535", border: "1px solid #2D3E54", color: "#F1F5F9" }}
+            style={{ background: "#1A2535", border: "1px solid #2D3E54", color: T.bg }}
           >
             現場一覧へ戻る
           </button>
@@ -138,7 +139,7 @@ export default function WorkEndPage({
 
       {/* ── Header ── */}
       <section className="flex flex-col gap-3" style={{ borderBottom: "1px solid #2D3E54", paddingBottom: 20 }}>
-        <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: "#64748B" }}>
+        <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: T.sub }}>
           <ArrowLeft size={15} /> 作業報告
         </Link>
         <div className="flex items-start gap-3 mb-4">
@@ -149,10 +150,10 @@ export default function WorkEndPage({
             <StopCircle size={20} style={{ color: "#F87171" }} />
           </div>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>作業終了・産廃入力</h1>
+            <h1 className="text-xl font-bold" style={{ color: T.bg }}>作業終了・産廃入力</h1>
             <div className="flex items-center gap-1 mt-0.5">
-              <MapPin size={11} style={{ color: "#64748B" }} />
-              <p className="text-sm" style={{ color: "#94A3B8" }}>{siteName}</p>
+              <MapPin size={11} style={{ color: T.sub }} />
+              <p className="text-sm" style={{ color: T.muted }}>{siteName}</p>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
@@ -167,7 +168,7 @@ export default function WorkEndPage({
             className="rounded-2xl px-4 py-2.5 flex items-center justify-between"
             style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)" }}
           >
-            <span className="text-sm" style={{ color: "#94A3B8" }}>産廃処分費（概算）</span>
+            <span className="text-sm" style={{ color: T.muted }}>産廃処分費（概算）</span>
             <span className="text-lg font-bold" style={{ color: "#F87171" }}>
               ¥{totalWasteCost.toLocaleString()}
             </span>
@@ -181,7 +182,7 @@ export default function WorkEndPage({
             作業実績チェック
         ══════════════════════════════════════════════ */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.primary }}>
             本日の作業実績
           </p>
           <div className="flex flex-col gap-2">
@@ -202,7 +203,7 @@ export default function WorkEndPage({
                   ) : (
                     <Square size={20} style={{ color: "#475569" }} />
                   )}
-                  <span className="text-sm font-semibold" style={{ color: done ? "#4ADE80" : "#94A3B8" }}>
+                  <span className="text-sm font-semibold" style={{ color: done ? "#4ADE80" : T.muted }}>
                     {item.label}
                   </span>
                 </button>
@@ -215,7 +216,7 @@ export default function WorkEndPage({
             産廃排出記録（最重要）
         ══════════════════════════════════════════════ */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.primary }}>
             産廃排出記録（品目・数量・搬出先・写真）
           </p>
 
@@ -232,14 +233,14 @@ export default function WorkEndPage({
                   key={item.id}
                   className="rounded-2xl overflow-hidden"
                   style={{
-                    background: active ? "rgba(249,115,22,0.06)" : "#1A2535",
-                    border: active ? "1.5px solid rgba(249,115,22,0.3)" : "1px solid #2D3E54",
+                    background: active ? T.primaryLt : "#1A2535",
+                    border: active ? `1.5px solid ${T.primaryMd}` : "1px solid #2D3E54",
                   }}
                 >
                   {/* Row 1: label + counter */}
                   <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-                    <Truck size={14} style={{ color: active ? "#F97316" : "#475569" }} className="flex-shrink-0" />
-                    <p className="flex-1 text-sm font-semibold" style={{ color: active ? "#F1F5F9" : "#94A3B8" }}>
+                    <Truck size={14} style={{ color: active ? T.primary : "#475569" }} className="flex-shrink-0" />
+                    <p className="flex-1 text-sm font-semibold" style={{ color: active ? T.bg : T.muted }}>
                       {item.label}
                     </p>
                     {/* +/- counter */}
@@ -249,22 +250,22 @@ export default function WorkEndPage({
                         className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
                         style={{ background: "#0F1928", border: "1px solid #2D3E54" }}
                       >
-                        <Minus size={14} style={{ color: active ? "#F97316" : "#475569" }} />
+                        <Minus size={14} style={{ color: active ? T.primary : "#475569" }} />
                       </button>
                       <div className="text-center" style={{ minWidth: 52 }}>
-                        <span className="text-base font-bold" style={{ color: active ? "#F97316" : "#475569" }}>
+                        <span className="text-base font-bold" style={{ color: active ? T.primary : "#475569" }}>
                           {qty}
                         </span>
-                        <span className="text-sm ml-0.5" style={{ color: "#64748B" }}>
+                        <span className="text-sm ml-0.5" style={{ color: T.sub }}>
                           {item.unit}
                         </span>
                       </div>
                       <button
                         onClick={() => adjustQty(item.id, item.step)}
                         className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
-                        style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.3)" }}
+                        style={{ background: T.primaryMd, border: `1px solid ${T.primaryMd}` }}
                       >
-                        <Plus size={14} style={{ color: "#F97316" }} />
+                        <Plus size={14} style={{ color: T.primary }} />
                       </button>
                     </div>
                   </div>
@@ -274,7 +275,7 @@ export default function WorkEndPage({
                     <div className="px-4 pb-3 flex flex-col gap-2">
                       {/* Cost chip */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm" style={{ color: "#64748B" }}>
+                        <span className="text-sm" style={{ color: T.sub }}>
                           概算費：¥{item.unitPrice.toLocaleString()}/{item.unit}
                         </span>
                         <span className="text-sm font-bold" style={{ color: "#F87171" }}>
@@ -284,7 +285,7 @@ export default function WorkEndPage({
 
                       {/* Destination selector */}
                       <div>
-                        <p className="text-sm mb-1" style={{ color: "#64748B" }}>搬出先</p>
+                        <p className="text-sm mb-1" style={{ color: T.sub }}>搬出先</p>
                         <div className="flex flex-wrap gap-1.5">
                           {destinations.map((d) => (
                             <button
@@ -293,8 +294,8 @@ export default function WorkEndPage({
                               className="text-sm px-2.5 py-1 rounded-xl font-medium transition-all"
                               style={
                                 dest === d
-                                  ? { background: "rgba(249,115,22,0.2)", color: "#F97316", border: "1px solid rgba(249,115,22,0.4)" }
-                                  : { background: "#0F1928", color: "#64748B", border: "1px solid #2D3E54" }
+                                  ? { background: T.primaryMd, color: T.primary, border: `1px solid ${T.primaryMd}` }
+                                  : { background: "#0F1928", color: T.sub, border: "1px solid #2D3E54" }
                               }
                             >
                               {d}
@@ -308,13 +309,13 @@ export default function WorkEndPage({
                         onClick={() => setPhotos((prev) => ({ ...prev, [item.id]: prev[item.id] + 1 }))}
                         className="flex items-center gap-2 py-2 rounded-xl active:scale-[0.98] transition-transform"
                         style={{
-                          background: ph > 0 ? "rgba(249,115,22,0.08)" : "#0F1928",
-                          border: `1px dashed ${ph > 0 ? "rgba(249,115,22,0.4)" : "#2D3E54"}`,
+                          background: ph > 0 ? T.primaryLt : "#0F1928",
+                          border: `1px dashed ${ph > 0 ? `${T.primaryMd}` : "#2D3E54"}`,
                           paddingLeft: 12, paddingRight: 12,
                         }}
                       >
-                        <Camera size={14} style={{ color: ph > 0 ? "#F97316" : "#475569" }} />
-                        <span className="text-sm font-medium" style={{ color: ph > 0 ? "#F97316" : "#64748B" }}>
+                        <Camera size={14} style={{ color: ph > 0 ? T.primary : "#475569" }} />
+                        <span className="text-sm font-medium" style={{ color: ph > 0 ? T.primary : T.sub }}>
                           {ph > 0 ? `${ph}枚 添付済み` : "積載写真を添付"}
                         </span>
                       </button>
@@ -335,8 +336,7 @@ export default function WorkEndPage({
           style={
             canSubmit
               ? {
-                  background: "linear-gradient(135deg, #EF4444 0%, #F97316 100%)",
-                  boxShadow: "0 6px 28px rgba(239,68,68,0.3)",
+                  background: "linear-gradient(135deg, #EF4444 0%, #B45309 100%)",
                   color: "#fff",
                 }
               : { background: "#1A2535", border: "1px solid #2D3E54", color: "#475569" }
@@ -347,7 +347,7 @@ export default function WorkEndPage({
         </button>
 
         {!canSubmit && (
-          <p className="text-center text-sm -mt-3" style={{ color: "#64748B" }}>
+          <p className="text-center text-sm -mt-3" style={{ color: T.sub }}>
             作業実績または産廃記録を入力してください
           </p>
         )}

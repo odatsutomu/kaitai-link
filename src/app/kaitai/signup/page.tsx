@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Check, Building2, User, Lock, CreditCard, Sparkles } from "lucide-react";
 import { KaitaiLogo } from "../components/kaitai-logo";
 import { useAppContext, Company, PlanId } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ const PLANS = [
     price: 0,
     priceLabel: "無料",
     features: ["現場2件まで", "メンバー8名まで", "機材・経営分析・元請け管理すべて利用可", "データ保存90日"],
-    color: "#64748B",
+    color: T.sub,
   },
   {
     id: "standard" as PlanId,
@@ -144,7 +145,7 @@ export default function SignupPage() {
           style={{
             height: 56,
             fontSize: 16,
-            background: "#F9FAFB",
+            background: T.bg,
             border: errors[opts.key] ? "2px solid #EF4444" : "2px solid #EEEEEE",
             color: "#111111",
           }}
@@ -157,7 +158,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col min-h-screen pb-8" style={{ background: "#FFFFFF" }}>
+    <div className="max-w-md mx-auto flex flex-col min-h-screen pb-8" style={{ background: T.surface }}>
 
       {/* Header */}
       <header className="px-5 pt-10 pb-5 flex items-center gap-3">
@@ -227,7 +228,7 @@ export default function SignupPage() {
               <p style={{ fontSize: 14, color: "#888888", marginTop: 4 }}>2種類のパスワードで権限を分離します</p>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="rounded-2xl p-4" style={{ background: "#FFF7ED", border: "1.5px solid #FED7AA" }}>
+              <div className="rounded-2xl p-4" style={{ background: "${T.primaryLt}", border: "1.5px solid #FED7AA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#B45309", marginBottom: 2 }}>第一パスワード（全従業員共有）</p>
                 <p style={{ fontSize: 11, color: "#92400E" }}>現場確認・スケジュール・勤怠報告に使用</p>
               </div>
@@ -306,11 +307,11 @@ export default function SignupPage() {
               <p style={{ fontSize: 13, fontWeight: 800, color: "#047857", fontFamily: "monospace", wordBreak: "break-all" }}>
                 {stripeId}
               </p>
-              <p style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>実装時はサーバーサイドで自動発行・DB保存されます</p>
+              <p style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>実装時はサーバーサイドで自動発行・DB保存されます</p>
             </div>
 
             {/* Summary */}
-            <div className="w-full rounded-2xl p-4 mb-6 text-left" style={{ background: "#F9FAFB", border: "1.5px solid #EEEEEE" }}>
+            <div className="w-full rounded-2xl p-4 mb-6 text-left" style={{ background: T.bg, border: "1.5px solid #EEEEEE" }}>
               {[
                 { label: "会社名",   value: companyName },
                 { label: "管理者",   value: adminName },
@@ -327,7 +328,7 @@ export default function SignupPage() {
             <button
               onClick={() => router.push("/kaitai/login")}
               className="w-full flex items-center justify-center gap-2 rounded-3xl font-black"
-              style={{ height: 64, fontSize: 18, background: "#111111", color: "#FFFFFF" }}
+              style={{ height: 64, fontSize: 18, background: "#111111", color: T.surface }}
             >
               ログインへ進む <ChevronRight size={20} />
             </button>
@@ -342,7 +343,7 @@ export default function SignupPage() {
           <button
             onClick={next}
             className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"
-            style={{ height: 64, fontSize: 18, background: "#111111", color: "#FFFFFF" }}
+            style={{ height: 64, fontSize: 18, background: "#111111", color: T.surface }}
           >
             {step === "plan" ? "登録する" : "次へ"} <ChevronRight size={22} />
           </button>

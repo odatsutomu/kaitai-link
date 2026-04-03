@@ -14,6 +14,7 @@ import {
   type License, type TroubleRecord,
 } from "../../lib/members";
 import { useAppContext } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,14 +29,15 @@ function Stars({ n, color }: { n: number; color: string }) {
 }
 
 const C_MEM = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
 };
 
 function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`rounded-xl ${className}`} style={{ background: C_MEM.card, border: `1px solid ${C_MEM.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", ...style }}>
+    <div className={`rounded-xl ${className}`} style={{ background: C_MEM.card, border: `1px solid ${C_MEM.border}`,
+ ...style }}>
       {children}
     </div>
   );
@@ -52,15 +54,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   "#要注意":         { bg: "rgba(239,68,68,0.12)",   color: "#F87171" },
   "#ルール違反":     { bg: "rgba(239,68,68,0.12)",   color: "#F87171" },
-  "#リーダーシップ": { bg: "rgba(251,191,36,0.12)", color: "#FBBF24" },
+  "#リーダーシップ": { bg: "rgba(251,191,36,0.12)", color: "#92400E" },
   "#安全模範":       { bg: "rgba(74,222,128,0.1)",  color: "#4ADE80" },
   "#効率的":         { bg: "rgba(96,165,250,0.1)",  color: "#60A5FA" },
   "#成長中":         { bg: "rgba(167,139,250,0.1)", color: "#A78BFA" },
   "#冷静対応":       { bg: "rgba(52,211,153,0.1)",  color: "#34D399" },
-  "#粉塵管理":       { bg: "rgba(251,191,36,0.1)",  color: "#FBBF24" },
+  "#粉塵管理":       { bg: "rgba(251,191,36,0.1)",  color: "#92400E" },
 };
 function tagStyle(tag: string) {
-  return TAG_COLORS[tag] ?? { bg: "rgba(100,116,139,0.12)", color: "#94A3B8" };
+  return TAG_COLORS[tag] ?? { bg: "rgba(100,116,139,0.12)", color: T.muted };
 }
 
 // ─── Radar chart ──────────────────────────────────────────────────────────────
@@ -101,18 +103,18 @@ function RadarChart({ radar }: { radar: Record<string, number> }) {
         return <line key={i} x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#2D3E54" strokeWidth="0.5" />;
       })}
       {/* Data fill */}
-      <polygon points={dataPts} fill="rgba(249,115,22,0.15)" stroke="#F97316" strokeWidth="1.8" strokeLinejoin="round" />
+      <polygon points={dataPts} fill={T.primaryMd} stroke={T.primary} strokeWidth="1.8" strokeLinejoin="round" />
       {/* Data dots */}
       {vals.map((v, i) => {
         const { x, y } = toXY(angles[i], r * v / 100);
-        return <circle key={i} cx={x} cy={y} r="3.5" fill="#F97316" stroke="#0F1928" strokeWidth="1" />;
+        return <circle key={i} cx={x} cy={y} r="3.5" fill={T.primary} stroke="#0F1928" strokeWidth="1" />;
       })}
       {/* Score labels at data points */}
       {vals.map((v, i) => {
         const offset = 12;
         const { x, y } = toXY(angles[i], r * v / 100 + offset);
         return (
-          <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#F97316" fontWeight="bold">
+          <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill={T.primary} fontWeight="bold">
             {v}
           </text>
         );
@@ -121,7 +123,7 @@ function RadarChart({ radar }: { radar: Record<string, number> }) {
       {labels.map((label, i) => {
         const { x, y } = toXY(angles[i], labelR);
         return (
-          <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#94A3B8">
+          <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill={T.muted}>
             {label}
           </text>
         );
@@ -139,7 +141,7 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
 
   const statusColor = (s: string) => {
     if (s === "出勤") return { bg: "rgba(74,222,128,0.15)", border: "#4ADE80", text: "#4ADE80" };
-    if (s === "遅刻") return { bg: "rgba(251,191,36,0.15)", border: "#FBBF24", text: "#FBBF24" };
+    if (s === "遅刻") return { bg: "rgba(251,191,36,0.15)", border: "#92400E", text: "#92400E" };
     if (s === "欠勤") return { bg: "rgba(239,68,68,0.15)",  border: "#EF4444", text: "#EF4444" };
     if (s === "休日") return { bg: "#1A2535", border: "transparent", text: "#2D3E54" };
     return { bg: "#0F1928", border: "transparent", text: "#1A2535" }; // 未来
@@ -150,7 +152,7 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {days.map((d, i) => (
-          <div key={d} className="text-center py-0.5" style={{ fontSize: 14, fontWeight: 700, color: i >= 5 ? "#F87171" : "#64748B" }}>
+          <div key={d} className="text-center py-0.5" style={{ fontSize: 14, fontWeight: 700, color: i >= 5 ? "#F87171" : T.sub }}>
             {d}
           </div>
         ))}
@@ -180,7 +182,7 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
               <span style={{ fontSize: 14, fontWeight: 700, color: colIdx >= 5 ? (status === "休日" ? "#F87171" : c.text) : c.text }}>
                 {dayNum}
               </span>
-              {status === "遅刻" && <span style={{ fontSize: 14, color: "#FBBF24" }}>遅</span>}
+              {status === "遅刻" && <span style={{ fontSize: 14, color: "#92400E" }}>遅</span>}
               {status === "欠勤" && <span style={{ fontSize: 14, color: "#EF4444" }}>欠</span>}
             </div>
           );
@@ -188,10 +190,10 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
       </div>
       {/* Legend */}
       <div className="flex items-center gap-3 mt-2 justify-end">
-        {[["出勤","#4ADE80"],["遅刻","#FBBF24"],["欠勤","#EF4444"],["休日","#475569"]].map(([label, color]) => (
+        {[["出勤","#4ADE80"],["遅刻","#92400E"],["欠勤","#EF4444"],["休日","#475569"]].map(([label, color]) => (
           <div key={label} className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color, opacity: 0.6 }} />
-            <span style={{ fontSize: 14, color: "#64748B" }}>{label}</span>
+            <span style={{ fontSize: 14, color: T.sub }}>{label}</span>
           </div>
         ))}
       </div>
@@ -203,7 +205,7 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
 
 const SCORE_CONFIG = {
   1: { icon: XCircle,     label: "要改善", color: "#F87171", bg: "rgba(239,68,68,0.1)" },
-  2: { icon: MinusCircle, label: "普通",   color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
+  2: { icon: MinusCircle, label: "普通",   color: "#92400E", bg: "rgba(251,191,36,0.1)" },
   3: { icon: CheckCircle, label: "適切",   color: "#4ADE80", bg: "rgba(74,222,128,0.1)" },
 };
 
@@ -218,10 +220,10 @@ function TroubleCard({
   const [saving, setSaving] = useState(false);
 
   const typeColor = {
-    "近隣クレーム": "#FBBF24", "埋設物": "#60A5FA",
-    "事故": "#F87171", "機材故障": "#94A3B8",
-    "ルール違反": "#F87171", "その他": "#94A3B8",
-  }[t.type] ?? "#94A3B8";
+    "近隣クレーム": "#92400E", "埋設物": "#60A5FA",
+    "事故": "#F87171", "機材故障": T.muted,
+    "ルール違反": "#F87171", "その他": T.muted,
+  }[t.type] ?? T.muted;
 
   const handleScore = (score: 1 | 2 | 3) => {
     setSaving(true);
@@ -245,9 +247,9 @@ function TroubleCard({
             <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${typeColor}1A`, color: typeColor }}>
               {t.type}
             </span>
-            <span style={{ fontSize: 14, color: "#64748B" }}>{t.date}・{t.site}</span>
+            <span style={{ fontSize: 14, color: T.sub }}>{t.date}・{t.site}</span>
           </div>
-          <p style={{ fontSize: 14, color: "#94A3B8" }} className="line-clamp-2">{t.detail}</p>
+          <p style={{ fontSize: 14, color: T.muted }} className="line-clamp-2">{t.detail}</p>
           {cfg && !open && (
             <div className="flex items-center gap-1 mt-1">
               <cfg.icon size={12} style={{ color: cfg.color }} />
@@ -261,11 +263,11 @@ function TroubleCard({
 
       {open && (
         <div className="px-4 pb-4 flex flex-col gap-3" style={{ borderTop: "1px solid #0F1928" }}>
-          <p style={{ fontSize: 14, paddingTop: 12, color: "#94A3B8" }}>{t.detail}</p>
+          <p style={{ fontSize: 14, paddingTop: 12, color: T.muted }}>{t.detail}</p>
 
           {/* Admin evaluation */}
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: "#64748B" }}>管理者評価（3段階）</p>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: T.sub }}>管理者評価（3段階）</p>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map(score => {
                 const c = SCORE_CONFIG[score];
@@ -293,21 +295,21 @@ function TroubleCard({
 
           {/* Memo */}
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: "#64748B" }}>管理者メモ</p>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: T.sub }}>管理者メモ</p>
             <textarea
               value={memo}
               onChange={e => setMemo(e.target.value)}
               rows={2}
               placeholder="対応内容・指示事項など…"
               className="w-full rounded-xl px-3 py-2 resize-none outline-none"
-              style={{ fontSize: 14, background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
+              style={{ fontSize: 14, background: "#0F1928", color: T.bg, border: "1px solid #2D3E54" }}
             />
           </div>
 
           {t.adminMemo && (
-            <div className="px-3 py-2 rounded-xl" style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.12)" }}>
-              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2, color: "#F97316" }}>保存済メモ</p>
-              <p style={{ fontSize: 14, color: "#94A3B8" }}>{t.adminMemo}</p>
+            <div className="px-3 py-2 rounded-xl" style={{ background: T.primaryLt, border: `1px solid ${T.primaryLt}` }}>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2, color: T.primary }}>保存済メモ</p>
+              <p style={{ fontSize: 14, color: T.muted }}>{t.adminMemo}</p>
             </div>
           )}
         </div>
@@ -375,7 +377,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
   if (!member) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ color: "#64748B" }}>
+      <div className="flex items-center justify-center min-h-screen" style={{ color: T.sub }}>
         メンバーが見つかりません
       </div>
     );
@@ -388,7 +390,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const hiredStr = `${hired.getFullYear()}年${hired.getMonth() + 1}月${hired.getDate()}日`;
 
   const s = statsState;
-  const attColor = s.attendancePct >= 95 ? "#4ADE80" : s.attendancePct >= 80 ? "#FBBF24" : "#F87171";
+  const attColor = s.attendancePct >= 95 ? "#4ADE80" : s.attendancePct >= 80 ? "#92400E" : "#F87171";
   const effColor = s.efficiencyDelta >= 0 ? "#4ADE80" : "#F87171";
 
   // ─── Access control ─────────────────────────────────────────────────────────
@@ -432,7 +434,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
         className="rounded-xl p-5"
         style={{ background: "linear-gradient(160deg, #0F1928 0%, #1A2535 100%)", border: "1px solid #2D3E54" }}
       >
-        <Link href="/kaitai/members" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: "#64748B" }}>
+        <Link href="/kaitai/members" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: T.sub }}>
           <ArrowLeft size={15} /> メンバー一覧
         </Link>
 
@@ -450,8 +452,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>
               )}
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#F1F5F9" }}>{member.name}</h1>
-            <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{member.kana}</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: T.bg }}>{member.name}</h1>
+            <p style={{ fontSize: 14, marginTop: 2, color: T.sub }}>{member.kana}</p>
           </div>
         </div>
 
@@ -459,16 +461,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center gap-3 mb-3">
           <Stars n={lvl.stars} color={lvl.color} />
           <span style={{ fontSize: 15, fontWeight: 700, color: lvl.color }}>累計 {yrs}年</span>
-          <span style={{ fontSize: 14, color: "#64748B" }}>（前職 {member.preYears}年 + {member.siteCount}現場）</span>
+          <span style={{ fontSize: 14, color: T.sub }}>（前職 {member.preYears}年 + {member.siteCount}現場）</span>
         </div>
 
         {/* Experience gauge */}
         <div>
-          <div className="flex justify-between mb-1" style={{ fontSize: 14, color: "#64748B" }}>
+          <div className="flex justify-between mb-1" style={{ fontSize: 14, color: T.sub }}>
             <span>経験値ゲージ</span><span>{expPct}%</span>
           </div>
           <div className="h-3 rounded-full overflow-hidden" style={{ background: "#0F1928" }}>
-            <div className="h-full rounded-full" style={{ width: `${expPct}%`, background: `linear-gradient(90deg, ${lvl.color}, #FBBF24)` }} />
+            <div className="h-full rounded-full" style={{ width: `${expPct}%`, background: `linear-gradient(90deg, ${lvl.color}, #92400E)` }} />
           </div>
           <div className="flex justify-between mt-1" style={{ fontSize: 14, color: "#2D3E54" }}>
             <span>見習い</span><span>一般</span><span>中堅</span><span>熟練</span><span>職長</span>
@@ -487,8 +489,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               style={{
                 fontSize: 14, fontWeight: 700,
                 ...(tab === t
-                  ? { background: "rgba(249,115,22,0.15)", color: "#F97316" }
-                  : { color: "#64748B" })
+                  ? { background: T.primaryMd, color: T.primary }
+                  : { color: T.sub })
               }}
             >
               {t}
@@ -511,11 +513,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <div className="flex flex-wrap gap-2">
                   {member.licenses.map(lic => (
                     <div key={lic} className="flex items-center gap-1.5 px-3 py-2 rounded-xl" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}>
-                      <Award size={14} style={{ color: "#FBBF24" }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "#F1F5F9" }}>{LICENSE_LABELS[lic as License] ?? lic}</span>
+                      <Award size={14} style={{ color: "#92400E" }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: T.bg }}>{LICENSE_LABELS[lic as License] ?? lic}</span>
                     </div>
                   ))}
-                  {member.licenses.length === 0 && <p style={{ fontSize: 14, color: "#64748B" }}>資格なし</p>}
+                  {member.licenses.length === 0 && <p style={{ fontSize: 14, color: T.sub }}>資格なし</p>}
                 </div>
               </Card>
             </section>
@@ -532,8 +534,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   <div key={label} className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: i > 0 ? "1px solid #0F1928" : undefined }}>
                     <Icon size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
                     <div>
-                      <p style={{ fontSize: 14, color: "#64748B" }}>{label}</p>
-                      <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{value}</p>
+                      <p style={{ fontSize: 14, color: T.sub }}>{label}</p>
+                      <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: T.bg }}>{value}</p>
                     </div>
                   </div>
                 ))}
@@ -543,8 +545,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   <MapPin size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p style={{ fontSize: 14, color: "#64748B" }}>住所</p>
-                      <Lock size={11} style={{ color: "#F97316" }} />
+                      <p style={{ fontSize: 14, color: T.sub }}>住所</p>
+                      <Lock size={11} style={{ color: T.primary }} />
                     </div>
                     <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者のみ閲覧可</p>
                   </div>
@@ -555,14 +557,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   <Phone size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p style={{ fontSize: 14, color: "#64748B" }}>緊急連絡先</p>
-                      <Lock size={11} style={{ color: "#F97316" }} />
+                      <p style={{ fontSize: 14, color: T.sub }}>緊急連絡先</p>
+                      <Lock size={11} style={{ color: T.primary }} />
                       {canSeeEmergency && (
-                        <span style={{ fontSize: 12, color: "#D97706", fontStyle: "italic" }}>職長権限で表示中</span>
+                        <span style={{ fontSize: 12, color: T.primaryDk, fontStyle: "italic" }}>職長権限で表示中</span>
                       )}
                     </div>
                     {canSeeEmergency
-                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{member.emergency}</p>
+                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: T.bg }}>{member.emergency}</p>
                       : <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者または現場担当職長のみ閲覧可</p>
                     }
                   </div>
@@ -574,16 +576,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <div className="grid grid-cols-3 gap-2">
                 <Card className="p-4 text-center">
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "#F97316" }}>{member.siteCount}現場</p>
-                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>累計現場数</p>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: T.primary }}>{member.siteCount}現場</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: T.sub }}>累計現場数</p>
                 </Card>
                 <Card className="p-4 text-center">
                   <p style={{ fontSize: 18, fontWeight: 700, color: lvl.color }}>{yrs}年</p>
-                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>累計経験年数</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: T.sub }}>累計経験年数</p>
                 </Card>
                 <Card className="p-4 text-center" style={{ opacity: 0.6 }}>
-                  <Lock size={18} style={{ color: "#64748B", marginLeft: "auto", marginRight: "auto" }} />
-                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
+                  <Lock size={18} style={{ color: T.sub, marginLeft: "auto", marginRight: "auto" }} />
+                  <p style={{ fontSize: 14, marginTop: 2, color: T.sub }}>日当</p>
                 </Card>
               </div>
             </section>
@@ -593,15 +595,15 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               <SectionLabel>直近の現場出勤</SectionLabel>
               {s.siteEvals.map((e, i) => (
                 <Card key={i} className="px-4 flex items-center gap-3 mb-2" style={{ paddingTop: 14, paddingBottom: 14, minHeight: 64 }}>
-                  <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(249,115,22,0.1)" }}>
-                    <TrendingUp size={18} style={{ color: "#F97316" }} />
+                  <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: T.primaryLt }}>
+                    <TrendingUp size={18} style={{ color: T.primary }} />
                   </div>
                   <div className="flex-1">
-                    <p style={{ fontSize: 16, fontWeight: 600, color: "#F1F5F9" }}>{e.site}</p>
-                    <p style={{ fontSize: 14, color: "#64748B" }}>{e.date}</p>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: T.bg }}>{e.site}</p>
+                    <p style={{ fontSize: 14, color: T.sub }}>{e.date}</p>
                   </div>
                   {e.role === "責任者" && (
-                    <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>
                   )}
                 </Card>
               ))}
@@ -620,14 +622,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {[
                   { label: "出勤日数",     value: `${s.workDays}日`,          color: "#4ADE80" },
-                  { label: "遅刻",         value: `${s.lateDays}回`,          color: s.lateDays > 0 ? "#FBBF24" : "#64748B" },
-                  { label: "欠勤",         value: `${s.absentDays}日`,        color: s.absentDays > 0 ? "#F87171" : "#64748B" },
+                  { label: "遅刻",         value: `${s.lateDays}回`,          color: s.lateDays > 0 ? "#92400E" : T.sub },
+                  { label: "欠勤",         value: `${s.absentDays}日`,        color: s.absentDays > 0 ? "#F87171" : T.sub },
                   { label: "合計勤務時間", value: `${s.totalHours}h`,         color: "#60A5FA" },
-                  { label: "平均残業",     value: `${s.avgOvertime}h/日`,     color: "#94A3B8" },
+                  { label: "平均残業",     value: `${s.avgOvertime}h/日`,     color: T.muted },
                   { label: "出勤率",       value: `${s.attendancePct}%`,      color: attColor },
                 ].map(({ label, value, color }) => (
                   <Card key={label} className="p-4">
-                    <p style={{ fontSize: 14, marginBottom: 4, color: "#64748B" }}>{label}</p>
+                    <p style={{ fontSize: 14, marginBottom: 4, color: T.sub }}>{label}</p>
                     <p style={{ fontSize: 28, fontWeight: 800, color, fontFeatureSettings: "'tnum'", lineHeight: 1 }}>{value}</p>
                   </Card>
                 ))}
@@ -637,7 +639,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             {/* Attendance bar */}
             <section>
               <div className="flex justify-between mb-1">
-                <span style={{ fontSize: 14, color: "#64748B" }}>出勤率</span>
+                <span style={{ fontSize: 14, color: T.sub }}>出勤率</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: attColor }}>{s.attendancePct}%</span>
               </div>
               <div className="h-3 rounded-full overflow-hidden" style={{ background: "#0F1928" }}>
@@ -659,10 +661,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             {/* Overtime note */}
             {s.lateDays > 0 && (
               <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
-                <Clock size={16} style={{ color: "#FBBF24" }} />
+                <Clock size={16} style={{ color: "#92400E" }} />
                 <div>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#FBBF24" }}>遅刻フラグ: {s.lateDays}件</p>
-                  <p style={{ fontSize: 14, color: "#94A3B8" }}>現場端末の開始打刻が予定時刻を超過した記録</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#92400E" }}>遅刻フラグ: {s.lateDays}件</p>
+                  <p style={{ fontSize: 14, color: T.muted }}>現場端末の開始打刻が予定時刻を超過した記録</p>
                 </div>
               </div>
             )}
@@ -686,8 +688,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     { label: "効率", v: s.radar.efficiency },
                   ].map(({ label, v }) => (
                     <div key={label} className="text-center">
-                      <p style={{ fontSize: 16, fontWeight: 700, color: "#F97316" }}>{v}</p>
-                      <p style={{ fontSize: 14, color: "#64748B" }}>{label}</p>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: T.primary }}>{v}</p>
+                      <p style={{ fontSize: 14, color: T.sub }}>{label}</p>
                     </div>
                   ))}
                 </div>
@@ -712,7 +714,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     <p style={{ fontSize: 32, fontWeight: 800, color: effColor, fontFeatureSettings: "'tnum'", lineHeight: 1 }}>
                       {s.efficiencyDelta > 0 ? "+" : ""}{s.efficiencyDelta}%
                     </p>
-                    <p style={{ fontSize: 14, color: "#64748B", marginTop: 4 }}>
+                    <p style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>
                       標準工数との比較（マイナスが速い）
                     </p>
                     <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>
@@ -730,7 +732,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Shield size={16} style={{ color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80" }} />
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#64748B" }}>ルール違反</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: T.sub }}>ルール違反</p>
                   </div>
                   <p style={{ fontSize: 28, fontWeight: 800, color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80", lineHeight: 1 }}>
                     {s.ruleViolations}件
@@ -740,7 +742,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle size={16} style={{ color: "#4ADE80" }} />
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#64748B" }}>ポジティブ</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: T.sub }}>ポジティブ</p>
                   </div>
                   <p style={{ fontSize: 28, fontWeight: 800, color: "#4ADE80", lineHeight: 1 }}>{s.positiveFeedback.length}件</p>
                   <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>好評価記録</p>
@@ -756,7 +758,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   {s.positiveFeedback.map((fb, i) => (
                     <div key={i} className="flex items-start gap-3 px-4 py-3 rounded-2xl" style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.15)" }}>
                       <CheckCircle size={16} style={{ color: "#4ADE80" }} className="flex-shrink-0 mt-0.5" />
-                      <p style={{ fontSize: 14, color: "#94A3B8" }}>{fb}</p>
+                      <p style={{ fontSize: 14, color: T.muted }}>{fb}</p>
                     </div>
                   ))}
                 </div>
@@ -788,16 +790,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <SectionLabel>現場別評価履歴</SectionLabel>
               {s.siteEvals.length === 0 ? (
-                <p className="text-sm" style={{ color: "#64748B" }}>評価記録なし</p>
+                <p className="text-sm" style={{ color: T.sub }}>評価記録なし</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {s.siteEvals.map((e, i) => (
                     <Card key={i} className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span style={{ fontSize: 14, color: "#64748B" }}>{e.date}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>・{e.site}</span>
+                        <span style={{ fontSize: 14, color: T.sub }}>{e.date}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: T.bg }}>・{e.site}</span>
                         {e.role === "責任者" && (
-                          <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: "auto", background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: "auto", background: "rgba(251,191,36,0.12)", color: "#92400E" }}>責任者</span>
                         )}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mb-2">
@@ -813,7 +815,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                       {e.memo && (
                         <div className="flex items-start gap-2 pt-2" style={{ borderTop: "1px solid #0F1928" }}>
                           <MessageSquare size={14} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
-                          <p style={{ fontSize: 14, color: "#94A3B8" }}>{e.memo}</p>
+                          <p style={{ fontSize: 14, color: T.muted }}>{e.memo}</p>
                         </div>
                       )}
                     </Card>
@@ -826,7 +828,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <SectionLabel>新規評価を追加</SectionLabel>
               <Card className="p-4">
-                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: "#64748B" }}>タグを選択</p>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: T.sub }}>タグを選択</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {AVAILABLE_TAGS.map(tag => {
                     const active = newEvalTags.includes(tag);
@@ -848,14 +850,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   })}
                 </div>
 
-                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: "#64748B" }}>メモ</p>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: T.sub }}>メモ</p>
                 <textarea
                   value={newEvalMemo}
                   onChange={e => setNewEvalMemo(e.target.value)}
                   rows={3}
                   placeholder="今回の仕事ぶりについてメモ…"
                   className="w-full rounded-xl px-3 py-2 resize-none outline-none"
-                  style={{ fontSize: 14, background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
+                  style={{ fontSize: 14, background: "#0F1928", color: T.bg, border: "1px solid #2D3E54" }}
                 />
 
                 <button
@@ -874,7 +876,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
                   style={{
                     background: newEvalTags.length > 0 || newEvalMemo
-                      ? "linear-gradient(135deg, #F97316, #FBBF24)"
+                      ? "linear-gradient(135deg, #B45309, #92400E)"
                       : "#1A2535",
                     color: newEvalTags.length > 0 || newEvalMemo ? "#fff" : "#475569",
                   }}

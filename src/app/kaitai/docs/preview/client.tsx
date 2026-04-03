@@ -8,6 +8,7 @@ import { InvoiceDoc }   from "../templates/invoice";
 import { ReceiptDoc }   from "../templates/receipt";
 import { CompletionDoc } from "../templates/completion";
 import { ReportDoc }    from "../templates/report";
+import { T } from "../../lib/design-tokens";
 
 interface Props { type: string; siteId: string }
 
@@ -36,14 +37,14 @@ export default function PreviewClient({ type, siteId }: Props) {
   }[docType];
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#D1D5DB" }}>
+    <div style={{ minHeight: "100dvh", background: T.border }}>
 
       {/* ── Action bar (hidden on print) ── */}
       <div
         className="no-print"
         style={{
           position: "sticky", top: 0, zIndex: 20,
-          background: "#1E293B", borderBottom: "1px solid #334155",
+          background: T.text, borderBottom: "1px solid #334155",
           padding: "10px 16px",
           display: "flex", alignItems: "center", gap: 12,
         }}
@@ -52,7 +53,7 @@ export default function PreviewClient({ type, siteId }: Props) {
           onClick={() => router.back()}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            color: "#94A3B8", fontSize: 14, fontWeight: 600,
+            color: T.muted, fontSize: 14, fontWeight: 600,
             background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
             borderRadius: 8,
           }}
@@ -62,10 +63,10 @@ export default function PreviewClient({ type, siteId }: Props) {
         </button>
 
         <div style={{ flex: 1, textAlign: "center" }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: T.bg }}>
             {meta.emoji} {meta.label}
           </span>
-          <span style={{ fontSize: 14, color: "#64748B", marginLeft: 12 }}>
+          <span style={{ fontSize: 14, color: T.sub, marginLeft: 12 }}>
             {site.name}
           </span>
         </div>
@@ -75,7 +76,7 @@ export default function PreviewClient({ type, siteId }: Props) {
             onClick={handlePrint}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "#F97316", color: "#fff",
+              background: T.primary, color: "#fff",
               border: "none", borderRadius: 8, padding: "8px 16px",
               fontSize: 14, fontWeight: 700, cursor: "pointer",
             }}

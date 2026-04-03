@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HardHat, ClipboardList, BarChart2, Database, Users } from "lucide-react";
+import { TDark } from "../lib/design-tokens";
 
 const tabs = [
   { href: "/kaitai",          label: "現場",    icon: HardHat },
@@ -38,17 +39,17 @@ export function KaitaiBottomNav() {
           >
             <div
               className="rounded-xl px-2.5 py-1 transition-all"
-              style={active ? { background: "rgba(249,115,22,0.15)" } : {}}
+              style={active ? { background: TDark.primaryLt } : {}}
             >
               <Icon
                 size={18}
                 strokeWidth={active ? 2.5 : 1.8}
-                style={{ color: active ? "#F97316" : "#64748B" }}
+                style={{ color: active ? TDark.primary : "#64748B" }}
               />
             </div>
             <span
               className="text-sm font-bold tracking-wide"
-              style={{ color: active ? "#F97316" : "#64748B" }}
+              style={{ color: active ? TDark.primary : "#64748B" }}
             >
               {label}
             </span>

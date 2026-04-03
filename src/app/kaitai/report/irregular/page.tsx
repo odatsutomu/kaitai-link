@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle, Camera, AlertTriangle } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 const CATEGORIES = [
   { id: "accident",  label: "事故・怪我",   emoji: "🚑" },
@@ -17,7 +18,7 @@ const CATEGORIES = [
 const URGENCY = [
   { id: "high",   label: "緊急",   color: "#EF5350" },
   { id: "medium", label: "要対応", color: "#FF9800" },
-  { id: "low",    label: "報告のみ", color: "#64748B" },
+  { id: "low",    label: "報告のみ", color: T.sub },
 ];
 
 const MEMBERS = [
@@ -87,7 +88,7 @@ function IrregularPageInner() {
 
         {/* Category */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>カテゴリ（必須）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.muted }}>カテゴリ（必須）</p>
           <div className="grid grid-cols-3 gap-2">
             {CATEGORIES.map(c => {
               const on = category === c.id;
@@ -111,7 +112,7 @@ function IrregularPageInner() {
 
         {/* Urgency */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>緊急度</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.muted }}>緊急度</p>
           <div className="flex gap-2">
             {URGENCY.map(u => {
               const on = urgency === u.id;
@@ -136,7 +137,7 @@ function IrregularPageInner() {
 
         {/* Reporter */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>報告者</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>報告者</p>
           <div className="flex flex-wrap gap-2">
             {MEMBERS.map(m => {
               const on = reporter === m.id;
@@ -161,7 +162,7 @@ function IrregularPageInner() {
 
         {/* Memo */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>状況メモ（必須）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>状況メモ（必須）</p>
           <textarea
             value={memo}
             onChange={e => setMemo(e.target.value)}
@@ -178,7 +179,7 @@ function IrregularPageInner() {
 
         {/* Photo */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>現場写真</p>
           <button
             className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
             style={{ height: 90, background: "#FEF2F2", border: "2px dashed #FECACA" }}

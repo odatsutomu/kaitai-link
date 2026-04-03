@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
+import { TDark } from "../lib/design-tokens";
 
 // ─── Admin nav items ──────────────────────────────────────────────────────────
 
@@ -68,8 +69,8 @@ function LoginScreen({
     >
       {/* Top */}
       <div className="pt-16 flex flex-col items-center gap-4">
-        <div className="flex items-center justify-center w-16 h-16 rounded-2xl" style={{ background: "rgba(245,158,11,0.15)" }}>
-          <Shield size={32} style={{ color: "#F59E0B" }} />
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl" style={{ background: TDark.primaryLt }}>
+          <Shield size={32} style={{ color: TDark.primary }} />
         </div>
         <div className="text-center">
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>{companyName}</p>
@@ -90,7 +91,7 @@ function LoginScreen({
               style={{
                 width: 20, height: 20, borderRadius: 10,
                 background: i < pin.length
-                  ? (error ? "#EF4444" : "#F59E0B")
+                  ? (error ? "#EF4444" : TDark.primary)
                   : "rgba(255,255,255,0.15)",
                 border: i < pin.length ? "none" : "2px solid rgba(255,255,255,0.3)",
                 transition: "background 0.15s",
@@ -178,10 +179,10 @@ function AdminHeader({ companyName, onExit }: { companyName: string; onExit: () 
       {/* Admin badge */}
       <div
         className="flex items-center gap-1.5 rounded-lg px-3 py-1"
-        style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)" }}
+        style={{ background: TDark.primaryLt, border: `1px solid ${TDark.primaryMd}` }}
       >
-        <Shield size={12} style={{ color: "#F59E0B" }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#F59E0B" }}>管理者ダッシュボード</span>
+        <Shield size={12} style={{ color: TDark.primary }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: TDark.primary }}>管理者ダッシュボード</span>
       </div>
 
       {/* Company */}
@@ -237,9 +238,9 @@ function AdminSidebar({ pathname }: { pathname: string }) {
                 href={href}
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
                 style={{
-                  background: active ? "rgba(245,158,11,0.15)" : "transparent",
-                  border: active ? "1px solid rgba(245,158,11,0.2)" : "1px solid transparent",
-                  color: active ? "#F59E0B" : "rgba(255,255,255,0.6)",
+                  background: active ? TDark.primaryLt : "transparent",
+                  border: active ? `1px solid ${TDark.primaryMd}` : "1px solid transparent",
+                  color: active ? TDark.primary : "rgba(255,255,255,0.6)",
                 }}
               >
                 <Icon size={17} strokeWidth={active ? 2.5 : 2} />
@@ -296,10 +297,10 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
       {/* Admin indicator bar */}
       <div
         className="flex items-center justify-center gap-1.5 py-1"
-        style={{ background: "rgba(245,158,11,0.1)", borderBottom: "1px solid rgba(245,158,11,0.15)" }}
+        style={{ background: TDark.primaryLt, borderBottom: `1px solid ${TDark.primaryMd}` }}
       >
-        <Shield size={10} style={{ color: "#F59E0B" }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>管理者ダッシュボード</span>
+        <Shield size={10} style={{ color: TDark.primary }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: TDark.primary }}>管理者ダッシュボード</span>
       </div>
       <div className="flex">
         {[...ADMIN_NAV, ...EXTERNAL_NAV.slice(0, 3)].map(({ href, label, icon: Icon }) => {
@@ -310,8 +311,8 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
               href={href}
               className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5"
             >
-              <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>
+              <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ color: active ? TDark.primary : "#64748B" }} />
+              <span style={{ fontSize: 11, fontWeight: active ? 700 : 400, color: active ? TDark.primary : "#64748B" }}>
                 {label}
               </span>
             </Link>

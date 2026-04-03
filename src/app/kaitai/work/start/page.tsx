@@ -4,6 +4,7 @@ import { useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Play, MapPin, Clock, Camera, Star, CheckCircle2, Crown } from "lucide-react";
 import { MEMBERS, experienceYears, experienceLevel } from "../../lib/members";
+import { T } from "../../lib/design-tokens";
 
 // ─── Mock ──────────────────────────────────────────────────────────────────────
 
@@ -34,14 +35,14 @@ function StepIndicator({ step, total }: { step: number; total: number }) {
           className="flex-1 h-1 rounded-full"
           style={{
             background: i < step
-              ? "linear-gradient(90deg, #F97316, #FBBF24)"
+              ? "linear-gradient(90deg, #B45309, #92400E)"
               : i === step
-              ? "#F97316"
+              ? T.primary
               : "#2D3E54",
           }}
         />
       ))}
-      <span className="text-sm font-bold ml-1" style={{ color: "#64748B" }}>
+      <span className="text-sm font-bold ml-1" style={{ color: T.sub }}>
         {step + 1}/{total}
       </span>
     </div>
@@ -101,8 +102,8 @@ export default function WorkStartPage({
         >
           <Play size={32} color="#4ADE80" fill="#4ADE80" />
         </div>
-        <h2 className="text-2xl font-bold mb-2" style={{ color: "#F1F5F9" }}>作業開始しました</h2>
-        <p className="text-sm mb-1" style={{ color: "#94A3B8" }}>{siteName}</p>
+        <h2 className="text-2xl font-bold mb-2" style={{ color: T.bg }}>作業開始しました</h2>
+        <p className="text-sm mb-1" style={{ color: T.muted }}>{siteName}</p>
         <p className="text-3xl font-bold mb-4" style={{ color: "#4ADE80" }}>{timeStr}</p>
 
         {leader && (
@@ -110,14 +111,14 @@ export default function WorkStartPage({
             className="flex items-center gap-2 px-4 py-2 rounded-2xl mb-3"
             style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)" }}
           >
-            <Crown size={14} style={{ color: "#FBBF24" }} />
-            <span className="text-sm font-bold" style={{ color: "#FBBF24" }}>
+            <Crown size={14} style={{ color: "#92400E" }} />
+            <span className="text-sm font-bold" style={{ color: "#92400E" }}>
               責任者: {leader.name}
             </span>
           </div>
         )}
 
-        <p className="text-sm mb-2" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-2" style={{ color: T.sub }}>
           出勤 {selectedMembers.size}名・写真 {photoCount}枚
         </p>
 
@@ -128,7 +129,7 @@ export default function WorkStartPage({
               <span
                 key={id}
                 className="text-sm px-3 py-1 rounded-full"
-                style={{ background: "rgba(249,115,22,0.15)", color: "#FB923C" }}
+                style={{ background: T.primaryMd, color: "#FB923C" }}
               >
                 {item.label}
               </span>
@@ -139,7 +140,7 @@ export default function WorkStartPage({
         <Link href="/kaitai">
           <button
             className="rounded-2xl px-8 py-4 font-bold text-base"
-            style={{ background: "#1A2535", border: "1px solid #2D3E54", color: "#F1F5F9" }}
+            style={{ background: "#1A2535", border: "1px solid #2D3E54", color: T.bg }}
           >
             現場一覧へ戻る
           </button>
@@ -153,26 +154,26 @@ export default function WorkStartPage({
 
       {/* ── Header ── */}
       <section className="flex flex-col gap-3" style={{ borderBottom: "1px solid #2D3E54", paddingBottom: 20 }}>
-        <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: "#64748B" }}>
+        <Link href="/kaitai/work" className="inline-flex items-center gap-1.5 mb-4 text-sm" style={{ color: T.sub }}>
           <ArrowLeft size={15} /> 作業報告
         </Link>
         <div className="flex items-start gap-3 mb-4">
           <div
             className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.3)" }}
+            style={{ background: T.primaryMd, border: `1px solid ${T.primaryMd}` }}
           >
-            <Play size={20} style={{ color: "#F97316" }} fill="#F97316" />
+            <Play size={20} style={{ color: T.primary }} fill={T.primary} />
           </div>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>作業開始</h1>
+            <h1 className="text-xl font-bold" style={{ color: T.bg }}>作業開始</h1>
             <div className="flex items-center gap-1 mt-0.5">
-              <MapPin size={11} style={{ color: "#64748B" }} />
-              <p className="text-sm" style={{ color: "#94A3B8" }}>{siteName}</p>
+              <MapPin size={11} style={{ color: T.sub }} />
+              <p className="text-sm" style={{ color: T.muted }}>{siteName}</p>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
-            <Clock size={14} style={{ color: "#F97316" }} />
-            <span className="text-lg font-bold" style={{ color: "#F97316" }}>{timeStr}</span>
+            <Clock size={14} style={{ color: T.primary }} />
+            <span className="text-lg font-bold" style={{ color: T.primary }}>{timeStr}</span>
           </div>
         </div>
         <StepIndicator step={step} total={3} />
@@ -184,7 +185,7 @@ export default function WorkStartPage({
         {step === 0 && (
           <>
             <section>
-              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.primary }}>
                 STEP 1｜本日の作業項目
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -196,12 +197,12 @@ export default function WorkStartPage({
                       onClick={() => toggleWork(item.id)}
                       className="rounded-2xl px-4 py-4 flex items-center gap-3 text-left active:scale-[0.97] transition-all"
                       style={{
-                        background: active ? "rgba(249,115,22,0.12)" : "#1A2535",
-                        border: active ? "1.5px solid #F97316" : "1px solid #2D3E54",
+                        background: active ? T.primaryMd : "#1A2535",
+                        border: active ? "1.5px solid #B45309" : "1px solid #2D3E54",
                       }}
                     >
                       <span className="text-xl leading-none">{item.icon}</span>
-                      <span className="text-sm font-semibold leading-snug" style={{ color: active ? "#F97316" : "#94A3B8" }}>
+                      <span className="text-sm font-semibold leading-snug" style={{ color: active ? T.primary : T.muted }}>
                         {item.label}
                       </span>
                     </button>
@@ -214,7 +215,8 @@ export default function WorkStartPage({
               className="w-full rounded-2xl py-5 font-bold text-lg active:scale-[0.98] transition-transform"
               style={
                 selectedWork.size > 0
-                  ? { background: "linear-gradient(135deg, #F97316 0%, #FBBF24 100%)", color: "#fff", boxShadow: "0 6px 28px rgba(249,115,22,0.35)" }
+                  ? { background: "linear-gradient(135deg, #B45309 0%, #92400E 100%)", color: "#fff",
+ }
                   : { background: "#1A2535", border: "1px solid #2D3E54", color: "#475569" }
               }
             >
@@ -227,7 +229,7 @@ export default function WorkStartPage({
         {step === 1 && (
           <>
             <section>
-              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.primary }}>
                 STEP 2｜本日の作業員を選択（複数可）
               </p>
               <div className="flex flex-col gap-2">
@@ -241,7 +243,7 @@ export default function WorkStartPage({
                       onClick={() => toggleMember(m.id)}
                       className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left active:scale-[0.98] transition-all"
                       style={{
-                        background: sel ? "rgba(249,115,22,0.08)" : "#1A2535",
+                        background: sel ? T.primaryLt : "#1A2535",
                         border: sel ? "1.5px solid rgba(249,115,22,0.5)" : "1px solid #2D3E54",
                       }}
                     >
@@ -249,7 +251,7 @@ export default function WorkStartPage({
                       <div
                         className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center"
                         style={{
-                          background: sel ? "#F97316" : "#0F1928",
+                          background: sel ? T.primary : "#0F1928",
                           border: sel ? "none" : "1.5px solid #475569",
                         }}
                       >
@@ -267,7 +269,7 @@ export default function WorkStartPage({
                       {/* Name */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold" style={{ color: sel ? "#F1F5F9" : "#94A3B8" }}>
+                          <span className="text-sm font-bold" style={{ color: sel ? T.bg : T.muted }}>
                             {m.name}
                           </span>
                           <span
@@ -285,7 +287,7 @@ export default function WorkStartPage({
                             </span>
                           )}
                         </div>
-                        <p className="text-sm" style={{ color: "#64748B" }}>{m.role}</p>
+                        <p className="text-sm" style={{ color: T.sub }}>{m.role}</p>
                       </div>
 
                       {/* Stars */}
@@ -304,7 +306,7 @@ export default function WorkStartPage({
               <button
                 onClick={() => setStep(0)}
                 className="rounded-2xl py-4 font-bold"
-                style={{ background: "#1A2535", border: "1px solid #2D3E54", color: "#94A3B8" }}
+                style={{ background: "#1A2535", border: "1px solid #2D3E54", color: T.muted }}
               >
                 ← 戻る
               </button>
@@ -313,7 +315,8 @@ export default function WorkStartPage({
                 className="rounded-2xl py-4 font-bold active:scale-[0.98] transition-transform"
                 style={
                   selectedMembers.size > 0
-                    ? { background: "linear-gradient(135deg, #F97316 0%, #FBBF24 100%)", color: "#fff", boxShadow: "0 4px 20px rgba(249,115,22,0.3)" }
+                    ? { background: "linear-gradient(135deg, #B45309 0%, #92400E 100%)", color: "#fff",
+ }
                     : { background: "#1A2535", border: "1px solid #2D3E54", color: "#475569" }
                 }
               >
@@ -328,7 +331,7 @@ export default function WorkStartPage({
           <>
             {/* 責任者選択 */}
             <section>
-              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.primary }}>
                 STEP 3｜責任者を1名指定
               </p>
               <div className="flex flex-col gap-2">
@@ -345,7 +348,7 @@ export default function WorkStartPage({
                       className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left active:scale-[0.98] transition-all"
                       style={{
                         background: isLeader ? "rgba(251,191,36,0.1)" : "#1A2535",
-                        border: isLeader ? "2px solid #FBBF24" : "1px solid #2D3E54",
+                        border: isLeader ? "2px solid #92400E" : "1px solid #2D3E54",
                       }}
                     >
                       <div
@@ -355,18 +358,18 @@ export default function WorkStartPage({
                         {m.avatar}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-bold" style={{ color: isLeader ? "#FBBF24" : "#F1F5F9" }}>
+                        <p className="text-sm font-bold" style={{ color: isLeader ? "#92400E" : T.bg }}>
                           {m.name}
                         </p>
-                        <p className="text-sm" style={{ color: "#64748B" }}>{m.role}</p>
+                        <p className="text-sm" style={{ color: T.sub }}>{m.role}</p>
                       </div>
                       {isLeader ? (
                         <div
                           className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl"
                           style={{ background: "rgba(251,191,36,0.15)" }}
                         >
-                          <Crown size={13} style={{ color: "#FBBF24" }} />
-                          <span className="text-sm font-bold" style={{ color: "#FBBF24" }}>責任者</span>
+                          <Crown size={13} style={{ color: "#92400E" }} />
+                          <span className="text-sm font-bold" style={{ color: "#92400E" }}>責任者</span>
                         </div>
                       ) : (
                         <div
@@ -383,7 +386,7 @@ export default function WorkStartPage({
             {/* 着工前写真（必須） */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold tracking-widest uppercase" style={{ color: "#F97316" }}>
+                <p className="text-sm font-bold tracking-widest uppercase" style={{ color: T.primary }}>
                   着工前写真（必須）
                 </p>
                 {photoCount === 0 && (
@@ -400,8 +403,8 @@ export default function WorkStartPage({
                   border: `2px dashed ${photoCount > 0 ? "rgba(249,115,22,0.5)" : "#F87171"}`,
                 }}
               >
-                <Camera size={28} style={{ color: photoCount > 0 ? "#F97316" : "#F87171" }} />
-                <span className="text-sm font-bold" style={{ color: photoCount > 0 ? "#F97316" : "#F87171" }}>
+                <Camera size={28} style={{ color: photoCount > 0 ? T.primary : "#F87171" }} />
+                <span className="text-sm font-bold" style={{ color: photoCount > 0 ? T.primary : "#F87171" }}>
                   {photoCount > 0 ? `${photoCount}枚 撮影済み ✓` : "現場状況を撮影する（必須）"}
                 </span>
                 <span className="text-sm" style={{ color: "#475569" }}>
@@ -414,7 +417,7 @@ export default function WorkStartPage({
               <button
                 onClick={() => setStep(1)}
                 className="rounded-2xl py-4 font-bold"
-                style={{ background: "#1A2535", border: "1px solid #2D3E54", color: "#94A3B8" }}
+                style={{ background: "#1A2535", border: "1px solid #2D3E54", color: T.muted }}
               >
                 ← 戻る
               </button>
@@ -423,7 +426,8 @@ export default function WorkStartPage({
                 className="rounded-2xl py-4 flex items-center justify-center gap-2 font-bold active:scale-[0.98] transition-transform"
                 style={
                   responsible && photoCount > 0
-                    ? { background: "linear-gradient(135deg, #F97316 0%, #FBBF24 100%)", color: "#fff", boxShadow: "0 4px 20px rgba(249,115,22,0.3)" }
+                    ? { background: "linear-gradient(135deg, #B45309 0%, #92400E 100%)", color: "#fff",
+ }
                     : { background: "#1A2535", border: "1px solid #2D3E54", color: "#475569" }
                 }
               >
@@ -432,7 +436,7 @@ export default function WorkStartPage({
               </button>
             </div>
             {(!responsible || photoCount === 0) && (
-              <p className="text-center text-sm -mt-2" style={{ color: "#64748B" }}>
+              <p className="text-center text-sm -mt-2" style={{ color: T.sub }}>
                 {!responsible ? "責任者を指定" : ""}
                 {!responsible && photoCount === 0 ? "・" : ""}
                 {photoCount === 0 ? "着工前写真を撮影" : ""}

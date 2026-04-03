@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import PreviewClient from "./client";
+import { T } from "../../lib/design-tokens";
 
 export default async function PreviewPage({
   searchParams,
@@ -10,8 +11,8 @@ export default async function PreviewPage({
 
   return (
     <Suspense fallback={
-      <div style={{ minHeight: "100dvh", background: "#D1D5DB", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#64748B", fontSize: 14 }}>読み込み中...</div>
+      <div style={{ minHeight: "100dvh", background: T.border, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: T.sub, fontSize: 14 }}>読み込み中...</div>
       </div>
     }>
       <PreviewClient type={type} siteId={site} />

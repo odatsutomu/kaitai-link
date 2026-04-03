@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle, Plus, Minus, Camera } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 const WASTE_ITEMS = [
   { id: "w1", label: "コンクリートガラ", unit: "㎥" },
@@ -70,10 +71,10 @@ function FinishPageInner() {
 
         {/* Waste items */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>廃材数量</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: T.muted }}>廃材数量</p>
           <div className="flex flex-col gap-2">
             {WASTE_ITEMS.map(w => (
-              <div key={w.id} className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "#FFFFFF", border: "1.5px solid #EEEEEE" }}>
+              <div key={w.id} className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: T.surface, border: "1.5px solid #EEEEEE" }}>
                 <p className="flex-1 font-semibold" style={{ fontSize: 15, color: "#222" }}>{w.label}</p>
                 <div className="flex items-center gap-3">
                   <button
@@ -101,7 +102,7 @@ function FinishPageInner() {
 
         {/* Expenses */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>経費（円）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>経費（円）</p>
           <input
             type="number"
             inputMode="numeric"
@@ -115,10 +116,10 @@ function FinishPageInner() {
 
         {/* Photo placeholder */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>現場写真</p>
           <button
             className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
-            style={{ height: 100, background: "#F9FAFB", border: "2px dashed #DDDDDD" }}
+            style={{ height: 100, background: T.bg, border: "2px dashed #DDDDDD" }}
           >
             <Camera size={28} color="#BBBBBB" />
             <span style={{ fontSize: 14, color: "#BBBBBB" }}>タップして写真を追加（実装予定）</span>
@@ -127,7 +128,7 @@ function FinishPageInner() {
 
         {/* Memo */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>備考</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>備考</p>
           <textarea
             value={memo}
             onChange={e => setMemo(e.target.value)}

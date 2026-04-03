@@ -4,23 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, X, Building2, ChevronRight } from "lucide-react";
 import { MOCK_DOC_SITES, DOC_META, DocType, DocSite, yen, calcTotals } from "../lib/doc-types";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  text: "#1E293B",
-  sub: "#64748B",
-  muted: "#94A3B8",
-  border: "#E2E8F0",
-  card: "#FFFFFF",
-  amber: "#F59E0B",
-  amberDk: "#D97706",
+  text: T.text,
+  sub: T.sub,
+  muted: T.muted,
+  border: T.border,
+  card: T.surface,
+  amber: T.primary,
+  amberDk: T.primaryDk,
 };
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, { bg: string; fg: string }> = {
-  施工中: { bg: "#FFF7ED", fg: "#D97706" },
+  施工中: { bg: "${T.primaryLt}", fg: T.primaryDk },
   着工前: { bg: "#F5F3FF", fg: "#7C3AED" },
   完工:   { bg: "#F0FDF4", fg: "#16A34A" },
 };
@@ -50,7 +51,6 @@ function DocTypeModal({
           borderRadius: 16,
           maxWidth: 520,
           width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
           paddingBottom: 16,
         }}
         onClick={e => e.stopPropagation()}
@@ -72,7 +72,7 @@ function DocTypeModal({
           <button
             onClick={onClose}
             style={{
-              background: "#F1F5F9",
+              background: T.bg,
               border: "none",
               borderRadius: 8,
               width: 32,
@@ -101,7 +101,7 @@ function DocTypeModal({
                 padding: "12px 16px",
                 borderRadius: 12,
                 textAlign: "left",
-                background: "#F8FAFC",
+                background: T.bg,
                 border: `1px solid ${C.border}`,
                 cursor: "pointer",
                 width: "100%",
@@ -144,8 +144,8 @@ export default function DocsPage() {
                 fontSize: 14,
                 fontWeight: 600,
                 color: C.amberDk,
-                background: "#FFFBEB",
-                border: "1px solid #FDE68A",
+                background: T.primaryLt,
+                border: "1px solid #E5E7EB",
                 borderRadius: 20,
                 padding: "3px 10px",
               }}
@@ -173,7 +173,7 @@ export default function DocsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3" style={{ gap: 16 }}>
         {MOCK_DOC_SITES.map(site => {
           const { total } = calcTotals(site.contractAmount);
-          const badge = STATUS_BADGE[site.status] ?? { bg: "#F1F5F9", fg: C.sub };
+          const badge = STATUS_BADGE[site.status] ?? { bg: T.bg, fg: C.sub };
 
           return (
             <div
@@ -183,7 +183,6 @@ export default function DocsPage() {
                 border: `1px solid ${C.border}`,
                 borderRadius: 16,
                 overflow: "hidden",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
               }}
             >
               {/* Amber accent strip */}
@@ -196,7 +195,7 @@ export default function DocsPage() {
                     style={{
                       width: 36,
                       height: 36,
-                      background: "#FFFBEB",
+                      background: T.primaryLt,
                       borderRadius: 10,
                       display: "flex",
                       alignItems: "center",

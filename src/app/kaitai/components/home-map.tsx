@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import type { LatLng } from "../lib/geocode";
+import { T } from "../lib/design-tokens";
 
 export interface MapSite {
   id: string;
@@ -13,9 +14,9 @@ export interface MapSite {
 }
 
 const STATUS_COLOR: Record<MapSite["status"], string> = {
-  "解体中": "#F59E0B",  // amber  — 稼働中
+  "解体中": T.primary,  // amber  — 稼働中
   "着工前": "#3B82F6",  // blue   — 予定
-  "完工":   "#94A3B8",  // gray   — 完了
+  "完工":   T.muted,  // gray   — 完了
 };
 
 // Google Maps スタイルのティアドロップ型ピン SVG を生成
@@ -121,7 +122,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
               <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={STATUS_COLOR[s]}/>
               <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
             </svg>
-            <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600 }}>{s}</span>
+            <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{s}</span>
           </div>
         ))}
       </div>

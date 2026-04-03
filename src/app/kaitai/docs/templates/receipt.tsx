@@ -1,6 +1,7 @@
 import React from "react";
 import { DocSite, calcTotals, yen, todayStr, SELF_COMPANY, FOOTER_BRANDING } from "../../lib/doc-types";
 import { PrintStyles } from "./shared";
+import { T } from "../../lib/design-tokens";
 
 interface Props {
   site: DocSite;
@@ -19,7 +20,6 @@ export function ReceiptDoc({ site, docNo, issueDate = todayStr() }: Props) {
         width: 794,
         minHeight: 1122,
         padding: "64px 80px",
-        boxShadow: "0 4px 32px rgba(0,0,0,0.18)",
         fontFamily: "'Hiragino Kaku Gothic Pro','Yu Gothic Medium','Meiryo','MS PGothic',sans-serif",
         color: "#111",
         fontSize: 11,
@@ -73,7 +73,7 @@ export function ReceiptDoc({ site, docNo, issueDate = todayStr() }: Props) {
 
         {/* Tax breakdown */}
         <div style={{
-          background: "#F8F9FA", border: "1px solid #E2E4E8", borderRadius: 4,
+          background: T.bg, border: "1px solid #E2E4E8", borderRadius: 4,
           padding: "10px 16px", marginBottom: 28, display: "inline-block",
         }}>
           <table style={{ borderCollapse: "collapse", fontSize: 10 }}>

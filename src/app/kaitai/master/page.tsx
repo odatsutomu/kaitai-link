@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Building2, Truck, ChevronRight, Plus, Edit3, Star, FileText } from "lucide-react";
 import { MEMBERS, LICENSE_LABELS, experienceYears, experienceLevel } from "../lib/members";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
   green: "#10B981",
 };
 
@@ -57,7 +58,8 @@ const mockWastePrices = [
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
       {children}
     </div>
   );
@@ -73,7 +75,8 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
         <Link href={addHref}>
           <button
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90"
-            style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
+            style={{ background: T.primary,
+ }}
           >
             <Plus size={12} /> 追加
           </button>
@@ -82,7 +85,7 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
       {onAdd && !addHref && (
         <button
           className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold"
-          style={{ background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.2)" }}
+          style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}` }}
         >
           <Plus size={12} /> 追加
         </button>
@@ -119,7 +122,7 @@ export default function MasterPage() {
                 <Card key={site.id} className="px-5 py-4 flex items-center gap-4">
                   <div
                     className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
-                    style={{ background: "rgba(245,158,11,0.1)" }}
+                    style={{ background: T.primaryLt }}
                   >
                     <Building2 size={18} style={{ color: C.amber }} />
                   </div>
@@ -137,7 +140,7 @@ export default function MasterPage() {
                       className="text-sm font-bold px-2 py-0.5 rounded-full"
                       style={
                         site.status === "解体中"
-                          ? { background: "#FFF7ED", color: C.amberDk }
+                          ? { background: "${T.primaryLt}", color: C.amberDk }
                           : site.status === "着工前"
                           ? { background: "#EFF6FF", color: "#2563EB" }
                           : { background: "#F0FDF4", color: "#16A34A" }
@@ -148,7 +151,8 @@ export default function MasterPage() {
                     <Link href={`/kaitai/docs?site=${site.id}`}>
                       <button
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-sm transition-all"
-                        style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                        style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
+ }}
                         title="帳票出力"
                       >
                         <FileText size={11} />
@@ -156,11 +160,12 @@ export default function MasterPage() {
                       </button>
                     </Link>
                     <Link href={`/kaitai/sites/${site.id}/edit`}>
-                      <button className="inline-flex items-center p-2 rounded-xl transition-all" style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                      <button className="inline-flex items-center p-2 rounded-xl transition-all" style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
+ }}>
                         <Edit3 size={14} />
                       </button>
                     </Link>
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={12} /></div>
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: T.primary }}><ChevronRight size={12} /></div>
                   </div>
                 </Card>
               ))}
@@ -182,7 +187,7 @@ export default function MasterPage() {
             <Card>
               <div
                 className="grid grid-cols-12 px-5 py-3 text-sm font-bold uppercase tracking-wider"
-                style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
+                style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: T.bg }}
               >
                 <span className="col-span-5">品目</span>
                 <span className="col-span-2 text-center">単位</span>
@@ -240,7 +245,7 @@ export default function MasterPage() {
             <Card>
               <div
                 className="grid grid-cols-12 px-5 py-3 text-sm font-bold uppercase tracking-wider"
-                style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
+                style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: T.bg }}
               >
                 <span className="col-span-5">氏名</span>
                 <span className="col-span-2 text-center">種別</span>
@@ -293,7 +298,7 @@ export default function MasterPage() {
                       ¥{m.dayRate.toLocaleString()}
                     </span>
                     <div className="col-span-1 flex justify-end">
-                      <button className="p-1.5 rounded-lg transition-all hover:bg-slate-100" style={{ color: "#334155", border: "1px solid #E5E7EB" }}>
+                      <button className="p-1.5 rounded-lg transition-all hover:bg-slate-100" style={{ color: T.text, border: "1px solid #E5E7EB" }}>
                         <Edit3 size={13} />
                       </button>
                     </div>

@@ -12,17 +12,18 @@ import {
   FileText,
   Edit3,
 } from "lucide-react";
+import { T } from "../../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  text:    "#1E293B",
-  sub:     "#64748B",
-  muted:   "#94A3B8",
-  border:  "#E5E7EB",
-  card:    "#FFFFFF",
-  amber:   "#F59E0B",
-  amberDk: "#D97706",
+  text:    T.text,
+  sub:     T.sub,
+  muted:   T.muted,
+  border:  T.border,
+  card:    T.surface,
+  amber:   T.primary,
+  amberDk: T.primaryDk,
   green:   "#10B981",
   red:     "#EF4444",
 };
@@ -118,7 +119,7 @@ const mockSites: Record<string, {
 
 const statusConfig: Record<SiteStatus, { label: string; bg: string; fg: string }> = {
   着工前: { label: "着工前", bg: "#F5F3FF", fg: "#7C3AED" },
-  解体中: { label: "解体中", bg: "#FFF7ED", fg: "#D97706" },
+  解体中: { label: "解体中", bg: "${T.primaryLt}", fg: T.primaryDk },
   完工:   { label: "完工",   bg: "#F0FDF4", fg: "#16A34A" },
 };
 
@@ -137,7 +138,6 @@ function Card({
       style={{
         background: C.card,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
       }}
     >
       {children}
@@ -201,7 +201,6 @@ export default async function SiteDetailPage({
             style={{
               background: C.card,
               border: `1px solid ${C.border}`,
-              boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
             }}
           >
             <Link
@@ -235,7 +234,8 @@ export default async function SiteDetailPage({
               <Link href={`/kaitai/sites/${id}/edit`} className="flex-shrink-0">
                 <button
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                  style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                  style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
+ }}
                 >
                   <Edit3 size={13} />
                   編集
@@ -264,12 +264,12 @@ export default async function SiteDetailPage({
                   <span>工事進捗</span>
                   <span className="font-bold" style={{ color: C.text }}>{site.progressPct}%</span>
                 </div>
-                <div className="h-3 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                <div className="h-3 rounded-full overflow-hidden" style={{ background: T.bg }}>
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${site.progressPct}%`,
-                      background: "linear-gradient(90deg, #F59E0B 0%, #D97706 100%)",
+                      background: "linear-gradient(90deg, #B45309 0%, #92400E 100%)",
                     }}
                   />
                 </div>
@@ -288,7 +288,7 @@ export default async function SiteDetailPage({
                   <Card key={i} className="px-4 py-3 flex items-start gap-3">
                     <div
                       className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center mt-0.5"
-                      style={{ background: "rgba(245,158,11,0.10)" }}
+                      style={{ background: `${T.primaryLt}` }}
                     >
                       <Clock size={15} style={{ color: C.amber }} />
                     </div>
@@ -311,7 +311,7 @@ export default async function SiteDetailPage({
                           <span
                             key={item}
                             className="text-sm px-2 py-0.5 rounded-full"
-                            style={{ background: "rgba(245,158,11,0.10)", color: C.amberDk }}
+                            style={{ background: `${T.primaryLt}`, color: C.amberDk }}
                           >
                             {item}
                           </span>
@@ -403,7 +403,7 @@ export default async function SiteDetailPage({
                 {[
                   { label: "受注金額",   value: site.contractAmount,    color: "#10B981", bold: true },
                   { label: "産廃処分費", value: site.wasteDisposalCost, color: "#EF4444" },
-                  { label: "労務費",     value: site.laborCost,         color: "#F59E0B" },
+                  { label: "労務費",     value: site.laborCost,         color: T.primary },
                   { label: "その他経費", value: site.otherCost,         color: "#3B82F6" },
                 ].map(({ label, value, color, bold }) => (
                   <div key={label} className="flex items-center justify-between">
@@ -442,12 +442,12 @@ export default async function SiteDetailPage({
                   <span>原価消化率</span>
                   <span>{costPct}% / 100%</span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: "#F1F5F9" }}>
+                <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: T.bg }}>
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${Math.min(costPct, 100)}%`,
-                      background: "linear-gradient(90deg, #F59E0B 0%, #D97706 100%)",
+                      background: "linear-gradient(90deg, #B45309 0%, #92400E 100%)",
                     }}
                   />
                 </div>

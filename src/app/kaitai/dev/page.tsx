@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { RefreshCw, Send, Shield, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { useAppContext, Company } from "../lib/app-context";
 import { PinPad } from "../components/pin-pad";
+import { T } from "../lib/design-tokens";
 
 // ─── Mock companies (seeded data) ─────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ const SEED_COMPANIES: Company[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const PLAN_COLOR = { free: "#64748B", standard: "#FF9800", business: "#3B82F6", enterprise: "#7C3AED" };
+const PLAN_COLOR = { free: T.sub, standard: "#FF9800", business: "#3B82F6", enterprise: "#7C3AED" };
 const PLAN_LABEL = { free: "Free", standard: "Standard", business: "Business", enterprise: "Enterprise" };
 
 function StatusBadge({ hasStripe }: { hasStripe: boolean }) {
@@ -114,8 +115,8 @@ export default function DevPage() {
       <header className="px-5 pt-10 pb-4" style={{ borderBottom: "1px solid #1E2D3D" }}>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <Shield size={18} style={{ color: "#F97316" }} />
-            <span style={{ fontSize: 16, fontWeight: 900, color: "#F1F5F9" }}>Dev Dashboard</span>
+            <Shield size={18} style={{ color: T.primary }} />
+            <span style={{ fontSize: 16, fontWeight: 900, color: T.bg }}>Dev Dashboard</span>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
             <AlertTriangle size={10} style={{ color: "#F87171" }} />
@@ -132,7 +133,7 @@ export default function DevPage() {
             { label: "Stripe未設定", value: allCompanies.filter(c => !c.stripeCustomerId).length },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl p-2 text-center" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
-              <p style={{ fontSize: 18, fontWeight: 900, color: "#F1F5F9" }}>{value}</p>
+              <p style={{ fontSize: 18, fontWeight: 900, color: T.bg }}>{value}</p>
               <p style={{ fontSize: 14, color: "#475569" }}>{label}</p>
             </div>
           ))}
@@ -147,8 +148,8 @@ export default function DevPage() {
             onClick={() => setTab(t)}
             className="flex-1 py-2 rounded-xl text-sm font-bold"
             style={tab === t
-              ? { background: "#F97316", color: "#FFFFFF" }
-              : { background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
+              ? { background: T.primary, color: T.surface }
+              : { background: "#1A2535", color: T.sub, border: "1px solid #2D3E54" }}
           >
             {{ companies: "会社一覧", logs: "操作ログ", broadcast: "一斉通知" }[t]}
           </button>
@@ -163,7 +164,7 @@ export default function DevPage() {
             {/* Row 1: name + plan + status */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#F1F5F9" }} className="truncate">{c.name}</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: T.bg }} className="truncate">{c.name}</span>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span className="px-2 py-0.5 rounded-full text-sm font-bold" style={{ background: `${PLAN_COLOR[c.plan]}20`, color: PLAN_COLOR[c.plan] }}>
@@ -174,8 +175,8 @@ export default function DevPage() {
             </div>
 
             {/* Row 2: contact */}
-            <p style={{ fontSize: 14, color: "#64748B", marginBottom: 2 }}>{c.address}</p>
-            <p style={{ fontSize: 14, color: "#64748B", marginBottom: 6 }}>{c.phone} · {c.adminEmail}</p>
+            <p style={{ fontSize: 14, color: T.sub, marginBottom: 2 }}>{c.address}</p>
+            <p style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>{c.phone} · {c.adminEmail}</p>
 
             {/* Row 3: Stripe ID */}
             <div className="rounded-xl px-3 py-2" style={{ background: "#0F1928" }}>
@@ -201,8 +202,8 @@ export default function DevPage() {
         {tab === "logs" && (
           <>
             <div className="flex items-center justify-between">
-              <p style={{ fontSize: 14, color: "#64748B" }}>{operationLog.length} 件のログ</p>
-              <button className="flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-lg" style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}>
+              <p style={{ fontSize: 14, color: T.sub }}>{operationLog.length} 件のログ</p>
+              <button className="flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-lg" style={{ background: "#1A2535", color: T.sub, border: "1px solid #2D3E54" }}>
                 <RefreshCw size={10} /> 更新
               </button>
             </div>
@@ -214,14 +215,14 @@ export default function DevPage() {
             {operationLog.map(log => (
               <div key={log.id} className="rounded-xl px-3 py-2.5" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
                 <div className="flex items-center justify-between mb-0.5">
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>{log.action}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: T.bg }}>{log.action}</span>
                   <span style={{ fontSize: 14, color: "#475569" }}>{new Date(log.timestamp).toLocaleTimeString("ja-JP")}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 14, color: "#64748B" }}>👤 {log.user}</span>
+                  <span style={{ fontSize: 14, color: T.sub }}>👤 {log.user}</span>
                   <span style={{ fontSize: 14, color: "#475569" }}>· {new Date(log.timestamp).toLocaleDateString("ja-JP")}</span>
                 </div>
-                <p style={{ fontSize: 14, color: "#334155", marginTop: 2 }} className="truncate">{log.device}</p>
+                <p style={{ fontSize: 14, color: T.text, marginTop: 2 }} className="truncate">{log.device}</p>
               </div>
             ))}
           </>
@@ -231,7 +232,7 @@ export default function DevPage() {
         {tab === "broadcast" && (
           <>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#94A3B8", marginBottom: 12 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: T.muted, marginBottom: 12 }}>
                 全 {allCompanies.length} 社への一斉通知を配信します
               </p>
               <textarea
@@ -242,13 +243,13 @@ export default function DevPage() {
                 style={{
                   minHeight: 120, fontSize: 14,
                   background: "#1A2535", border: "1px solid #2D3E54",
-                  color: "#F1F5F9",
+                  color: T.bg,
                 }}
               />
             </div>
-            <div className="rounded-2xl p-3" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-              <p style={{ fontSize: 14, color: "#F97316", fontWeight: 700, marginBottom: 2 }}>実装予定</p>
-              <p style={{ fontSize: 14, color: "#64748B" }}>
+            <div className="rounded-2xl p-3" style={{ background: T.primaryLt, border: `1px solid ${T.primaryMd}` }}>
+              <p style={{ fontSize: 14, color: T.primary, fontWeight: 700, marginBottom: 2 }}>実装予定</p>
+              <p style={{ fontSize: 14, color: T.sub }}>
                 本番環境では Firebase Cloud Messaging または SendGrid を使用して、全ログインユーザーへプッシュ通知・メールを一斉配信します。
               </p>
             </div>
@@ -260,7 +261,7 @@ export default function DevPage() {
                 setBroadcast("");
               }}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold"
-              style={{ background: sent ? "#1A2535" : "#F97316", color: sent ? "#4ADE80" : "#FFFFFF", fontSize: 15, border: sent ? "1px solid #4ADE80" : "none" }}
+              style={{ background: sent ? "#1A2535" : T.primary, color: sent ? "#4ADE80" : T.surface, fontSize: 15, border: sent ? "1px solid #4ADE80" : "none" }}
             >
               {sent
                 ? <><CheckCircle size={18} /> 配信完了（ログに記録）</>

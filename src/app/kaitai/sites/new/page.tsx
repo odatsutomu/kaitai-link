@@ -12,18 +12,19 @@ import {
 import { useAppContext } from "../../lib/app-context";
 import type { LineItem } from "../../lib/doc-types";
 import type { LatLng } from "../../lib/geocode";
+import { T } from "../../lib/design-tokens";
 
 const MapPicker = dynamic(
   () => import("../../components/map-picker").then(m => m.MapPicker),
-  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 300, background: T.bg, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: T.muted }}>地図を読み込み中...</span></div> }
 );
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF", bg: "#F8FAFC",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface, bg: T.bg,
+  amber: T.primary, amberDk: T.primaryDk,
   red: "#EF4444", green: "#10B981",
 };
 
@@ -49,8 +50,8 @@ const STATUS_LIST: Status[] = ["見積中", "受注確定", "施工中", "完了
 const STATUS_STYLE: Record<Status, { bg: string; color: string; border: string }> = {
   "見積中":   { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
   "受注確定": { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "施工中":   { bg: "#FFF7ED", color: "#EA580C", border: "#FED7AA" },
-  "完了":     { bg: "#F8FAFC", color: "#475569", border: "#CBD5E1" },
+  "施工中":   { bg: "${T.primaryLt}", color: T.primaryDk, border: "#FED7AA" },
+  "完了":     { bg: T.bg, color: "#475569", border: "#CBD5E1" },
   "請求済":   { bg: "#FAF5FF", color: "#9333EA", border: "#E9D5FF" },
 };
 
@@ -65,10 +66,10 @@ const STRUCTURE_TYPES: { type: StructureType; icon: string }[] = [
 
 const ASBESTOS_LEVELS: { level: AsbestosLevel; color: string }[] = [
   { level: "なし",    color: "#16A34A" },
-  { level: "あり(L1)", color: "#D97706" },
-  { level: "あり(L2)", color: "#EA580C" },
+  { level: "あり(L1)", color: T.primaryDk },
+  { level: "あり(L2)", color: T.primaryDk },
   { level: "あり(L3)", color: "#DC2626" },
-  { level: "調査中",  color: "#6B7280" },
+  { level: "調査中",  color: T.sub },
 ];
 
 const VEHICLE_LIMITS: VehicleLimit[] = ["2t", "4t", "10t", "制限なし"];
@@ -187,7 +188,6 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
       style={{
         background: C.card,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >
       {children}
@@ -431,7 +431,7 @@ export default function SiteNewPage() {
                           onClick={() => setClientType(v)}
                           className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                           style={clientType === v
-                            ? { background: "#FFFBEB", color: C.amberDk, border: `1.5px solid #FDE68A` }
+                            ? { background: T.primaryLt, color: C.amberDk, border: `1.5px solid #E5E7EB` }
                             : { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}` }}
                         >
                           {label}
@@ -516,7 +516,7 @@ export default function SiteNewPage() {
                     ) : (
                       <div
                         className="mt-3 rounded-2xl p-4 flex flex-col gap-3"
-                        style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
+                        style={{ background: T.primaryLt, border: `1px solid #E5E7EB` }}
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-bold" style={{ color: C.amberDk }}>
@@ -688,7 +688,7 @@ export default function SiteNewPage() {
                     <div key={label} className="flex items-center gap-3">
                       <div
                         className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm"
-                        style={{ background: "#FFFBEB" }}
+                        style={{ background: T.primaryLt }}
                       >
                         {icon}
                       </div>
@@ -710,7 +710,7 @@ export default function SiteNewPage() {
                       <div
                         key={i}
                         className="rounded-xl px-3 py-2.5"
-                        style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
+                        style={{ background: T.primaryLt, border: `1px solid #E5E7EB` }}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-bold" style={{ color: C.amberDk }}>{entry.field}</span>
@@ -768,7 +768,7 @@ export default function SiteNewPage() {
                             profitPct >= 25
                               ? "linear-gradient(90deg, #16A34A, #4ADE80)"
                               : profitPct >= 10
-                              ? `linear-gradient(90deg, ${C.amberDk}, #FBBF24)`
+                              ? `linear-gradient(90deg, ${C.amberDk}, #92400E)`
                               : "linear-gradient(90deg, #DC2626, #F87171)",
                         }}
                       />
@@ -848,7 +848,7 @@ export default function SiteNewPage() {
                           style={
                             structureType === type
                               ? {
-                                  background: "#FFFBEB",
+                                  background: T.primaryLt,
                                   color: C.amberDk,
                                   border: `2px solid ${C.amber}`,
                                 }
@@ -957,7 +957,7 @@ export default function SiteNewPage() {
                           style={
                             vehicles.has(v)
                               ? {
-                                  background: "#FFFBEB",
+                                  background: T.primaryLt,
                                   color: C.amberDk,
                                   border: `2px solid ${C.amber}`,
                                 }
@@ -985,8 +985,8 @@ export default function SiteNewPage() {
                   <div className="flex gap-3">
                     {(
                       [
-                        { util: "電気" as Utility, icon: <Zap size={15} />, color: "#D97706" },
-                        { util: "ガス" as Utility, icon: <Flame size={15} />, color: "#EA580C" },
+                        { util: "電気" as Utility, icon: <Zap size={15} />, color: T.primaryDk },
+                        { util: "ガス" as Utility, icon: <Flame size={15} />, color: T.primaryDk },
                         { util: "水道" as Utility, icon: <Droplets size={15} />, color: "#3B82F6" },
                       ]
                     ).map(({ util, icon, color }) => (
@@ -1221,7 +1221,7 @@ export default function SiteNewPage() {
                       key={preset.name}
                       onClick={() => setItems(prev => [...prev, { ...preset }])}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
-                      style={{ background: "#FFFBEB", color: C.amberDk, border: `1px solid #FDE68A` }}
+                      style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid #E5E7EB` }}
                     >
                       <Plus size={10} /> {preset.name}
                     </button>
@@ -1243,7 +1243,8 @@ export default function SiteNewPage() {
                   <div
                     key={i}
                     className="rounded-2xl p-4 flex flex-col gap-2.5"
-                    style={{ background: C.card, border: `1.5px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+                    style={{ background: C.card, border: `1.5px solid ${C.border}`,
+ }}
                   >
                     {/* 項目名 + 削除 */}
                     <div className="flex gap-2 items-center">
@@ -1346,7 +1347,7 @@ export default function SiteNewPage() {
                       <div
                         className="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl text-sm"
                         style={{
-                          background: Math.abs(itemsDiff) < contractNum * 0.01 ? "#F0FDF4" : itemsDiff >= 0 ? "#FFFBEB" : "#FEF2F2",
+                          background: Math.abs(itemsDiff) < contractNum * 0.01 ? "#F0FDF4" : itemsDiff >= 0 ? T.primaryLt : "#FEF2F2",
                           color: Math.abs(itemsDiff) < contractNum * 0.01 ? "#16A34A" : itemsDiff >= 0 ? C.amberDk : "#DC2626",
                         }}
                       >
@@ -1383,7 +1384,8 @@ export default function SiteNewPage() {
           <Link href="/kaitai">
             <button
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-              style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+              style={{ background: T.surface, border: "1.5px solid #E2E8F0", color: T.text,
+ }}
             >
               キャンセル
             </button>
@@ -1397,7 +1399,6 @@ export default function SiteNewPage() {
                     background: C.amber,
                     color: "#fff",
                     minHeight: 48,
-                    boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
                   }
                 : {
                     background: C.bg,
@@ -1423,13 +1424,14 @@ export default function SiteNewPage() {
         >
           <div
             className="w-full max-w-md mx-4 rounded-2xl px-6 pt-6 pb-7 flex flex-col gap-4"
-            style={{ background: C.card, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}
+            style={{ background: C.card,
+ }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                style={{ background: "#FFFBEB" }}
+                style={{ background: T.primaryLt }}
               >
                 <Edit3 size={18} style={{ color: C.amberDk }} />
               </div>

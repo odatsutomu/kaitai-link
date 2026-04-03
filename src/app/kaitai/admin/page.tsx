@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
-  brand: "#F59E0B",   // revenue bar
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
+  brand: T.primary,   // revenue bar
   slate: "#475569",   // cost bar
   green: "#10B981", red: "#EF4444",
 };
@@ -217,7 +218,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
 
   return (
     <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      <line x1={0} y1={H} x2={VW} y2={H} stroke="#E5E7EB" strokeWidth={1} />
+      <line x1={0} y1={H} x2={VW} y2={H} stroke={T.border} strokeWidth={1} />
       {bars.map((b, i) => {
         const cx = i * groupW + groupW / 2;
         const revH = Math.max((b.revenue / maxVal) * H, 2);
@@ -231,7 +232,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
                 <rect
                   x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / maxVal) * H, 2)}
                   width={bw} height={Math.max((b.prevRevenue / maxVal) * H, 2)}
-                  rx={3} fill="rgba(245,158,11,0.25)"
+                  rx={3} fill={T.primaryMd}
                 />
                 <rect
                   x={cx - bw + 1} y={H - Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
@@ -249,7 +250,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
                 <rect x={cx + 2} y={H - costH} width={bw} height={costH} rx={3} fill={C.slate} />
               </>
             )}
-            <text x={cx} y={H + 14} textAnchor="middle" fontSize={9} fill="#94A3B8">
+            <text x={cx} y={H + 14} textAnchor="middle" fontSize={9} fill={T.muted}>
               {b.label}
             </text>
           </g>
@@ -271,7 +272,7 @@ function GapChart() {
 
   return (
     <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      <line x1={0} y1={H} x2={VW} y2={H} stroke="#E5E7EB" strokeWidth={1} />
+      <line x1={0} y1={H} x2={VW} y2={H} stroke={T.border} strokeWidth={1} />
       {GAP_DATA.map((d, i) => {
         const cx = i * groupW + groupW / 2;
         const estH = Math.max((d.estimate / maxVal) * H, 2);
@@ -280,7 +281,7 @@ function GapChart() {
         return (
           <g key={i}>
             {/* estimate bar */}
-            <rect x={cx - bw - 1} y={H - estH} width={bw} height={estH} rx={3} fill="rgba(245,158,11,0.6)" />
+            <rect x={cx - bw - 1} y={H - estH} width={bw} height={estH} rx={3} fill={T.primaryMd} />
             {/* actual bar */}
             {d.actual != null && d.actual > 0 && (
               <rect x={cx + 1} y={H - actH} width={bw} height={actH} rx={3}
@@ -290,7 +291,7 @@ function GapChart() {
             {over && (
               <circle cx={cx + 1 + bw / 2} cy={H - actH - 5} r={3} fill="#EF4444" />
             )}
-            <text x={cx} y={H + 14} textAnchor="middle" fontSize={8} fill="#94A3B8">
+            <text x={cx} y={H + 14} textAnchor="middle" fontSize={8} fill={T.muted}>
               {d.name}
             </text>
           </g>
@@ -327,7 +328,7 @@ function ClientBars() {
                 </span>
               </div>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
               <div
                 className="h-full rounded-full"
                 style={{ width: `${barPct}%`, background: `linear-gradient(90deg, ${C.brand} 0%, ${C.amberDk} 100%)` }}
@@ -367,7 +368,7 @@ function WasteTrendChart() {
       ))}
       {/* labels */}
       {WASTE_TREND.map((d, i) => (
-        <text key={i} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={8} fill="#94A3B8">
+        <text key={i} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={8} fill={T.muted}>
           {d.month}
         </text>
       ))}
@@ -391,7 +392,8 @@ function WasteTrendChart() {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
       {children}
     </div>
   );
@@ -455,8 +457,8 @@ export default function AdminPage() {
   const pieSlices = [
     { value: s.wasteCost,   color: "#F87171", label: "産廃費" },
     { value: s.laborCost,   color: "#FB923C", label: "労務費" },
-    { value: s.vehicleCost, color: "#FBBF24", label: "車両・燃料" },
-    { value: s.otherCost,   color: "#94A3B8", label: "その他" },
+    { value: s.vehicleCost, color: "#92400E", label: "車両・燃料" },
+    { value: s.otherCost,   color: T.muted, label: "その他" },
   ];
 
   return (
@@ -469,14 +471,14 @@ export default function AdminPage() {
           <p className="text-sm mt-1" style={{ color: C.sub }}>収支・利益をリアルタイム集計</p>
         </div>
         {/* Period tabs */}
-        <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#F1F5F9" }}>
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: T.bg }}>
           {PERIOD_TABS.map(t => (
             <button
               key={t.key}
               onClick={() => { setPeriod(t.key); if (t.key !== "thisYear") setCompare(false); }}
               className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
               style={period === t.key
-                ? { background: C.amber, color: "#FFFFFF" }
+                ? { background: C.amber, color: T.surface }
                 : { color: C.sub }
               }
             >
@@ -520,7 +522,7 @@ export default function AdminPage() {
                   className="text-sm font-bold px-2.5 py-1 rounded-lg transition-all"
                   style={compare
                     ? { background: C.amber, color: "#FFF" }
-                    : { background: "#F1F5F9", color: C.sub, border: `1px solid ${C.border}` }}
+                    : { background: T.bg, color: C.sub, border: `1px solid ${C.border}` }}
                 >
                   昨年比較
                 </button>
@@ -540,7 +542,7 @@ export default function AdminPage() {
                 {compare && (
                   <>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(245,158,11,0.25)" }} />
+                      <div className="w-3 h-2 rounded-sm" style={{ background: T.primaryMd }} />
                       <span className="text-sm" style={{ color: C.muted }}>昨年 売上</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -560,7 +562,8 @@ export default function AdminPage() {
               <button
                 onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                style={{ background: T.surface, border: "1.5px solid #E5E7EB", color: T.text,
+ }}
               >
                 <ArrowUpDown size={12} />
                 {sortBy === "profitRate" ? "利益率順" : "利益額順"}
@@ -569,7 +572,7 @@ export default function AdminPage() {
             <Card>
               <div
                 className="grid px-5 py-3"
-                style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
+                style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid ${C.border}`, background: T.bg }}
               >
                 <span className="text-sm font-bold" style={{ color: C.muted }}>現場名</span>
                 <span className="text-sm font-bold text-right" style={{ color: C.muted }}>粗利</span>
@@ -600,8 +603,8 @@ export default function AdminPage() {
                           <span
                             className="text-sm font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
                             style={{
-                              background: rank === 0 ? "#FFFBEB" : "#F8FAFC",
-                              color: rank === 0 ? "#D97706" : C.muted,
+                              background: rank === 0 ? T.primaryLt : T.bg,
+                              color: rank === 0 ? T.primaryDk : C.muted,
                             }}
                           >
                             {rank + 1}
@@ -614,8 +617,8 @@ export default function AdminPage() {
                             style={site.status === "完工"
                               ? { background: "#F0FDF4", color: "#16A34A" }
                               : site.status === "解体中"
-                              ? { background: "#FFF7ED", color: C.amberDk }
-                              : { background: "#F8FAFC", color: C.muted }}
+                              ? { background: "${T.primaryLt}", color: C.amberDk }
+                              : { background: T.bg, color: C.muted }}
                           >
                             {site.status}
                           </span>
@@ -624,7 +627,7 @@ export default function AdminPage() {
                           {site.name}
                         </p>
                         {siteProfitRate != null && (
-                          <div className="h-1 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                          <div className="h-1 rounded-full overflow-hidden" style={{ background: T.bg }}>
                             <div
                               className="h-full rounded-full"
                               style={{ width: `${Math.min(Math.max(siteProfitRate, 0), 100)}%`, background: rColor }}
@@ -680,7 +683,7 @@ export default function AdminPage() {
                     {kpiProgress}%
                   </span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -727,7 +730,7 @@ export default function AdminPage() {
                 { label: "粗利益",   value: profit,      color: profit >= 0 ? C.green : C.red },
                 { label: "粗利率",   value: null,        color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red, strVal: `${profitRate}%` },
               ].map(({ label, value, color, strVal }) => (
-                <div key={label} className="rounded-lg p-3" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                <div key={label} className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
                   <p className="text-sm mb-1" style={{ color: C.muted }}>{label}</p>
                   <p className="font-bold font-numeric" style={{ fontSize: 18, color }}>
                     {strVal ?? fmt(value!)}
@@ -764,7 +767,7 @@ export default function AdminPage() {
                             <span className="text-sm font-bold" style={{ color }}>{pct}%</span>
                           </div>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
                         </div>
                       </div>
@@ -790,7 +793,7 @@ export default function AdminPage() {
             <GapChart />
             <div className="flex items-center gap-4 mt-3 justify-center">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(245,158,11,0.6)" }} />
+                <div className="w-3 h-2 rounded-sm" style={{ background: `${T.primaryMd}` }} />
                 <span className="text-sm" style={{ color: C.muted }}>見積</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -824,7 +827,7 @@ export default function AdminPage() {
             <p className="text-sm font-bold mb-1" style={{ color: C.text }}>元請け別 利益率ランキング</p>
             <p className="text-sm mb-4" style={{ color: C.muted }}>売上・利益率の顧客比較</p>
             <ClientBars />
-            <div className="mt-4 p-3 rounded-xl" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+            <div className="mt-4 p-3 rounded-xl" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
               <p className="text-sm font-semibold mb-1" style={{ color: C.sub }}>最高利益率顧客</p>
               {(() => {
                 const top = [...CLIENT_RANKS].sort((a, b) => (b.profit / b.revenue) - (a.profit / a.revenue))[0];
@@ -853,7 +856,7 @@ export default function AdminPage() {
                 const unitChg = Math.round(((latest.unit - prev.unit) / prev.unit) * 100);
                 return (
                   <>
-                    <div className="rounded-lg p-3" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                    <div className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
                       <p className="text-sm" style={{ color: C.muted }}>最新月コスト</p>
                       <p className="text-base font-bold font-numeric mt-0.5" style={{ color: C.text }}>
                         {fmt(latest.cost)}
@@ -862,7 +865,7 @@ export default function AdminPage() {
                         {costChg >= 0 ? "+" : ""}{costChg}% 前月比
                       </p>
                     </div>
-                    <div className="rounded-lg p-3" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                    <div className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
                       <p className="text-sm" style={{ color: C.muted }}>単価（/t）</p>
                       <p className="text-base font-bold font-numeric mt-0.5" style={{ color: C.text }}>
                         ¥{latest.unit.toLocaleString("ja-JP")}

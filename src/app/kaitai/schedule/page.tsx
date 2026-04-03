@@ -2,24 +2,25 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
-  border: "#D1D5DB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.sub,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
 };
 
 // ─── Mock schedule data ────────────────────────────────────────────────────────
 
 const SITES = [
-  { id: "s1", name: "山田邸",   shortName: "山田",   color: "#F59E0B", startDay: 1,  endDay: 10 },
+  { id: "s1", name: "山田邸",   shortName: "山田",   color: T.primary, startDay: 1,  endDay: 10 },
   { id: "s2", name: "田中倉庫", shortName: "田中",   color: "#3B82F6", startDay: 1,  endDay: 20 },
   { id: "s3", name: "松本AP",   shortName: "松本",   color: "#8B5CF6", startDay: 7,  endDay: 30 },
 ];
 
 const STAFF: { name: string; short: string; color: string; days: number[] }[] = [
-  { name: "田中 義雄", short: "田", color: "#F59E0B", days: [1,2,3,6,7,8,9,10,13,14,15,16,17,20] },
+  { name: "田中 義雄", short: "田", color: T.primary, days: [1,2,3,6,7,8,9,10,13,14,15,16,17,20] },
   { name: "佐藤 健太", short: "佐", color: "#EF4444", days: [1,2,3,6,7,8,9,10,13,14,15] },
   { name: "鈴木 大地", short: "鈴", color: "#10B981", days: [7,8,9,10,13,14,15,16,17,20] },
   { name: "山本 拓也", short: "山", color: "#8B5CF6", days: [6,7,8,9,13,14] },
@@ -29,7 +30,7 @@ const STAFF: { name: string; short: string; color: string; days: number[] }[] = 
 const EQUIPMENT: { name: string; short: string; color: string; days: number[] }[] = [
   { name: "バックホウ",   short: "重", color: "#DC2626", days: [1,2,3,7,8,9,10,13,14] },
   { name: "産廃トラック", short: "ト", color: "#059669", days: [3,8,10,14,17,20] },
-  { name: "高所作業車",   short: "高", color: "#D97706", days: [7,8,9] },
+  { name: "高所作業車",   short: "高", color: T.primaryDk, days: [7,8,9] },
 ];
 
 const DAYS_IN_MONTH = 30;
@@ -94,7 +95,8 @@ export default function SchedulePage() {
         <div className="flex-1 min-w-0">
           <div
             className="p-5"
-            style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
+            style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}
           >
             {/* Site legend */}
             <div className="flex flex-wrap gap-2 mb-5">
@@ -136,7 +138,7 @@ export default function SchedulePage() {
                       background: isSelected
                         ? C.text
                         : isToday
-                        ? "#FFFBEB"
+                        ? T.primaryLt
                         : weekend
                         ? "#FAFAFA"
                         : C.card,
@@ -155,7 +157,7 @@ export default function SchedulePage() {
                           <span style={{
                             fontSize: isToday || isSelected ? 16 : 14,
                             fontWeight: isToday || isSelected ? 700 : 500,
-                            color: isSelected ? "#FFFFFF" : isToday ? C.amberDk : weekend ? "#EF4444" : C.text,
+                            color: isSelected ? T.surface : isToday ? C.amberDk : weekend ? "#EF4444" : C.text,
                           }}>
                             {dayNum}
                           </span>
@@ -175,9 +177,9 @@ export default function SchedulePage() {
                               className="rounded-full flex items-center justify-center"
                               style={{
                                 width: 20, height: 20,
-                                background: isSelected ? "rgba(255,255,255,0.3)" : "#1E293B",
+                                background: isSelected ? "rgba(255,255,255,0.3)" : T.text,
                                 fontSize: 14, fontWeight: 800,
-                                color: "#FFFFFF",
+                                color: T.surface,
                               }}
                             >
                               {events?.staff.length}
@@ -204,7 +206,7 @@ export default function SchedulePage() {
                 <span style={{ fontSize: 14, color: C.muted }}>作業員数</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div style={{ width: 16, height: 16, borderRadius: 4, background: "#FFFBEB", border: `2px solid ${C.amber}` }} />
+                <div style={{ width: 16, height: 16, borderRadius: 4, background: T.primaryLt, border: `2px solid ${C.amber}` }} />
                 <span style={{ fontSize: 14, color: C.muted }}>今日</span>
               </div>
             </div>
@@ -216,7 +218,8 @@ export default function SchedulePage() {
           {selectedDay && selectedEvents ? (
             <div
               className="p-5 flex flex-col gap-5"
-              style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
+              style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}
             >
               <div className="flex items-center gap-2">
                 <Calendar size={18} style={{ color: C.amber }} />
@@ -292,7 +295,7 @@ export default function SchedulePage() {
               {selectedEvents.sites.length === 0 && selectedEvents.staff.length === 0 && (
                 <div
                   className="flex flex-col items-center justify-center py-10 rounded-xl"
-                  style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}
+                  style={{ background: T.bg, border: `1px solid ${C.border}` }}
                 >
                   <p style={{ fontSize: 15, color: C.muted }}>この日の予定はありません</p>
                 </div>

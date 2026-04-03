@@ -18,15 +18,16 @@ import {
   SEED_EVALS,
 } from "../../lib/evaluation-data";
 import { useAppContext } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 const C = {
-  text: "#1E293B",
-  sub: "#64748B",
-  muted: "#94A3B8",
-  border: "#E2E8F0",
-  card: "#FFFFFF",
-  amber: "#F59E0B",
-  amberDk: "#D97706",
+  text: T.text,
+  sub: T.sub,
+  muted: T.muted,
+  border: T.border,
+  card: T.surface,
+  amber: T.primary,
+  amberDk: T.primaryDk,
 };
 
 type Tab = "daily" | "aggregate" | "bias";
@@ -48,7 +49,7 @@ function scoreColor(avg: number): string {
 
 function scoreBg(avg: number): string {
   if (avg >= 2.7) return "#F0FDF4";
-  if (avg >= 2.0) return "#FFFBEB";
+  if (avg >= 2.0) return T.primaryLt;
   return "#FEF2F2";
 }
 
@@ -131,7 +132,7 @@ const TH_STYLE: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 700,
   color: C.sub,
-  background: "#F8FAFC",
+  background: T.bg,
   borderBottom: `1px solid ${C.border}`,
   whiteSpace: "nowrap",
 };
@@ -290,7 +291,7 @@ export default function AdminEvaluationPage() {
               width: 64,
               height: 64,
               borderRadius: "50%",
-              background: "#F1F5F9",
+              background: T.bg,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -371,7 +372,6 @@ export default function AdminEvaluationPage() {
               borderRadius: 16,
               padding: "20px 24px",
               border: `1px solid ${C.border}`,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}
           >
             <div
@@ -528,7 +528,6 @@ export default function AdminEvaluationPage() {
               borderRadius: 16,
               border: `1px solid ${C.border}`,
               overflow: "auto",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
             }}
           >
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -653,7 +652,6 @@ export default function AdminEvaluationPage() {
               borderRadius: 16,
               border: `1px solid ${C.border}`,
               overflow: "auto",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
               marginBottom: 28,
             }}
           >
@@ -734,7 +732,6 @@ export default function AdminEvaluationPage() {
                 borderRadius: 16,
                 border: `1px solid ${C.border}`,
                 padding: 24,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
               }}
             >
               <div
@@ -785,7 +782,7 @@ export default function AdminEvaluationPage() {
                       style={{
                         flex: 1,
                         height: 20,
-                        background: "#F1F5F9",
+                        background: T.bg,
                         borderRadius: 10,
                         overflow: "hidden",
                       }}
@@ -828,7 +825,6 @@ export default function AdminEvaluationPage() {
             borderRadius: 16,
             border: `1px solid ${C.border}`,
             overflow: "auto",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
           }}
         >
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -875,8 +871,8 @@ export default function AdminEvaluationPage() {
                   const isStrict = overall < 1.8;
                   const isLenient = overall > 2.8;
                   const flag = isStrict ? "⚠️ 厳格傾向" : isLenient ? "⚠️ 甘め傾向" : "✓ 標準";
-                  const flagColor = isStrict || isLenient ? "#D97706" : "#16A34A";
-                  const flagBg = isStrict ? "#FFFBEB" : isLenient ? "#FFFBEB" : "#F0FDF4";
+                  const flagColor = isStrict || isLenient ? T.primaryDk : "#16A34A";
+                  const flagBg = isStrict ? T.primaryLt : isLenient ? T.primaryLt : "#F0FDF4";
 
                   return (
                     <tr key={name}>

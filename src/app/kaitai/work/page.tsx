@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Play, StopCircle, ChevronRight, MapPin } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
 };
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
@@ -35,10 +36,11 @@ export default function WorkSelectPage() {
           <div
             key={site.id}
             className="overflow-hidden"
-            style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
+            style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}
           >
             {/* Progress bar top strip */}
-            <div className="h-1" style={{ background: "#F1F5F9" }}>
+            <div className="h-1" style={{ background: T.bg }}>
               <div
                 className="h-full rounded-full"
                 style={{ width: `${site.progress}%`, background: C.amber }}
@@ -50,7 +52,7 @@ export default function WorkSelectPage() {
               <div className="flex items-start gap-4 mb-6">
                 <div
                   className="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center"
-                  style={{ background: "rgba(245,158,11,0.1)" }}
+                  style={{ background: T.primaryLt }}
                 >
                   <MapPin size={20} style={{ color: C.amber }} />
                 </div>
@@ -60,7 +62,7 @@ export default function WorkSelectPage() {
                       {site.name}
                     </p>
                     <span
-                      style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, flexShrink: 0, background: "#FFF7ED", color: C.amberDk }}
+                      style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, flexShrink: 0, background: "${T.primaryLt}", color: C.amberDk }}
                     >
                       {site.status}
                     </span>
@@ -82,7 +84,6 @@ export default function WorkSelectPage() {
                     style={{
                       background: C.amber, color: "#fff",
                       fontSize: 15, fontWeight: 700, padding: "12px 20px", borderRadius: 12,
-                      boxShadow: "0 2px 12px rgba(245,158,11,0.35)",
                     }}
                   >
                     <Play size={16} color="#fff" fill="#fff" />
@@ -113,7 +114,7 @@ export default function WorkSelectPage() {
           <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: C.sub }}>
             すべての現場を見る
           </span>
-          <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={16} /></div>
+          <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: T.primary }}><ChevronRight size={16} /></div>
         </div>
       </Link>
     </div>

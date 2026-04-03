@@ -11,18 +11,19 @@ import {
 } from "lucide-react";
 import { useAppContext } from "../../../lib/app-context";
 import type { LatLng } from "../../../lib/geocode";
+import { T } from "../../../lib/design-tokens";
 
 const MapPicker = dynamic(
   () => import("../../../components/map-picker").then(m => m.MapPicker),
-  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 300, background: T.bg, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: T.muted }}>地図を読み込み中...</span></div> }
 );
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF", bg: "#F8FAFC",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.muted,
+  border: T.border, card: T.surface, bg: T.bg,
+  amber: T.primary, amberDk: T.primaryDk,
   red: "#EF4444", green: "#10B981",
 };
 
@@ -94,8 +95,8 @@ const STATUS_LIST: Status[] = ["見積中", "受注確定", "施工中", "完了
 const STATUS_STYLE: Record<Status, { bg: string; color: string; border: string }> = {
   "見積中":   { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
   "受注確定": { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "施工中":   { bg: "#FFF7ED", color: "#EA580C", border: "#FED7AA" },
-  "完了":     { bg: "#F8FAFC", color: "#475569", border: "#CBD5E1" },
+  "施工中":   { bg: "${T.primaryLt}", color: T.primaryDk, border: "#FED7AA" },
+  "完了":     { bg: T.bg, color: "#475569", border: "#CBD5E1" },
   "請求済":   { bg: "#FAF5FF", color: "#9333EA", border: "#E9D5FF" },
 };
 
@@ -110,10 +111,10 @@ const STRUCTURE_TYPES: { type: StructureType; icon: string }[] = [
 
 const ASBESTOS_LEVELS: { level: AsbestosLevel; color: string }[] = [
   { level: "なし",    color: "#16A34A" },
-  { level: "あり(L1)", color: "#D97706" },
-  { level: "あり(L2)", color: "#EA580C" },
+  { level: "あり(L1)", color: T.primaryDk },
+  { level: "あり(L2)", color: T.primaryDk },
   { level: "あり(L3)", color: "#DC2626" },
-  { level: "調査中",  color: "#6B7280" },
+  { level: "調査中",  color: T.sub },
 ];
 
 const VEHICLE_LIMITS: VehicleLimit[] = ["2t", "4t", "10t", "制限なし"];
@@ -234,7 +235,6 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
         background: C.card,
         border: `1px solid ${C.border}`,
         borderRadius: "0.75rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         padding: "1.25rem",
       }}
     >
@@ -387,10 +387,10 @@ export default function SiteEditPage({
             {changeLog.length > 0 && (
               <div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}
+                style={{ background: "${T.primaryLt}", border: "1px solid #FED7AA" }}
               >
-                <Clock size={12} style={{ color: "#EA580C" }} />
-                <span className="text-sm font-semibold" style={{ color: "#EA580C" }}>
+                <Clock size={12} style={{ color: T.primaryDk }} />
+                <span className="text-sm font-semibold" style={{ color: T.primaryDk }}>
                   {changeLog.length}件の変更が記録されています
                 </span>
               </div>
@@ -409,7 +409,8 @@ export default function SiteEditPage({
         </div>
 
         {/* ── Tab bar ── */}
-        <div style={{ background: C.card, borderRadius: "0.75rem", border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div style={{ background: C.card, borderRadius: "0.75rem", border: `1px solid ${C.border}`,
+ }}>
           <TabBar active={tab} onChange={setTab} />
 
           {/* ── Tab content ── */}
@@ -436,7 +437,7 @@ export default function SiteEditPage({
                           onClick={() => setClientType(v)}
                           className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                           style={clientType === v
-                            ? { background: "#FFFBEB", color: C.amberDk, border: `1.5px solid #FDE68A` }
+                            ? { background: T.primaryLt, color: C.amberDk, border: `1.5px solid #E5E7EB` }
                             : { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}` }}
                         >
                           {label}
@@ -507,7 +508,7 @@ export default function SiteEditPage({
                         <p className="text-sm mb-1" style={{ color: C.muted }}>
                           完工予定日
                           {extendedEnd && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded text-sm font-bold" style={{ background: "#FFFBEB", color: C.amberDk }}>
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-sm font-bold" style={{ background: T.primaryLt, color: C.amberDk }}>
                               延長中
                             </span>
                           )}
@@ -532,7 +533,7 @@ export default function SiteEditPage({
                     ) : (
                       <div
                         className="mt-3 rounded-2xl p-4 flex flex-col gap-3"
-                        style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
+                        style={{ background: T.primaryLt, border: `1px solid #E5E7EB` }}
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-bold" style={{ color: C.amberDk }}>工期延長</p>
@@ -620,7 +621,7 @@ export default function SiteEditPage({
                           { label: "その他経費", icon: "📋", val: otherB, set: setOtherB },
                         ].map(({ label, icon, val, set }) => (
                           <div key={label} className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm" style={{ background: "#FFFBEB" }}>
+                            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm" style={{ background: T.primaryLt }}>
                               {icon}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -698,7 +699,8 @@ export default function SiteEditPage({
                     <SectionLabel>変更履歴</SectionLabel>
                     <div
                       className="rounded-xl overflow-hidden"
-                      style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+                      style={{ background: C.card, border: `1px solid ${C.border}`,
+ }}
                     >
                       {changeLog.map((entry, i) => (
                         <div
@@ -748,7 +750,7 @@ export default function SiteEditPage({
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
                             style={
                               structureType === type
-                                ? { background: "#FFFBEB", color: C.amberDk, border: `2px solid #FDE68A` }
+                                ? { background: T.primaryLt, color: C.amberDk, border: `2px solid #E5E7EB` }
                                 : { background: C.bg, color: C.sub, border: `1.5px solid ${C.border}` }
                             }
                           >
@@ -813,7 +815,7 @@ export default function SiteEditPage({
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
                             style={
                               vehicles.has(v)
-                                ? { background: "#FFFBEB", color: C.amberDk, border: `2px solid #FDE68A` }
+                                ? { background: T.primaryLt, color: C.amberDk, border: `2px solid #E5E7EB` }
                                 : { background: C.bg, color: C.sub, border: `1.5px solid ${C.border}` }
                             }
                           >
@@ -828,8 +830,8 @@ export default function SiteEditPage({
                       <div className="flex gap-3">
                         {(
                           [
-                            { util: "電気" as Utility, icon: <Zap size={15} />, color: "#D97706" },
-                            { util: "ガス" as Utility, icon: <Flame size={15} />, color: "#EA580C" },
+                            { util: "電気" as Utility, icon: <Zap size={15} />, color: T.primaryDk },
+                            { util: "ガス" as Utility, icon: <Flame size={15} />, color: T.primaryDk },
                             { util: "水道" as Utility, icon: <Droplets size={15} />, color: "#3B82F6" },
                           ]
                         ).map(({ util, icon, color }) => (
@@ -913,7 +915,8 @@ export default function SiteEditPage({
           <Link href={`/kaitai/site/${id}`} className="flex-shrink-0">
             <button
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-              style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", minHeight: 48 }}
+              style={{ background: T.surface, border: "1.5px solid #E2E8F0", color: T.text,
+ minHeight: 48 }}
             >
               キャンセル
             </button>
@@ -926,7 +929,6 @@ export default function SiteEditPage({
                 ? {
                     background: C.amber,
                     color: "#fff",
-                    boxShadow: "0 4px 20px rgba(245,158,11,0.3)",
                     minHeight: 48,
                   }
                 : { background: C.bg, color: "#CBD5E1", border: `1px solid ${C.border}`, minHeight: 48 }
@@ -948,11 +950,12 @@ export default function SiteEditPage({
         >
           <div
             className="w-full max-w-md rounded-2xl px-6 pt-6 pb-7 flex flex-col gap-4 mx-4"
-            style={{ background: C.card, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}
+            style={{ background: C.card,
+ }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "#FFFBEB" }}>
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: T.primaryLt }}>
                 <Edit3 size={18} style={{ color: C.amber }} />
               </div>
               <div>

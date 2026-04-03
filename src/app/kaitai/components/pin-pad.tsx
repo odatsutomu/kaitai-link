@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft, Delete } from "lucide-react";
+import { T } from "../lib/design-tokens";
 
 interface PinPadProps {
   title: string;
@@ -22,7 +23,7 @@ export function PinPad({ title, subtitle, correctPin, onSuccess, onBack, dark = 
   const bg    = dark ? "#111111" : "#F5F5F5";
   const keyBg = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
   const keyBo = dark ? "1.5px solid rgba(255,255,255,0.1)" : "1.5px solid rgba(0,0,0,0.08)";
-  const fg    = dark ? "#FFFFFF" : "#111111";
+  const fg    = dark ? T.surface : "#111111";
   const dim   = dark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.35)";
 
   useEffect(() => {

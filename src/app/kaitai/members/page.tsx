@@ -11,12 +11,13 @@ import {
   type License,
 } from "../lib/members";
 import { useAppContext } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
-  border: "#E5E7EB", card: "#FFFFFF",
-  amber: "#F59E0B", amberDk: "#D97706",
+  text: T.text, sub: T.sub, muted: T.sub,
+  border: T.border, card: T.surface,
+  amber: T.primary, amberDk: T.primaryDk,
   green: "#10B981", red: "#EF4444",
 };
 
@@ -26,7 +27,7 @@ function Stars({ n, color }: { n: number; color: string }) {
   return (
     <span className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={12} fill={i < n ? color : "transparent"} style={{ color: i < n ? color : "#E5E7EB" }} />
+        <Star key={i} size={12} fill={i < n ? color : "transparent"} style={{ color: i < n ? color : T.border }} />
       ))}
     </span>
   );
@@ -35,13 +36,13 @@ function Stars({ n, color }: { n: number; color: string }) {
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   "#要注意":         { bg: "#FEF2F2", color: "#DC2626" },
   "#ルール違反":     { bg: "#FEF2F2", color: "#DC2626" },
-  "#リーダーシップ": { bg: "#FFFBEB", color: "#D97706" },
+  "#リーダーシップ": { bg: T.primaryLt, color: T.primaryDk },
   "#安全模範":       { bg: "#F0FDF4", color: "#16A34A" },
   "#効率的":         { bg: "#EFF6FF", color: "#2563EB" },
   "#成長中":         { bg: "#F5F3FF", color: "#7C3AED" },
 };
 function tagStyle(tag: string) {
-  return TAG_COLORS[tag] ?? { bg: "#F1F5F9", color: "#4B5563" };
+  return TAG_COLORS[tag] ?? { bg: T.bg, color: T.sub };
 }
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
   const yrs   = experienceYears(m);
   const lvl   = experienceLevel(yrs);
   const score = activityScore(m);
-  const scoreColor = score >= 70 ? C.green : score >= 50 ? C.amberDk : "#64748B";
+  const scoreColor = score >= 70 ? C.green : score >= 50 ? C.amberDk : T.sub;
 
   return (
     <Link href={`/kaitai/members/${m.id}`}>
@@ -72,7 +73,6 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
         style={{
           background: C.card,
           border: `1px solid ${C.border}`,
-          boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
           borderRadius: 16,
         }}
       >
@@ -81,10 +81,10 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
             className="flex-shrink-0 flex items-center justify-center rounded-md"
             style={{
               width: 28, height: 28, fontSize: 14, fontWeight: 700,
-              ...(rank === 0 ? { background: "#FFFBEB", color: "#D97706" }
-              : rank === 1 ? { background: "#F8FAFC", color: "#64748B" }
-              : rank === 2 ? { background: "#FFF7ED", color: "#92400E" }
-              : { background: "#F8FAFC", color: "#94A3B8" })
+              ...(rank === 0 ? { background: T.primaryLt, color: T.primaryDk }
+              : rank === 1 ? { background: T.bg, color: T.sub }
+              : rank === 2 ? { background: "${T.primaryLt}", color: "#92400E" }
+              : { background: T.bg, color: T.muted })
             }}
           >
             {rank + 1}
@@ -114,8 +114,8 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <div className="flex items-center gap-1">
-              <Award size={13} style={{ color: "#D97706" }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#D97706" }}>{m.licenses.length}資格</span>
+              <Award size={13} style={{ color: T.primaryDk }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.primaryDk }}>{m.licenses.length}資格</span>
             </div>
             <div
               className="flex items-center gap-1 px-2 py-0.5 rounded-full"
@@ -146,11 +146,11 @@ function ForemanBanner({
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+      style={{ background: T.primaryLt, border: "1px solid #E5E7EB" }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Eye size={15} style={{ color: "#D97706" }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#D97706" }}>
+        <Eye size={15} style={{ color: T.primaryDk }} />
+        <span style={{ fontSize: 14, fontWeight: 700, color: T.primaryDk }}>
           {current ? `職長モード：${current.name}` : "一般閲覧モード"}
         </span>
         {current && (
@@ -175,7 +175,7 @@ function ForemanBanner({
               key={m.id}
               onClick={() => setViewerMemberId(m.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95"
-              style={{ background: "#FEF3C7", border: "1px solid #FDE68A", fontSize: 14, fontWeight: 600, color: "#92400E" }}
+              style={{ background: T.primaryMd, border: "1px solid #E5E7EB", fontSize: 14, fontWeight: 600, color: "#92400E" }}
             >
               <span>{m.avatar}</span>
               {m.name}
@@ -220,7 +220,7 @@ export default function MembersPage() {
 
   const kpiTiles = [
     { label: "総メンバー数",   value: `${MEMBERS.length}`,  unit: "名", color: "#3B82F6", note: `直用${direct}・外注${outside}` },
-    { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: "#D97706", note: "全資格数" },
+    { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: T.primaryDk, note: "全資格数" },
   ];
 
   return (
@@ -245,26 +245,27 @@ export default function MembersPage() {
       {/* ── KPI strip ── */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         {kpiTiles.map(({ label, value, unit, color, note }) => (
-          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16, padding: "20px" }}>
+          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16, padding: "20px" }}>
             <p style={{ fontSize: 14, color: C.sub, marginBottom: 6 }}>{label}</p>
             <p style={{ fontSize: 32, fontWeight: 800, color, lineHeight: 1 }}>{value}<span style={{ fontSize: 16, fontWeight: 600 }}>{unit}</span></p>
             <p style={{ fontSize: 14, marginTop: 4, color: C.muted }}>{note}</p>
           </div>
         ))}
         {/* Locked KPI chips */}
-        <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
+        <div style={{ background: T.bg, border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
           <div className="flex items-center gap-1.5 mb-2">
-            <Lock size={13} style={{ color: "#94A3B8" }} />
-            <p style={{ fontSize: 14, color: "#94A3B8" }}>当月出勤率</p>
+            <Lock size={13} style={{ color: T.muted }} />
+            <p style={{ fontSize: 14, color: T.muted }}>当月出勤率</p>
           </div>
-          <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
+          <p style={{ fontSize: 14, color: T.muted }}>管理者のみ閲覧可</p>
         </div>
-        <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
+        <div style={{ background: T.bg, border: "1px dashed #CBD5E1", borderRadius: 16, padding: "20px", opacity: 0.7 }}>
           <div className="flex items-center gap-1.5 mb-2">
-            <Lock size={13} style={{ color: "#94A3B8" }} />
-            <p style={{ fontSize: 14, color: "#94A3B8" }}>トラブル件数</p>
+            <Lock size={13} style={{ color: T.muted }} />
+            <p style={{ fontSize: 14, color: T.muted }}>トラブル件数</p>
           </div>
-          <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者のみ閲覧可</p>
+          <p style={{ fontSize: 14, color: T.muted }}>管理者のみ閲覧可</p>
         </div>
       </div>
 
@@ -297,7 +298,7 @@ export default function MembersPage() {
                     style={{
                       fontSize: 14, fontWeight: 700, borderRadius: 10,
                       ...(typeFilter === t
-                        ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.3)" }
+                        ? { background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}` }
                         : { background: C.card, color: C.sub, border: `1px solid ${C.border}` })
                     }}
                   >
@@ -307,7 +308,7 @@ export default function MembersPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span style={{ fontSize: 13, color: C.muted, fontWeight: 500 }}>並び替え：</span>
-                <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: "#F1F5F9" }}>
+                <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: T.bg }}>
                   {(["名前", "経験", "スコア"] as SortOrder[]).map(s => (
                     <button
                       key={s}
@@ -316,7 +317,8 @@ export default function MembersPage() {
                       style={{
                         fontSize: 13, fontWeight: 700,
                         ...(sortOrder === s
-                          ? { background: C.card, color: C.amberDk, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                          ? { background: C.card, color: C.amberDk,
+ }
                           : { color: C.muted })
                       }}
                     >
@@ -329,7 +331,7 @@ export default function MembersPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#F1F5F9" }}>
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: T.bg }}>
             {(["一覧", "勤怠", "資格"] as Tab[]).map(t => (
               <button
                 key={t}
@@ -338,8 +340,9 @@ export default function MembersPage() {
                 style={{
                   fontSize: 14, fontWeight: 700,
                   ...(tab === t
-                    ? { background: C.card, color: C.amber, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", borderBottom: `2px solid ${C.amber}` }
-                    : { color: "#4B5563" })
+                    ? { background: C.card, color: C.amber,
+ borderBottom: `2px solid ${C.amber}` }
+                    : { color: T.sub })
                 }}
               >
                 {t}
@@ -356,10 +359,10 @@ export default function MembersPage() {
 
           {/* ── Tab: 勤怠 ── */}
           {tab === "勤怠" && (
-            <div className="flex flex-col items-center justify-center py-12 rounded-2xl gap-3" style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1" }}>
-              <Lock size={28} style={{ color: "#94A3B8" }} />
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B" }}>勤怠情報は管理者のみ閲覧できます</p>
-              <p style={{ fontSize: 14, color: "#94A3B8" }}>管理者ダッシュボードからご確認ください</p>
+            <div className="flex flex-col items-center justify-center py-12 rounded-2xl gap-3" style={{ background: T.bg, border: "1px dashed #CBD5E1" }}>
+              <Lock size={28} style={{ color: T.muted }} />
+              <p style={{ fontSize: 16, fontWeight: 700, color: T.sub }}>勤怠情報は管理者のみ閲覧できます</p>
+              <p style={{ fontSize: 14, color: T.muted }}>管理者ダッシュボードからご確認ください</p>
             </div>
           )}
 
@@ -370,7 +373,8 @@ export default function MembersPage() {
                 const lvl = experienceLevel(experienceYears(m));
                 return (
                   <Link key={m.id} href={`/kaitai/members/${m.id}`}>
-                    <div className="p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
+                    <div className="p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`,
+ borderRadius: 16 }}>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 36, height: 36, background: lvl.bg, color: lvl.color, fontSize: 14 }}>
                           {m.avatar}
@@ -378,13 +382,13 @@ export default function MembersPage() {
                         <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
                         <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
                         <div className="flex items-center gap-1 ml-auto">
-                          <Award size={14} style={{ color: "#D97706" }} />
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#D97706" }}>{m.licenses.length}</span>
+                          <Award size={14} style={{ color: T.primaryDk }} />
+                          <span style={{ fontSize: 14, fontWeight: 700, color: T.primaryDk }}>{m.licenses.length}</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {m.licenses.map(lic => (
-                          <span key={lic} style={{ fontSize: 14, padding: "4px 12px", borderRadius: 8, fontWeight: 500, background: "#FFFBEB", color: C.sub, border: "1px solid #FEF3C7" }}>
+                          <span key={lic} style={{ fontSize: 14, padding: "4px 12px", borderRadius: 8, fontWeight: 500, background: T.primaryLt, color: C.sub, border: "1px solid #F3F4F6" }}>
                             {LICENSE_LABELS[lic] ?? lic}
                           </span>
                         ))}

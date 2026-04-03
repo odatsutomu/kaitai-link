@@ -9,26 +9,27 @@ import {
 } from "lucide-react";
 import { KaitaiLogo } from "./components/kaitai-logo";
 import { useAppContext, getSiteStatusMap, type AttendanceStatus } from "./lib/app-context";
+import { T } from "./lib/design-tokens";
 
 const HomeMap = dynamic(
   () => import("./components/home-map").then(m => m.HomeMap),
-  { ssr: false, loading: () => <div style={{ height: 200, background: "#F1F5F9", borderRadius: "0 0 12px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 200, background: T.bg, borderRadius: "0 0 12px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: T.muted }}>地図を読み込み中...</span></div> }
 );
 
 // ─── デザイントークン ─────────────────────────────────────────────────────────
 const C = {
-  text:    "#334155",
-  sub:     "#64748B",
-  muted:   "#94A3B8",
-  border:  "#E2E8F0",
-  bg:      "#F8F9FA",
-  card:    "#FFFFFF",
-  amber:   "#F59E0B",
-  amberDk: "#D97706",
+  text:    T.text,
+  sub:     T.sub,
+  muted:   T.muted,
+  border:  T.border,
+  bg:      T.bg,
+  card:    T.surface,
+  amber:   T.primary,
+  amberDk: T.primaryDk,
   blue:    "#3B82F6",
   green:   "#10B981",
   red:     "#EF4444",
-  navy:    "#1E293B",
+  navy:    T.text,
 };
 const shadow = "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)";
 
@@ -88,14 +89,14 @@ const sites = [
 
 const STATUS_STYLE: Record<SiteStatus, { dot: string; bg: string; text: string }> = {
   着工前: { dot: C.blue,  bg: "#EFF6FF", text: "#1D4ED8" },
-  解体中: { dot: C.amber, bg: "#FFFBEB", text: "#92400E" },
+  解体中: { dot: C.amber, bg: T.primaryLt, text: "#92400E" },
   完工:   { dot: C.green, bg: "#F0FDF4", text: "#166534" },
 };
 
 const TYPE_COLOR: Record<string, string> = {
   "木造解体": "#0EA5E9",
   "RC解体":   "#8B5CF6",
-  "鉄骨解体": "#F97316",
+  "鉄骨解体": T.primary,
 };
 
 // ─── メンバー名前引き ─────────────────────────────────────────────────────────
@@ -107,9 +108,9 @@ const MEMBER_NAMES: Record<string, string> = {
 // 勤怠ステータス表示設定
 const ATTENDANCE_STYLE: Record<AttendanceStatus, { icon: string; label: string; bg: string; color: string }> = {
   clock_in:  { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
-  break_in:  { icon: "☕",  label: "休憩中",  bg: "#FFF7ED", color: "#92400E" },
+  break_in:  { icon: "☕",  label: "休憩中",  bg: "${T.primaryLt}", color: "#92400E" },
   break_out: { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
-  clock_out: { icon: "🚪", label: "退勤済",  bg: "#F8FAFC", color: "#94A3B8" },
+  clock_out: { icon: "🚪", label: "退勤済",  bg: T.bg, color: T.muted },
 };
 
 function fmtTime(iso: string): string {
@@ -146,7 +147,7 @@ function KpiCard({
       </div>
       {sub && <div style={{ fontSize: 14, color: C.muted }}>{sub}</div>}
       {wide && (
-        <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
+        <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: T.bg }}>
           <div className="h-full rounded-full" style={{ width: `${value}%`, background: C.amber }} />
         </div>
       )}
@@ -229,7 +230,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
           </div>
 
           {/* 進捗バー */}
-          <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: "#F1F5F9" }}>
+          <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: T.bg }}>
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${site.progressPct}%`, background: st.dot }}
@@ -267,7 +268,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
       {attendance.length > 0 && (
         <div
           className="px-6 py-5"
-          style={{ background: "#F8FAFC", borderTop: `1px solid ${C.border}` }}
+          style={{ background: T.bg, borderTop: `1px solid ${C.border}` }}
         >
           <p style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 12, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>
             本日のスタッフ
@@ -310,10 +311,9 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
           className="flex items-center gap-2 rounded-xl font-bold transition-all hover:opacity-90 active:scale-95"
           style={{
             background: C.amber,
-            color: "#FFFFFF",
+            color: T.surface,
             fontSize: 15,
             padding: "12px 28px",
-            boxShadow: "0 2px 10px rgba(245,158,11,0.4)",
           }}
         >
           この現場の詳細を見る
@@ -411,7 +411,7 @@ function WeatherPanel() {
       </div>
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center gap-3 mb-3">
-          <Sun size={36} style={{ color: "#FBBF24" }} />
+          <Sun size={36} style={{ color: "#92400E" }} />
           <div>
             <span className="font-numeric" style={{ fontSize: 28, fontWeight: 800, color: C.navy }}>18°</span>
             <span style={{ fontSize: 14, color: C.sub }}> / 12°C</span>
@@ -488,7 +488,7 @@ export default function KaitaiHome() {
           </h2>
           <span
             className="flex items-center gap-1.5 px-3 py-1 rounded-full font-bold"
-            style={{ background: "#FFFBEB", color: C.amberDk, fontSize: 13, border: "1px solid #FDE68A" }}
+            style={{ background: T.primaryLt, color: C.amberDk, fontSize: 13, border: "1px solid #E5E7EB" }}
           >
             稼働中 {active.length}件
           </span>
@@ -507,7 +507,7 @@ export default function KaitaiHome() {
               稼働中の現場
               <span
                 className="px-2.5 py-0.5 rounded-full font-bold"
-                style={{ background: "#FFFBEB", color: C.amberDk, fontSize: 13 }}
+                style={{ background: T.primaryLt, color: C.amberDk, fontSize: 13 }}
               >
                 {active.length}件
               </span>

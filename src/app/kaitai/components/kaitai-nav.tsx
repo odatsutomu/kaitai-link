@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
+import { T } from "../lib/design-tokens";
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 const SUPPRESS_ROUTES = [
@@ -45,7 +46,6 @@ export function KaitaiPCHeader() {
         height: 80,
         background: "#FFFFFF",
         borderBottom: "1px solid #E5E7EB",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
       }}
     >
       {/* 最大幅コンテナ */}
@@ -77,9 +77,9 @@ export function KaitaiPCHeader() {
                 style={{
                   fontSize: 15,
                   fontWeight: active ? 700 : 500,
-                  color: active ? "#F59E0B" : "#64748B",
+                  color: active ? T.primary : "#64748B",
                   paddingBottom: 4,
-                  borderBottom: `2px solid ${active ? "#F59E0B" : "transparent"}`,
+                  borderBottom: `2px solid ${active ? T.primary : "transparent"}`,
                   whiteSpace: "nowrap",
                 }}
               >
@@ -98,10 +98,9 @@ export function KaitaiPCHeader() {
               style={{
                 height: 40,
                 padding: "0 16px",
-                background: "#F59E0B",
+                background: T.primary,
                 color: "#FFFFFF",
                 fontSize: 14,
-                boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
               }}
             >
               <Plus size={14} />
@@ -116,9 +115,9 @@ export function KaitaiPCHeader() {
             style={{
               height: 36,
               padding: "0 14px",
-              background: "rgba(245,158,11,0.08)",
-              color: "#D97706",
-              border: "1px solid rgba(245,158,11,0.2)",
+              background: T.primaryLt,
+              color: T.primaryDk,
+              border: `1px solid ${T.primaryMd}`,
               fontSize: 14,
             }}
           >
@@ -133,12 +132,12 @@ export function KaitaiPCHeader() {
             style={{
               height: 32,
               padding: "0 10px",
-              background: "rgba(245,158,11,0.08)",
-              border: "1px solid rgba(245,158,11,0.2)",
+              background: T.primaryLt,
+              border: `1px solid ${T.primaryMd}`,
             }}
           >
-            <CreditCard size={12} style={{ color: "#F59E0B" }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#D97706" }}>
+            <CreditCard size={12} style={{ color: T.primary }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.primaryDk }}>
               {planLabel}
             </span>
           </Link>
@@ -196,7 +195,6 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
       style={{
         background: "#FFFFFF",
         borderTop: "2px solid #E2E8F0",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.10)",
         paddingBottom: "env(safe-area-inset-bottom)",
         height: `calc(${NAV_H}px + env(safe-area-inset-bottom))`,
       }}
@@ -214,14 +212,13 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
                 className="flex items-center justify-center rounded-full"
                 style={{
                   width: 48, height: 48,
-                  background: "#F59E0B",
-                  boxShadow: "0 4px 12px rgba(245,158,11,0.45)",
+                  background: T.primary,
                   marginTop: -8,
                 }}
               >
                 <Icon size={22} color="#FFF" strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.primary, lineHeight: 1, marginTop: 2 }}>
                 {label}
               </span>
             </>
@@ -229,11 +226,11 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
             <>
               <div
                 className="flex items-center justify-center rounded-xl transition-colors"
-                style={{ width: 40, height: 32, background: active ? "rgba(245,158,11,0.1)" : "transparent" }}
+                style={{ width: 40, height: 32, background: active ? T.primaryLt : "transparent" }}
               >
-                <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
+                <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? T.primary : "#94A3B8" }} />
               </div>
-              <span style={{ fontSize: 14, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>
+              <span style={{ fontSize: 14, fontWeight: active ? 700 : 400, color: active ? T.primary : "#94A3B8", lineHeight: 1 }}>
                 {label}
               </span>
             </>

@@ -1,5 +1,6 @@
 import React from "react";
 import { SELF_COMPANY, FOOTER_BRANDING, LineItem, DocSite, yen, calcTotals, fmtDate } from "../../lib/doc-types";
+import { T } from "../../lib/design-tokens";
 
 // ─── Print CSS (injected in every document) ───────────────────────────────────
 
@@ -34,7 +35,6 @@ const PAPER: React.CSSProperties = {
   width: 794,
   minHeight: 1122,
   padding: "48px 56px 44px",
-  boxShadow: "0 4px 32px rgba(0,0,0,0.18)",
   fontFamily: "'Hiragino Kaku Gothic Pro','Yu Gothic Medium','Meiryo','MS PGothic',sans-serif",
   color: "#111111",
   fontSize: 11,
@@ -123,7 +123,7 @@ export function ProjectInfo({
   ];
   return (
     <div style={{
-      background: "#F8F9FA", border: "1px solid #E2E4E8", borderRadius: 4,
+      background: T.bg, border: "1px solid #E2E4E8", borderRadius: 4,
       padding: "10px 14px", marginBottom: 16,
     }}>
       {rows.map(([k, v]) => (
@@ -158,7 +158,7 @@ export function TotalHighlight({ label, amount }: { label: string; amount: numbe
 // ─── Line items table ─────────────────────────────────────────────────────────
 
 const TH: React.CSSProperties = {
-  background: "#1E293B", color: "#F8FAFC", fontWeight: 700,
+  background: T.text, color: T.bg, fontWeight: 700,
   padding: "7px 6px", fontSize: 10, textAlign: "center" as const,
   border: "1px solid #1E293B",
 };
@@ -217,18 +217,18 @@ export function ItemsTable({ items }: { items: LineItem[] }) {
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, fontWeight: 600, background: "#F1F5F9" }}>小計</td>
-            <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600, background: "#F1F5F9", fontFeatureSettings: "'tnum'" }}>{yen(subtotal)}</td>
+            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, fontWeight: 600, background: T.bg }}>小計</td>
+            <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600, background: T.bg, fontFeatureSettings: "'tnum'" }}>{yen(subtotal)}</td>
           </tr>
           <tr>
-            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, color: "#555", background: "#F1F5F9" }}>消費税（10%）</td>
-            <td style={{ ...TD, textAlign: "right" as const, color: "#555", background: "#F1F5F9", fontFeatureSettings: "'tnum'" }}>{yen(tax)}</td>
+            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, color: "#555", background: T.bg }}>消費税（10%）</td>
+            <td style={{ ...TD, textAlign: "right" as const, color: "#555", background: T.bg, fontFeatureSettings: "'tnum'" }}>{yen(tax)}</td>
           </tr>
           <tr>
-            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, fontWeight: 800, background: "#1E293B", color: "#fff", fontSize: 11 }}>
+            <td colSpan={6} style={{ ...TD, textAlign: "right" as const, fontWeight: 800, background: T.text, color: "#fff", fontSize: 11 }}>
               合計（税込）
             </td>
-            <td style={{ ...TD, textAlign: "right" as const, fontWeight: 800, background: "#1E293B", color: "#fff", fontSize: 12, fontFeatureSettings: "'tnum'" }}>
+            <td style={{ ...TD, textAlign: "right" as const, fontWeight: 800, background: T.text, color: "#fff", fontSize: 12, fontFeatureSettings: "'tnum'" }}>
               {yen(total)}
             </td>
           </tr>

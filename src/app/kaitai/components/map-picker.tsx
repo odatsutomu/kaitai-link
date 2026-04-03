@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Search, Loader2, CheckCircle2 } from "lucide-react";
 import { geocodeAddress, DEFAULT_CENTER, type LatLng } from "../lib/geocode";
+import { T } from "../lib/design-tokens";
 
 interface Props {
   address: string;
@@ -53,7 +54,7 @@ export function MapPicker({ address, value, onChange }: Props) {
       const icon = L.divIcon({
         html: `<div style="
           width:28px;height:28px;
-          background:#F59E0B;
+          background:#B45309;
           border:3px solid #fff;
           border-radius:50% 50% 50% 0;
           transform:rotate(-45deg);
@@ -130,7 +131,7 @@ export function MapPicker({ address, value, onChange }: Props) {
       const icon = L.divIcon({
         html: `<div style="
           width:28px;height:28px;
-          background:#F59E0B;
+          background:#B45309;
           border:3px solid #fff;
           border-radius:50% 50% 50% 0;
           transform:rotate(-45deg);
@@ -165,9 +166,9 @@ export function MapPicker({ address, value, onChange }: Props) {
           disabled={loading}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
           style={{
-            background: loading ? "#F1F5F9" : "#F59E0B",
-            color: loading ? "#94A3B8" : "#fff",
-            boxShadow: loading ? "none" : "0 2px 8px rgba(245,158,11,0.35)",
+            background: loading ? T.bg : T.primary,
+            color: loading ? T.muted : "#fff",
+            boxShadow: loading ? "none" : `0 2px 8px ${T.primaryMd}`,
           }}
         >
           {loading
@@ -190,7 +191,6 @@ export function MapPicker({ address, value, onChange }: Props) {
         border: "1.5px solid #E2E8F0",
         borderRadius: 12,
         overflow: "hidden",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}>
         <div ref={containerRef} style={{ height: 280, width: "100%" }} />
       </div>
@@ -198,12 +198,12 @@ export function MapPicker({ address, value, onChange }: Props) {
       {/* 座標表示 + ヒント */}
       <div className="flex items-center justify-between">
         {value ? (
-          <p className="text-sm font-mono" style={{ color: "#64748B" }}>
-            <MapPin size={11} style={{ display: "inline", marginRight: 3, color: "#F59E0B" }} />
+          <p className="text-sm font-mono" style={{ color: T.sub }}>
+            <MapPin size={11} style={{ display: "inline", marginRight: 3, color: T.primary }} />
             {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
           </p>
         ) : (
-          <p className="text-sm" style={{ color: "#94A3B8" }}>
+          <p className="text-sm" style={{ color: T.muted }}>
             地図をクリック、またはピンをドラッグして位置を確定
           </p>
         )}
@@ -212,7 +212,7 @@ export function MapPicker({ address, value, onChange }: Props) {
             type="button"
             onClick={() => { onChange(null); markerRef.current?.remove(); markerRef.current = null; }}
             className="text-sm underline"
-            style={{ color: "#94A3B8" }}
+            style={{ color: T.muted }}
           >
             リセット
           </button>

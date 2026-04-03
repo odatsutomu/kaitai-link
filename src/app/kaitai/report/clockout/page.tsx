@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle } from "lucide-react";
 import { useAppContext, getLatestStatus } from "../../lib/app-context";
+import { T } from "../../lib/design-tokens";
 
 const ALL_MEMBERS = [
   { id: "m1", name: "田中 義雄", role: "職長" },
@@ -71,9 +72,9 @@ function ClockOutPageInner() {
       </header>
 
       {MEMBERS.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-10 rounded-2xl" style={{ background: "#F1F5F9" }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: "#64748B" }}>退勤可能なメンバーがいません</p>
-          <p style={{ fontSize: 14, color: "#94A3B8", marginTop: 6 }}>全員退勤済みか、まだ出勤していません</p>
+        <div className="flex flex-col items-center justify-center py-10 rounded-2xl" style={{ background: T.bg }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: T.sub }}>退勤可能なメンバーがいません</p>
+          <p style={{ fontSize: 14, color: T.muted, marginTop: 6 }}>全員退勤済みか、まだ出勤していません</p>
         </div>
       )}
 
@@ -87,7 +88,7 @@ function ClockOutPageInner() {
               className="w-full flex items-center gap-4 rounded-2xl px-5 transition-all active:scale-[0.98]"
               style={{
                 minHeight: 72,
-                background: on ? "#FFF8E1" : "#FFFFFF",
+                background: on ? "#FFF8E1" : T.surface,
                 border: on ? "2.5px solid #FFA726" : "2px solid #EEEEEE",
               }}
             >

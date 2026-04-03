@@ -3,6 +3,7 @@ import { Noto_Sans_JP } from "next/font/google";
 import { AppProvider } from "./lib/app-context";
 import { KaitaiPCHeader, KaitaiMobileNav } from "./components/kaitai-nav";
 import { ThemeWrapper } from "./components/theme-wrapper";
+import { T } from "./lib/design-tokens";
 
 const noto = Noto_Sans_JP({
   subsets: ["latin"],
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FFFFFF",
+  themeColor: T.surface,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -53,7 +54,7 @@ export default function KaitaiLayout({
           */}
           <div
             className="px-4 md:px-8 lg:px-10 box-border"
-            style={{ maxWidth: 1200, marginLeft: "auto", marginRight: "auto" }}
+            style={{ maxWidth: 1280, marginLeft: "auto", marginRight: "auto" }}
           >
             {children}
           </div>
