@@ -166,119 +166,160 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
   const typeColor = TYPE_COLOR[site.type] ?? C.blue;
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden"
-      style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow, borderLeft: `4px solid ${st.dot}` }}>
+    <div
+      className="overflow-hidden"
+      style={{
+        background: C.card,
+        border: `1.5px solid ${C.border}`,
+        borderLeft: `5px solid ${st.dot}`,
+        borderRadius: 16,
+        boxShadow: shadow,
+      }}
+    >
+      {/* ─ メイン本体 ─ */}
       <div className="flex">
         {/* サムネイル */}
         <div
-          className="hidden sm:block flex-shrink-0 w-28 self-stretch"
+          className="hidden md:flex flex-shrink-0 w-36 items-center justify-center"
           style={{
-            background: `linear-gradient(135deg, hsl(${site.imgHue},40%,35%) 0%, hsl(${site.imgHue},30%,22%) 100%)`,
+            background: `linear-gradient(160deg, hsl(${site.imgHue},42%,32%) 0%, hsl(${site.imgHue},30%,20%) 100%)`,
+            minHeight: 160,
           }}
         >
-          {/* 工事現場のプレースホルダー */}
-          <div className="w-full h-full flex items-center justify-center opacity-30">
-            <HardHat size={32} color="#FFF" />
-          </div>
+          <HardHat size={40} color="rgba(255,255,255,0.22)" />
         </div>
 
-        {/* メインコンテンツ */}
-        <div className="flex-1 min-w-0 p-5">
-          {/* ヘッダー行 */}
-          <div className="flex items-start justify-between gap-3 mb-2">
+        {/* コンテンツ */}
+        <div className="flex-1 min-w-0 p-6">
+          {/* バッジ行 + 進捗 */}
+          <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-1.5 py-0.5 rounded text-sm font-medium"
-                style={{ background: typeColor + "18", color: typeColor }}>
+              <span
+                className="px-2.5 py-1 rounded-lg font-bold"
+                style={{ background: typeColor + "18", color: typeColor, fontSize: 13 }}
+              >
                 {site.type}
               </span>
-              <span style={{ fontSize: 14, color: C.muted }}>{site.code}</span>
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-medium"
-                style={{ background: st.bg, color: st.text }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
+              <span
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold"
+                style={{ background: st.bg, color: st.text, fontSize: 13 }}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ background: st.dot }} />
                 {site.status}
               </span>
               {site.hasWorkToday && (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-medium"
-                  style={{ background: "#F0FDF4", color: C.green }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.green }} />
+                <span
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold"
+                  style={{ background: "#F0FDF4", color: C.green, fontSize: 13 }}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ background: C.green }} />
                   本日稼働
                 </span>
               )}
             </div>
-            {/* 進捗 */}
             <div className="flex-shrink-0 text-right">
-              <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>施工進捗</div>
-              <span className="font-numeric" style={{ fontSize: 26, fontWeight: 800, color: C.amber, lineHeight: 1 }}>
-                {site.progressPct}
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.amberDk }}>%</span>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>施工進捗</div>
+              <div className="flex items-baseline gap-1">
+                <span style={{ fontSize: 34, fontWeight: 800, color: C.amber, lineHeight: 1 }}>
+                  {site.progressPct}
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.amberDk }}>%</span>
+              </div>
             </div>
           </div>
 
-          {/* 現場名・住所 */}
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 4 }}>
+          {/* 進捗バー */}
+          <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: "#F1F5F9" }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${site.progressPct}%`, background: st.dot }}
+            />
+          </div>
+
+          {/* 現場名 */}
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 10 }}>
             {site.name}
           </h3>
-          <div className="flex items-center gap-1 mb-3">
-            <MapPin size={11} style={{ color: C.muted }} />
-            <span style={{ fontSize: 14, color: C.muted }}>{site.address}</span>
-          </div>
 
-          {/* 完工予定 */}
-          <div className="flex items-center gap-1.5" style={{ marginBottom: 4 }}>
-            <Clock size={11} style={{ color: C.muted }} />
-            <span style={{ fontSize: 14, color: C.muted }}>
-              完工予定 <span style={{ color: C.sub, fontWeight: 600 }}>{site.endDate.replace(/-/g, "/")}</span>
-            </span>
-          </div>
-        </div>
-
-        {/* 詳細リンク */}
-        <div className="flex flex-col items-center justify-center px-3" style={{ borderLeft: `1px solid ${C.border}` }}>
-          <Link href={`/kaitai/site/${site.id}`}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors cursor-pointer">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}>
-              <ChevronRight size={14} />
+          {/* メタ情報 */}
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="flex items-center gap-1.5">
+              <MapPin size={14} style={{ color: C.muted }} />
+              <span style={{ fontSize: 14, color: C.muted }}>{site.address}</span>
             </div>
-            <span style={{ fontSize: 14, writingMode: "vertical-rl", color: C.amber }}>詳細</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* フッター（本日作業員） */}
-      <div className="flex items-center px-5 py-3"
-        style={{ background: "#F8FAFC", borderTop: `1.5px solid ${C.border}` }}>
-        <div className="flex items-center gap-1.5">
-          <Users size={12} style={{ color: C.sub }} />
-          <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-            {site.workers}名
-          </span>
-          <span style={{ fontSize: 14, color: C.muted }}>本日稼働</span>
-        </div>
-      </div>
-
-      {/* 勤怠アクティビティ */}
-      {attendance.length > 0 && (
-        <div className="px-4 py-3 flex flex-wrap gap-2"
-          style={{ background: "#F1F5F9", borderTop: `1px dashed ${C.border}` }}>
-          {attendance.map(a => {
-            const style = ATTENDANCE_STYLE[a.status];
-            const name = MEMBER_NAMES[a.userId] ?? a.userId;
-            return (
-              <span
-                key={a.userId}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
-                style={{ background: style.bg, color: style.color, fontSize: 13, fontWeight: 600, border: `1px solid ${style.color}22` }}
-              >
-                <span style={{ fontSize: 12 }}>{style.icon}</span>
-                {name}
-                <span style={{ fontSize: 12, opacity: 0.75 }}>{fmtTime(a.latestTimestamp)}</span>
-                <span style={{ fontSize: 12 }}>{style.label}</span>
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} style={{ color: C.muted }} />
+              <span style={{ fontSize: 14, color: C.sub }}>
+                完工予定&nbsp;<strong style={{ color: C.text }}>{site.endDate.replace(/-/g, "/")}</strong>
               </span>
-            );
-          })}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Users size={14} style={{ color: C.green }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.green }}>
+                {site.workers}名稼働中
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─ 本日のスタッフ ─ */}
+      {attendance.length > 0 && (
+        <div
+          className="px-6 py-5"
+          style={{ background: "#F8FAFC", borderTop: `1px solid ${C.border}` }}
+        >
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 12, letterSpacing: "0.07em", textTransform: "uppercase" as const }}>
+            本日のスタッフ
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {attendance.map(a => {
+              const sty = ATTENDANCE_STYLE[a.status];
+              const name = MEMBER_NAMES[a.userId] ?? a.userId;
+              return (
+                <div
+                  key={a.userId}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{
+                    background: sty.bg,
+                    border: `1.5px solid ${sty.color}28`,
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{sty.icon}</span>
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: sty.color, lineHeight: 1.2 }}>{name}</p>
+                    <p style={{ fontSize: 12, color: sty.color, opacity: 0.75, marginTop: 3 }}>
+                      {sty.label}&nbsp;·&nbsp;{fmtTime(a.latestTimestamp)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {/* ─ 詳細ボタン ─ */}
+      <div
+        className="flex items-center justify-between px-6 py-4"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        <span style={{ fontSize: 13, color: C.muted }}>{site.code}</span>
+        <Link
+          href={`/kaitai/site/${site.id}`}
+          className="flex items-center gap-2 rounded-xl font-bold transition-all hover:opacity-90 active:scale-95"
+          style={{
+            background: C.amber,
+            color: "#FFFFFF",
+            fontSize: 15,
+            padding: "12px 28px",
+            boxShadow: "0 2px 10px rgba(245,158,11,0.4)",
+          }}
+        >
+          この現場の詳細を見る
+          <ChevronRight size={17} />
+        </Link>
+      </div>
     </div>
   );
 }
@@ -417,6 +458,10 @@ export default function KaitaiHome() {
     { label: "着工前 / 完工", value: `${upcoming.length}/${done.length}`, unit: "件", icon: Clock, color: "#8B5CF6" },
   ];
 
+  const mapSites = sites.map(s => ({
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status,
+  }));
+
   return (
     <div className="flex flex-col">
 
@@ -434,30 +479,48 @@ export default function KaitaiHome() {
         </div>
       </div>
 
+      {/* ── 現場マップ（全幅） ────────────── */}
+      <div className="mb-5 overflow-hidden rounded-2xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow, background: C.card }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+          <h2 className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>
+            <MapPin size={16} style={{ color: C.amber }} />
+            現場マップ
+          </h2>
+          <span
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full font-bold"
+            style={{ background: "#FFFBEB", color: C.amberDk, fontSize: 13, border: "1px solid #FDE68A" }}
+          >
+            稼働中 {active.length}件
+          </span>
+        </div>
+        <HomeMap sites={mapSites} height={320} />
+      </div>
+
       {/* ── メインコンテンツ ─────────────── */}
       <div className="pb-28 md:pb-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* 左：稼働中の現場 + 月次収支 */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          {/* セクションヘッダー */}
+        {/* 左：稼働中の現場 */}
+        <div className="lg:col-span-2 flex flex-col gap-5">
           <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2" style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>
-              <span className="w-1 h-4 rounded-full" style={{ background: C.amber }} />
+            <h2 className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>
+              <span className="w-1 h-5 rounded-full" style={{ background: C.amber }} />
               稼働中の現場
-              <span className="px-1.5 py-0.5 rounded text-sm font-medium"
-                style={{ background: "#FFFBEB", color: C.amberDk }}>{active.length}件</span>
+              <span
+                className="px-2.5 py-0.5 rounded-full font-bold"
+                style={{ background: "#FFFBEB", color: C.amberDk, fontSize: 13 }}
+              >
+                {active.length}件
+              </span>
             </h2>
             <Link href="/kaitai/sites/new"
-              className="flex items-center gap-1 text-sm font-medium" style={{ color: C.amber }}>
-              全現場を表示 <ArrowUpRight size={11} />
+              className="flex items-center gap-1 font-medium" style={{ fontSize: 14, color: C.amber }}>
+              全現場を表示 <ArrowUpRight size={13} />
             </Link>
           </div>
 
-          {/* 現場カード一覧 */}
           <div className="flex flex-col gap-5">
             {active.map(site => {
               const statusMap = getSiteStatusMap(attendanceLogs, site.id, today);
-              // Build per-user attendance with latest timestamp
               const siteAttendance: SiteAttendance[] = Array.from(statusMap.entries()).map(([userId, status]) => {
                 const latestLog = attendanceLogs
                   .filter(l => l.siteId === site.id && l.userId === userId && l.timestamp.startsWith(today))
@@ -467,13 +530,11 @@ export default function KaitaiHome() {
               return <SiteCard key={site.id} site={site} attendance={siteAttendance} />;
             })}
           </div>
-
         </div>
 
-        {/* 右：ステータス / マップ / 天気 */}
+        {/* 右：ステータス / 天気 */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           <StatusPanel sites={sites} />
-          <MapPanel />
           <WeatherPanel />
         </div>
       </div>
