@@ -16,7 +16,7 @@ import { TDark } from "../lib/design-tokens";
 const ADMIN_NAV = [
   { href: "/kaitai/admin",            label: "経営分析",       icon: TrendingUp,   exact: true  },
   { href: "/kaitai/admin/projects",   label: "プロジェクト収支", icon: BarChart2,    exact: false },
-  { href: "/kaitai/admin/evaluation", label: "作業評価",       icon: Star,         exact: false },
+  { href: "/kaitai/admin/evaluation", label: "月次評価",       icon: Star,         exact: false },
 ] as const;
 
 const EXTERNAL_NAV = [

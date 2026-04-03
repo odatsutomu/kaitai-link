@@ -1,916 +1,488 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Download,
-  BarChart2,
-  Users,
-  Calendar,
-  AlertTriangle,
-  TrendingUp,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Save,
+  Users, ClipboardList, Star,
 } from "lucide-react";
-import {
-  type WorkerEval,
-  type EvalScore,
-  EVAL_CATEGORIES,
-  SCORE_META,
-  SEED_EVALS,
-} from "../../lib/evaluation-data";
-import { useAppContext } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
-const C = {
-  text: T.text,
-  sub: T.sub,
-  muted: T.muted,
-  border: T.border,
-  card: T.surface,
-  amber: T.primary,
-  amberDk: T.primaryDk,
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ACCENT = "#9A3412";
+const ACCENT_LT = "rgba(154,52,18,0.08)";
+const ACCENT_MD = "rgba(154,52,18,0.15)";
+
+const CRITERIA = [
+  { key: "score1", label: "現場実績", sub: "安全・品質・スピード" },
+  { key: "score2", label: "方針遵守", sub: "近隣配慮・マナー" },
+  { key: "score3", label: "責任感", sub: "車両・機材・報連相" },
+  { key: "score4", label: "後進育成", sub: "指導・好影響" },
+  { key: "score5", label: "向上心", sub: "資格・主体性" },
+] as const;
+
+type CriteriaKey = (typeof CRITERIA)[number]["key"];
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type ApiMember = {
+  id: string; name: string; kana?: string | null;
+  type?: string | null; role?: string | null; avatar?: string | null;
 };
 
-type Tab = "daily" | "aggregate" | "bias";
-
-function avgScore(vals: number[]): number {
-  if (vals.length === 0) return 0;
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
-}
-
-function evalAvg(e: WorkerEval): number {
-  return avgScore([e.attendance, e.safety, e.speed, e.equipment, e.neighborhood]);
-}
-
-function scoreColor(avg: number): string {
-  if (avg >= 2.7) return "#16A34A";
-  if (avg >= 2.0) return C.amberDk;
-  return "#DC2626";
-}
-
-function scoreBg(avg: number): string {
-  if (avg >= 2.7) return "#F0FDF4";
-  if (avg >= 2.0) return T.primaryLt;
-  return "#FEF2F2";
-}
-
-function ScoreBadge({ score }: { score: EvalScore }) {
-  const meta = SCORE_META[score];
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 44,
-        height: 24,
-        borderRadius: 6,
-        background: meta.bg,
-        color: meta.color,
-        fontSize: 14,
-        fontWeight: 700,
-        padding: "0 8px",
-      }}
-    >
-      {meta.label}
-    </span>
-  );
-}
-
-function AvgCell({ avg }: { avg: number }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 48,
-        height: 24,
-        borderRadius: 6,
-        background: scoreBg(avg),
-        color: scoreColor(avg),
-        fontSize: 14,
-        fontWeight: 700,
-        padding: "0 8px",
-      }}
-    >
-      {avg.toFixed(2)}
-    </span>
-  );
-}
-
-function exportCSV(data: WorkerEval[]) {
-  const header =
-    "日付,現場,評価者,対象者,勤怠,安全,スピード,機材,近隣規律,メモ";
-  const rows = data.map((e) =>
-    [
-      e.date,
-      e.projectName,
-      e.evaluatorName,
-      e.targetWorkerName,
-      e.attendance,
-      e.safety,
-      e.speed,
-      e.equipment,
-      e.neighborhood,
-      e.memo ?? "",
-    ].join(",")
-  );
-  const csv = [header, ...rows].join("\n");
-  const blob = new Blob(["\uFEFF" + csv], {
-    type: "text/csv;charset=utf-8;",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `eval_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-}
-
-const TH_STYLE: React.CSSProperties = {
-  padding: "10px 14px",
-  textAlign: "left",
-  fontSize: 14,
-  fontWeight: 700,
-  color: C.sub,
-  background: T.bg,
-  borderBottom: `1px solid ${C.border}`,
-  whiteSpace: "nowrap",
+type EvalRow = {
+  memberId: string;
+  score1: number; score2: number; score3: number; score4: number; score5: number;
+  memo: string;
+  confirmed: boolean;
 };
 
-const TD_STYLE: React.CSSProperties = {
-  padding: "10px 14px",
-  fontSize: 14,
-  color: C.text,
-  borderBottom: `1px solid ${C.border}`,
-  whiteSpace: "nowrap",
-};
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export default function AdminEvaluationPage() {
-  const { evaluations } = useAppContext();
+function monthLabel(m: string) {
+  const [y, mo] = m.split("-");
+  return `${y}年${parseInt(mo)}月`;
+}
 
-  const allEvals: WorkerEval[] = useMemo(() => {
-    const merged = [...SEED_EVALS, ...evaluations];
-    const seen = new Set<string>();
-    return merged.filter((e) => {
-      if (seen.has(e.id)) return false;
-      seen.add(e.id);
-      return true;
-    });
-  }, [evaluations]);
+function prevMonth(m: string) {
+  const d = new Date(m + "-01");
+  d.setMonth(d.getMonth() - 1);
+  return d.toISOString().slice(0, 7);
+}
 
-  const [tab, setTab] = useState<Tab>("daily");
-  const [filterWorker, setFilterWorker] = useState<string>("");
-  const [filterEvaluator, setFilterEvaluator] = useState<string>("");
-  const [filterMonth, setFilterMonth] = useState<string>("");
+function nextMonth(m: string) {
+  const d = new Date(m + "-01");
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 7);
+}
 
-  // Derive filter options
-  const workerOptions = useMemo(() => {
-    const names = Array.from(
-      new Set(allEvals.map((e) => e.targetWorkerName))
-    ).sort();
-    return names;
-  }, [allEvals]);
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
 
-  const evaluatorOptions = useMemo(() => {
-    const names = Array.from(
-      new Set(allEvals.map((e) => e.evaluatorName))
-    ).sort();
-    return names;
-  }, [allEvals]);
+function avgScore(row: EvalRow) {
+  const sum = row.score1 + row.score2 + row.score3 + row.score4 + row.score5;
+  return sum > 0 ? (sum / 5).toFixed(1) : "—";
+}
 
-  const monthOptions = useMemo(() => {
-    const months = Array.from(
-      new Set(allEvals.map((e) => e.date.slice(0, 7)))
-    ).sort().reverse();
-    return months;
-  }, [allEvals]);
+function isComplete(row: EvalRow) {
+  return row.score1 > 0 && row.score2 > 0 && row.score3 > 0 && row.score4 > 0 && row.score5 > 0;
+}
 
-  const filtered = useMemo(() => {
-    return allEvals.filter((e) => {
-      if (filterWorker && e.targetWorkerName !== filterWorker) return false;
-      if (filterEvaluator && e.evaluatorName !== filterEvaluator) return false;
-      if (filterMonth && !e.date.startsWith(filterMonth)) return false;
-      return true;
-    });
-  }, [allEvals, filterWorker, filterEvaluator, filterMonth]);
+// ─── Score Picker ────────────────────────────────────────────────────────────
 
-  const sortedDaily = useMemo(
-    () => [...filtered].sort((a, b) => b.date.localeCompare(a.date)),
-    [filtered]
-  );
-
-  // KPI
-  const totalCount = allEvals.length;
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const thisMonthCount = allEvals.filter((e) =>
-    e.date.startsWith(currentMonth)
-  ).length;
-  const overallAvg =
-    allEvals.length > 0
-      ? avgScore(allEvals.map((e) => evalAvg(e)))
-      : 0;
-
-  // Per-worker aggregate
-  const workerAgg = useMemo(() => {
-    const map = new Map<
-      string,
-      { name: string; evals: WorkerEval[] }
-    >();
-    for (const e of filtered) {
-      if (!map.has(e.targetWorkerId)) {
-        map.set(e.targetWorkerId, { name: e.targetWorkerName, evals: [] });
-      }
-      map.get(e.targetWorkerId)!.evals.push(e);
-    }
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "ja")
-    );
-  }, [filtered]);
-
-  // Per-evaluator aggregate
-  const evaluatorAgg = useMemo(() => {
-    const map = new Map<
-      string,
-      { name: string; evals: WorkerEval[] }
-    >();
-    for (const e of filtered) {
-      if (!map.has(e.evaluatorId)) {
-        map.set(e.evaluatorId, { name: e.evaluatorName, evals: [] });
-      }
-      map.get(e.evaluatorId)!.evals.push(e);
-    }
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "ja")
-    );
-  }, [filtered]);
-
-  // Selected worker for trend chart
-  const [trendWorker, setTrendWorker] = useState<string>("");
-  const trendData = useMemo(() => {
-    const target = trendWorker || (workerAgg[0]?.name ?? "");
-    const workerEvals = allEvals
-      .filter((e) => e.targetWorkerName === target)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-8);
-    return workerEvals.map((e) => ({
-      date: e.date.slice(5),
-      avg: evalAvg(e),
-    }));
-  }, [allEvals, trendWorker, workerAgg]);
-
+function ScorePicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
-    <div style={{ paddingTop: "32px", paddingBottom: "32px" }}>
-      {/* Page title */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 28,
-        }}
-      >
-        <BarChart2 size={28} color={C.amber} />
-        <h1
+    <div style={{ display: "flex", gap: 2 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <button
+          key={n}
+          onClick={() => onChange(n)}
           style={{
-            fontSize: 28,
-            fontWeight: 700,
-            color: C.text,
-            margin: 0,
+            width: 32, height: 32, borderRadius: 6, fontSize: 13, fontWeight: 700,
+            border: value === n ? `2px solid ${ACCENT}` : `1px solid ${T.border}`,
+            background: value === n ? ACCENT_LT : "transparent",
+            color: value === n ? ACCENT : value > 0 ? T.sub : T.muted,
+            cursor: "pointer", transition: "all 0.15s",
           }}
         >
-          評価分析ダッシュボード
-        </h1>
-      </div>
-
-      {/* KPI row */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 16,
-          marginBottom: 28,
-        }}
-      >
-        {[
-          {
-            icon: <ClipboardIcon />,
-            label: "総評価件数",
-            value: `${totalCount}件`,
-            color: C.amber,
-          },
-          {
-            icon: <Calendar size={20} color="#3B82F6" />,
-            label: "今月評価件数",
-            value: `${thisMonthCount}件`,
-            color: "#3B82F6",
-          },
-          {
-            icon: <TrendingUp size={20} color="#16A34A" />,
-            label: "全体平均スコア",
-            value: overallAvg.toFixed(2),
-            color: scoreColor(overallAvg),
-          },
-        ].map((kpi) => (
-          <div
-            key={kpi.label}
-            style={{
-              background: C.card,
-              borderRadius: 16,
-              padding: "20px 24px",
-              border: `1px solid ${C.border}`,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
-              {kpi.icon}
-              <span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}>
-                {kpi.label}
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                color: kpi.color,
-                lineHeight: 1,
-              }}
-            >
-              {kpi.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: 0,
-          borderBottom: `2px solid ${C.border}`,
-          marginBottom: 20,
-        }}
-      >
-        {(
-          [
-            { key: "daily", label: "デイリーログ" },
-            { key: "aggregate", label: "期間集計" },
-            { key: "bias", label: "評価者バイアス" },
-          ] as { key: Tab; label: string }[]
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            style={{
-              padding: "10px 22px",
-              fontSize: 15,
-              fontWeight: tab === t.key ? 700 : 500,
-              color: tab === t.key ? C.amberDk : C.sub,
-              background: "none",
-              border: "none",
-              borderBottom: tab === t.key
-                ? `3px solid ${C.amber}`
-                : "3px solid transparent",
-              cursor: "pointer",
-              marginBottom: -2,
-              transition: "all 0.12s",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filter bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 24,
-          alignItems: "center",
-        }}
-      >
-        <select
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">月：すべて</option>
-          {monthOptions.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterWorker}
-          onChange={(e) => setFilterWorker(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">作業員：すべて</option>
-          {workerOptions.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterEvaluator}
-          onChange={(e) => setFilterEvaluator(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">評価者：すべて</option>
-          {evaluatorOptions.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-        <span style={{ fontSize: 14, color: C.muted, marginLeft: "auto" }}>
-          {filtered.length}件
-        </span>
-      </div>
-
-      {/* ── Tab: デイリーログ ─────────────────────────────────────────────────── */}
-      {tab === "daily" && (
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginBottom: 12,
-            }}
-          >
-            <button
-              onClick={() => exportCSV(filtered)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 16px",
-                minHeight: 36,
-                borderRadius: 8,
-                border: `1px solid ${C.border}`,
-                background: C.card,
-                fontSize: 14,
-                fontWeight: 600,
-                color: C.sub,
-                cursor: "pointer",
-              }}
-            >
-              <Download size={14} />
-              CSVエクスポート
-            </button>
-          </div>
-          <div
-            style={{
-              background: C.card,
-              borderRadius: 16,
-              border: `1px solid ${C.border}`,
-              overflow: "auto",
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {[
-                    "日付",
-                    "現場",
-                    "評価者",
-                    "対象者",
-                    "勤怠",
-                    "安全",
-                    "スピード",
-                    "機材",
-                    "近隣",
-                    "平均",
-                    "メモ",
-                  ].map((h) => (
-                    <th key={h} style={TH_STYLE}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedDaily.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={11}
-                      style={{
-                        ...TD_STYLE,
-                        textAlign: "center",
-                        color: C.muted,
-                        padding: 32,
-                      }}
-                    >
-                      該当する評価データがありません
-                    </td>
-                  </tr>
-                ) : (
-                  sortedDaily.map((e) => {
-                    const avg = evalAvg(e);
-                    return (
-                      <tr key={e.id}>
-                        <td style={TD_STYLE}>{e.date}</td>
-                        <td style={{ ...TD_STYLE, maxWidth: 140 }}>
-                          <span
-                            style={{
-                              display: "block",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: 140,
-                            }}
-                          >
-                            {e.projectName}
-                          </span>
-                        </td>
-                        <td style={TD_STYLE}>{e.evaluatorName}</td>
-                        <td style={TD_STYLE}>{e.targetWorkerName}</td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <ScoreBadge score={e.attendance} />
-                        </td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <ScoreBadge score={e.safety} />
-                        </td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <ScoreBadge score={e.speed} />
-                        </td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <ScoreBadge score={e.equipment} />
-                        </td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <ScoreBadge score={e.neighborhood} />
-                        </td>
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              color: scoreColor(avg),
-                              fontSize: 14,
-                            }}
-                          >
-                            {avg.toFixed(2)}
-                          </span>
-                        </td>
-                        <td
-                          style={{
-                            ...TD_STYLE,
-                            maxWidth: 180,
-                            color: C.muted,
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "block",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: 180,
-                            }}
-                          >
-                            {e.memo ?? "—"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── Tab: 期間集計 ──────────────────────────────────────────────────────── */}
-      {tab === "aggregate" && (
-        <div>
-          <div
-            style={{
-              background: C.card,
-              borderRadius: 16,
-              border: `1px solid ${C.border}`,
-              overflow: "auto",
-              marginBottom: 28,
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {[
-                    "名前",
-                    "件数",
-                    "勤怠",
-                    "安全",
-                    "スピード",
-                    "機材",
-                    "近隣",
-                    "総合",
-                  ].map((h) => (
-                    <th key={h} style={TH_STYLE}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {workerAgg.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      style={{
-                        ...TD_STYLE,
-                        textAlign: "center",
-                        color: C.muted,
-                        padding: 32,
-                      }}
-                    >
-                      該当する評価データがありません
-                    </td>
-                  </tr>
-                ) : (
-                  workerAgg.map(({ name, evals: we }) => {
-                    const catAvgs = EVAL_CATEGORIES.map((cat) =>
-                      avgScore(we.map((e) => e[cat.key] as number))
-                    );
-                    const overall = avgScore(we.map((e) => evalAvg(e)));
-                    return (
-                      <tr
-                        key={name}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setTrendWorker(name)}
-                      >
-                        <td style={{ ...TD_STYLE, fontWeight: 600 }}>
-                          {name}
-                        </td>
-                        <td style={TD_STYLE}>{we.length}件</td>
-                        {catAvgs.map((avg, i) => (
-                          <td
-                            key={i}
-                            style={{ ...TD_STYLE, textAlign: "center" }}
-                          >
-                            <AvgCell avg={avg} />
-                          </td>
-                        ))}
-                        <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                          <AvgCell avg={overall} />
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Trend chart */}
-          {trendData.length > 0 && (
-            <div
-              style={{
-                background: C.card,
-                borderRadius: 16,
-                border: `1px solid ${C.border}`,
-                padding: 24,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 20,
-                }}
-              >
-                <TrendingUp size={18} color={C.amber} />
-                <span
-                  style={{ fontSize: 15, fontWeight: 700, color: C.text }}
-                >
-                  スコア推移
-                </span>
-                <span style={{ fontSize: 14, color: C.sub }}>
-                  （{trendWorker || workerAgg[0]?.name}・直近8件）
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                {trendData.map((d, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 36,
-                        fontSize: 14,
-                        color: C.muted,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {d.date}
-                    </span>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 20,
-                        background: T.bg,
-                        borderRadius: 10,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${(d.avg / 3) * 100}%`,
-                          height: "100%",
-                          background: scoreColor(d.avg),
-                          borderRadius: 10,
-                          transition: "width 0.4s ease",
-                        }}
-                      />
-                    </div>
-                    <span
-                      style={{
-                        width: 36,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: scoreColor(d.avg),
-                        textAlign: "right",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {d.avg.toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Tab: 評価者バイアス ──────────────────────────────────────────────── */}
-      {tab === "bias" && (
-        <div
-          style={{
-            background: C.card,
-            borderRadius: 16,
-            border: `1px solid ${C.border}`,
-            overflow: "auto",
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {[
-                  "評価者",
-                  "件数",
-                  "勤怠",
-                  "安全",
-                  "スピード",
-                  "機材",
-                  "近隣",
-                  "全体平均",
-                  "判定",
-                ].map((h) => (
-                  <th key={h} style={TH_STYLE}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {evaluatorAgg.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    style={{
-                      ...TD_STYLE,
-                      textAlign: "center",
-                      color: C.muted,
-                      padding: 32,
-                    }}
-                  >
-                    該当する評価データがありません
-                  </td>
-                </tr>
-              ) : (
-                evaluatorAgg.map(({ name, evals: ee }) => {
-                  const catAvgs = EVAL_CATEGORIES.map((cat) =>
-                    avgScore(ee.map((e) => e[cat.key] as number))
-                  );
-                  const overall = avgScore(ee.map((e) => evalAvg(e)));
-                  const isStrict = overall < 1.8;
-                  const isLenient = overall > 2.8;
-                  const flag = isStrict ? "⚠️ 厳格傾向" : isLenient ? "⚠️ 甘め傾向" : "✓ 標準";
-                  const flagColor = isStrict || isLenient ? T.primaryDk : "#16A34A";
-                  const flagBg = isStrict ? T.primaryLt : isLenient ? T.primaryLt : "#F0FDF4";
-
-                  return (
-                    <tr key={name}>
-                      <td style={{ ...TD_STYLE, fontWeight: 600 }}>{name}</td>
-                      <td style={TD_STYLE}>{ee.length}件</td>
-                      {catAvgs.map((avg, i) => (
-                        <td
-                          key={i}
-                          style={{ ...TD_STYLE, textAlign: "center" }}
-                        >
-                          <AvgCell avg={avg} />
-                        </td>
-                      ))}
-                      <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                        <AvgCell avg={overall} />
-                      </td>
-                      <td style={{ ...TD_STYLE, textAlign: "center" }}>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "5px 12px",
-                            borderRadius: 8,
-                            background: flagBg,
-                            color: flagColor,
-                            fontSize: 14,
-                            fontWeight: 700,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {(isStrict || isLenient) && (
-                            <AlertTriangle size={12} />
-                          )}
-                          {flag}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-          <div
-            style={{
-              padding: "12px 20px",
-              borderTop: `1px solid ${C.border}`,
-              display: "flex",
-              gap: 20,
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ fontSize: 14, color: C.muted }}>
-              ⚠️ 全体平均 &lt; 1.8：厳格傾向フラグ
-            </span>
-            <span style={{ fontSize: 14, color: C.muted }}>
-              ⚠️ 全体平均 &gt; 2.8：甘め傾向フラグ
-            </span>
-          </div>
-        </div>
-      )}
+          {n}
+        </button>
+      ))}
     </div>
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────────
 
-function ClipboardIcon() {
+export default function AdminMonthlyEvalPage() {
+  const [month, setMonth] = useState(currentMonth);
+  const [members, setMembers] = useState<ApiMember[]>([]);
+  const [rows, setRows] = useState<Record<string, EvalRow>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const pendingRef = useRef<HTMLDivElement>(null);
+
+  // Fetch members + existing evaluations
+  const fetchData = useCallback(async (m: string) => {
+    setLoading(true); setSaved(false);
+    try {
+      const [mRes, eRes] = await Promise.all([
+        fetch("/api/kaitai/members"),
+        fetch(`/api/kaitai/evaluations?month=${m}`),
+      ]);
+      const mData = await mRes.json();
+      const eData = await eRes.json();
+
+      const memberList: ApiMember[] = mData.ok ? mData.members : [];
+      setMembers(memberList);
+
+      const existingEvals: Record<string, EvalRow> = {};
+      if (eData.ok && Array.isArray(eData.evaluations)) {
+        for (const ev of eData.evaluations) {
+          existingEvals[ev.memberId] = {
+            memberId: ev.memberId,
+            score1: ev.score1, score2: ev.score2, score3: ev.score3,
+            score4: ev.score4, score5: ev.score5,
+            memo: ev.memo ?? "", confirmed: ev.confirmed,
+          };
+        }
+      }
+
+      // Initialize rows for all members
+      const allRows: Record<string, EvalRow> = {};
+      for (const mem of memberList) {
+        allRows[mem.id] = existingEvals[mem.id] ?? {
+          memberId: mem.id,
+          score1: 0, score2: 0, score3: 0, score4: 0, score5: 0,
+          memo: "", confirmed: false,
+        };
+      }
+      setRows(allRows);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchData(month); }, [month, fetchData]);
+
+  // Update a score
+  const setScore = (memberId: string, key: CriteriaKey, value: number) => {
+    setRows(prev => ({
+      ...prev,
+      [memberId]: { ...prev[memberId], [key]: value, confirmed: false },
+    }));
+    setSaved(false);
+  };
+
+  const setMemo = (memberId: string, memo: string) => {
+    setRows(prev => ({
+      ...prev,
+      [memberId]: { ...prev[memberId], memo, confirmed: false },
+    }));
+    setSaved(false);
+  };
+
+  // Bulk save
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const evaluations = Object.values(rows)
+        .filter(r => r.score1 > 0 || r.score2 > 0 || r.score3 > 0 || r.score4 > 0 || r.score5 > 0)
+        .map(r => ({
+          memberId: r.memberId,
+          score1: r.score1, score2: r.score2, score3: r.score3,
+          score4: r.score4, score5: r.score5,
+          memo: r.memo || undefined,
+        }));
+
+      if (evaluations.length === 0) {
+        alert("評価が入力されていません");
+        setSaving(false);
+        return;
+      }
+
+      const res = await fetch("/api/kaitai/evaluations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month, evaluations }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存に失敗しました");
+
+      setSaved(true);
+      // Mark all saved rows as confirmed
+      setRows(prev => {
+        const next = { ...prev };
+        for (const ev of evaluations) {
+          if (next[ev.memberId]) next[ev.memberId] = { ...next[ev.memberId], confirmed: true };
+        }
+        return next;
+      });
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally { setSaving(false); }
+  };
+
+  // Stats
+  const total = members.length;
+  const completed = Object.values(rows).filter(r => isComplete(r)).length;
+  const pending = total - completed;
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <p style={{ fontSize: 15, color: T.sub }}>読み込み中...</p>
+      </div>
+    );
+  }
+
   return (
-    <svg
-      width={20}
-      height={20}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={C.amber}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-    </svg>
+    <div style={{ padding: "24px 0", maxWidth: 1280 }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>月次評価</h1>
+          <p style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>
+            経営者による全従業員の月次パフォーマンス評価
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 24px", borderRadius: 12, fontSize: 15, fontWeight: 700,
+            background: saving ? T.muted : ACCENT, color: "#fff",
+            border: "none", cursor: saving ? "default" : "pointer",
+            transition: "all 0.15s",
+          }}
+        >
+          <Save size={16} />
+          {saving ? "保存中..." : saved ? "保存済み ✓" : "評価を確定して保存"}
+        </button>
+      </div>
+
+      {/* ── Month nav ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 16, marginBottom: 20,
+        background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 20px",
+      }}>
+        <button onClick={() => setMonth(prevMonth(month))} style={{
+          padding: 6, borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", cursor: "pointer", color: T.sub,
+        }}><ChevronLeft size={18} /></button>
+        <span style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{monthLabel(month)}</span>
+        <button onClick={() => setMonth(nextMonth(month))} style={{
+          padding: 6, borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", cursor: "pointer", color: T.sub,
+        }}><ChevronRight size={18} /></button>
+        <button onClick={() => setMonth(currentMonth())} style={{
+          marginLeft: 8, padding: "6px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+          background: ACCENT_LT, color: ACCENT, border: `1px solid ${ACCENT_MD}`, cursor: "pointer",
+        }}>今月</button>
+      </div>
+
+      {/* ── KPI Strip ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Users size={16} style={{ color: "#3B82F6" }} />
+            <span style={{ fontSize: 13, color: T.sub }}>対象メンバー</span>
+          </div>
+          <p style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", lineHeight: 1 }}>{total}<span style={{ fontSize: 14, fontWeight: 600 }}>名</span></p>
+        </div>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Check size={16} style={{ color: "#10B981" }} />
+            <span style={{ fontSize: 13, color: T.sub }}>評価完了</span>
+          </div>
+          <p style={{ fontSize: 28, fontWeight: 800, color: "#10B981", lineHeight: 1 }}>{completed}<span style={{ fontSize: 14, fontWeight: 600 }}>名</span></p>
+        </div>
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <AlertTriangle size={16} style={{ color: pending > 0 ? "#EF4444" : "#10B981" }} />
+            <span style={{ fontSize: 13, color: T.sub }}>未入力</span>
+          </div>
+          <p style={{ fontSize: 28, fontWeight: 800, color: pending > 0 ? "#EF4444" : "#10B981", lineHeight: 1 }}>{pending}<span style={{ fontSize: 14, fontWeight: 600 }}>名</span></p>
+        </div>
+      </div>
+
+      {/* ── Alert Banner ── */}
+      {pending > 0 && (
+        <button
+          onClick={() => pendingRef.current?.scrollIntoView({ behavior: "smooth" })}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 10,
+            padding: "14px 20px", borderRadius: 12, marginBottom: 20,
+            background: "#FEF2F2", border: "1px solid #FECACA", cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <AlertTriangle size={18} style={{ color: "#DC2626", flexShrink: 0 }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#DC2626" }}>
+            {monthLabel(month)}度の評価が未完了のメンバー：{pending}名
+          </span>
+          <span style={{ fontSize: 13, color: "#DC2626", marginLeft: "auto", opacity: 0.7 }}>
+            クリックして未入力者へスクロール ↓
+          </span>
+        </button>
+      )}
+
+      {/* ── Evaluation Table ── */}
+      {members.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <ClipboardList size={40} style={{ color: T.muted, marginBottom: 12 }} />
+          <p style={{ fontSize: 15, color: T.muted }}>メンバーが登録されていません</p>
+        </div>
+      ) : (
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+          {/* Sticky header */}
+          <div style={{
+            position: "sticky", top: 0, zIndex: 10,
+            display: "grid", gridTemplateColumns: "44px 160px repeat(5, 1fr) 80px 200px",
+            background: "#F8FAFC", borderBottom: `2px solid ${T.border}`,
+            padding: "12px 16px", gap: 8, alignItems: "end",
+          }}>
+            <div />
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>メンバー</div>
+            {CRITERIA.map(c => (
+              <div key={c.key} style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: ACCENT, lineHeight: 1.2 }}>{c.label}</p>
+                <p style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{c.sub}</p>
+              </div>
+            ))}
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.text, textAlign: "center" }}>平均</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>非公開メモ</div>
+          </div>
+
+          {/* Rows — completed first, then pending */}
+          {(() => {
+            const sorted = [...members].sort((a, b) => {
+              const aComplete = isComplete(rows[a.id]);
+              const bComplete = isComplete(rows[b.id]);
+              if (aComplete !== bComplete) return aComplete ? 1 : -1; // pending first
+              return (a.kana ?? a.name).localeCompare(b.kana ?? b.name, "ja");
+            });
+
+            let pendingMarkerPlaced = false;
+
+            return sorted.map((mem) => {
+              const row = rows[mem.id];
+              if (!row) return null;
+              const complete = isComplete(row);
+              const avg = avgScore(row);
+              const avgNum = parseFloat(avg);
+              const avgColor = isNaN(avgNum) ? T.muted : avgNum >= 4 ? "#10B981" : avgNum >= 3 ? ACCENT : avgNum >= 2 ? "#F59E0B" : "#EF4444";
+
+              // Place scroll anchor before first pending member
+              let anchor = null;
+              if (!complete && !pendingMarkerPlaced) {
+                pendingMarkerPlaced = true;
+                anchor = <div key="anchor" ref={pendingRef} style={{ height: 0 }} />;
+              }
+
+              return (
+                <div key={mem.id}>
+                  {anchor}
+                  <div
+                    style={{
+                      display: "grid", gridTemplateColumns: "44px 160px repeat(5, 1fr) 80px 200px",
+                      padding: "14px 16px", gap: 8, alignItems: "center",
+                      borderBottom: `1px solid ${T.border}`,
+                      background: complete ? "transparent" : "rgba(239,68,68,0.03)",
+                    }}
+                  >
+                    {/* Status badge */}
+                    <div>
+                      <span style={{
+                        display: "inline-block", width: 10, height: 10, borderRadius: "50%",
+                        background: complete ? "#10B981" : "#EF4444",
+                      }} />
+                    </div>
+
+                    {/* Name */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <span style={{
+                        flexShrink: 0, width: 32, height: 32, borderRadius: 8,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: ACCENT_LT, fontSize: 14,
+                      }}>{mem.avatar ?? "👤"}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {mem.name}
+                        </p>
+                        <p style={{ fontSize: 11, color: T.muted }}>{mem.role ?? "作業員"}{mem.type === "外注" ? " ・外注" : ""}</p>
+                      </div>
+                    </div>
+
+                    {/* 5 score pickers */}
+                    {CRITERIA.map(c => (
+                      <div key={c.key} style={{ display: "flex", justifyContent: "center" }}>
+                        <ScorePicker
+                          value={row[c.key]}
+                          onChange={v => setScore(mem.id, c.key, v)}
+                        />
+                      </div>
+                    ))}
+
+                    {/* Average */}
+                    <div style={{ textAlign: "center" }}>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: avgColor }}>{avg}</span>
+                    </div>
+
+                    {/* Memo */}
+                    <div>
+                      <input
+                        type="text"
+                        value={row.memo}
+                        onChange={e => setMemo(mem.id, e.target.value)}
+                        placeholder="昇給検討メモ..."
+                        style={{
+                          width: "100%", padding: "6px 10px", fontSize: 12, borderRadius: 6,
+                          border: `1px solid ${T.border}`, background: T.bg, color: T.text,
+                          outline: "none",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
+
+      {/* ── Score Legend ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 24, marginTop: 16, padding: "12px 20px",
+        background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>評価基準：</span>
+        {[
+          { score: 1, label: "要改善" },
+          { score: 2, label: "やや不足" },
+          { score: 3, label: "標準" },
+          { score: 4, label: "良好" },
+          { score: 5, label: "優秀" },
+        ].map(({ score, label }) => (
+          <div key={score} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{
+              width: 24, height: 24, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 12, fontWeight: 700, background: ACCENT_LT, color: ACCENT, border: `1px solid ${ACCENT_MD}`,
+            }}>{score}</span>
+            <span style={{ fontSize: 12, color: T.sub }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bottom save bar ── */}
+      <div style={{
+        position: "sticky", bottom: 0, marginTop: 20, padding: "16px 20px",
+        background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Star size={18} style={{ color: ACCENT }} />
+          <span style={{ fontSize: 14, color: T.sub }}>
+            {completed}/{total}名 評価完了
+            {pending > 0 && <span style={{ color: "#EF4444", fontWeight: 700, marginLeft: 8 }}>（未入力 {pending}名）</span>}
+          </span>
+          {saved && <span style={{ fontSize: 13, fontWeight: 600, color: "#10B981", marginLeft: 12 }}>✓ 保存済み</span>}
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700,
+            background: saving ? T.muted : ACCENT, color: "#fff",
+            border: "none", cursor: saving ? "default" : "pointer",
+          }}
+        >
+          <Save size={16} />
+          {saving ? "保存中..." : "評価を確定して保存"}
+        </button>
+      </div>
+    </div>
   );
 }
-
-const selectStyle: React.CSSProperties = {
-  padding: "8px 12px",
-  borderRadius: 8,
-  border: `1px solid ${C.border}`,
-  background: C.card,
-  fontSize: 14,
-  color: C.text,
-  cursor: "pointer",
-  outline: "none",
-  minWidth: 140,
-};

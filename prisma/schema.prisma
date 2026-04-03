@@ -32,6 +32,7 @@ model KaitaiCompany {
   expenseLogs   KaitaiExpenseLog[]
   images        KaitaiImage[]
   operationLogs KaitaiOperationLog[]
+  monthlyEvals  KaitaiMonthlyEval[]
 }
 
 model KaitaiSession {
@@ -178,6 +179,28 @@ model KaitaiImage {
 
   @@index([companyId])
   @@index([expiresAt])
+}
+
+model KaitaiMonthlyEval {
+  id          String   @id @default(cuid())
+  companyId   String
+  memberId    String
+  month       String                         // "2026-04" format
+  score1      Int      @default(0)           // 現場実績の総合
+  score2      Int      @default(0)           // 会社方針・ルール遵守
+  score3      Int      @default(0)           // 責任感・資産管理
+  score4      Int      @default(0)           // 後進育成・影響力
+  score5      Int      @default(0)           // 向上心・自己研鑽
+  memo        String?                        // 昇給検討用・非公開メモ
+  confirmed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, memberId, month])
+  @@index([companyId])
+  @@index([memberId])
 }
 
 model KaitaiOperationLog {
