@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Users, Truck,
   AlertTriangle, GanttChart, Building2, Clock, CheckCircle,
+  Plus, X, Check, Trash2,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -34,7 +35,6 @@ type EquipmentRow = {
   status: string;
 };
 
-// Assignment: which member/equipment is assigned to which site on which dates
 type Assignment = {
   id: string;
   resourceType: "member" | "equipment";
@@ -55,37 +55,7 @@ const STATUS_COLOR: Record<string, string> = {
   "完工": "#10B981",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  "施工中": "解体中",
-  "着工前": "着工前",
-  "完工": "完工",
-};
-
-const LICENSE_LABELS: Record<string, string> = {
-  kaitai: "解体施工技士",
-  crane: "クレーン",
-  sekimen: "石綿作業主任者",
-  ashiba: "足場組立主任者",
-  taikei: "大型特殊",
-  tamakake: "玉掛け",
-  futsuu: "普通自動車",
-  sanpai: "産廃収集運搬",
-  shikaku5: "1級土木施工管理技士",
-};
-
-// Required licenses for equipment categories
-const EQUIPMENT_LICENSE_REQ: Record<string, string[]> = {
-  "重機": ["crane", "taikei"],
-  "クレーン": ["crane", "tamakake"],
-  "高所作業車": ["taikei"],
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseDate(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
 
 function fmtDate(d: Date): string {
   const y = d.getFullYear();
@@ -94,10 +64,9 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
+function parseDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
 function daysInMonth(year: number, month: number): number {
@@ -116,23 +85,23 @@ function dateInRange(date: string, start: string, end: string): boolean {
   return date >= start && date <= end;
 }
 
+let _assignId = 0;
+function nextId() { return `a-${Date.now()}-${_assignId++}`; }
+
 // ─── Generate demo assignments from seed data ─────────────────────────────────
 
 function generateAssignments(sites: SiteRow[], members: MemberRow[], equipment: EquipmentRow[]): Assignment[] {
   const assignments: Assignment[] = [];
   let idCounter = 0;
-
   const activeSites = sites.filter(s => s.status === "施工中" || s.status === "着工前");
 
   activeSites.forEach((site, siteIdx) => {
     if (!site.startDate || !site.endDate) return;
-
-    // Assign 2-4 members per site (rotating)
     const memberCount = Math.min(members.length, 2 + (siteIdx % 3));
     for (let i = 0; i < memberCount; i++) {
       const mIdx = (siteIdx * 2 + i) % members.length;
       assignments.push({
-        id: `assign-${idCounter++}`,
+        id: `seed-${idCounter++}`,
         resourceType: "member",
         resourceId: members[mIdx].id,
         siteId: site.id,
@@ -141,13 +110,11 @@ function generateAssignments(sites: SiteRow[], members: MemberRow[], equipment: 
         confirmed: site.status === "施工中",
       });
     }
-
-    // Assign 1-2 equipment per site
     const eqCount = Math.min(equipment.length, 1 + (siteIdx % 2));
     for (let i = 0; i < eqCount; i++) {
       const eIdx = (siteIdx + i) % equipment.length;
       assignments.push({
-        id: `assign-${idCounter++}`,
+        id: `seed-${idCounter++}`,
         resourceType: "equipment",
         resourceId: equipment[eIdx].id,
         siteId: site.id,
@@ -175,13 +142,11 @@ type Conflict = {
 function detectConflicts(assignments: Assignment[], members: MemberRow[], equipment: EquipmentRow[]): Conflict[] {
   const conflicts: Conflict[] = [];
   const byResource = new Map<string, Assignment[]>();
-
   for (const a of assignments) {
     const key = `${a.resourceType}:${a.resourceId}`;
     if (!byResource.has(key)) byResource.set(key, []);
     byResource.get(key)!.push(a);
   }
-
   byResource.forEach((group, key) => {
     if (group.length < 2) return;
     for (let i = 0; i < group.length; i++) {
@@ -193,260 +158,311 @@ function detectConflicts(assignments: Assignment[], members: MemberRow[], equipm
             : equipment.find(e => e.id === id)?.name ?? "不明";
           const overlapStart = group[i].startDate > group[j].startDate ? group[i].startDate : group[j].startDate;
           const overlapEnd = group[i].endDate < group[j].endDate ? group[i].endDate : group[j].endDate;
-          conflicts.push({
-            resourceId: id,
-            resourceType: type as "member" | "equipment",
-            resourceName: name,
-            assignments: [group[i], group[j]],
-            overlapStart,
-            overlapEnd,
-          });
+          conflicts.push({ resourceId: id, resourceType: type as "member" | "equipment", resourceName: name, assignments: [group[i], group[j]], overlapStart, overlapEnd });
         }
       }
     }
   });
-
   return conflicts;
 }
 
-// ─── License warnings ─────────────────────────────────────────────────────────
+// ─── Assignment Input Modal ───────────────────────────────────────────────────
 
-type LicenseWarning = {
-  memberId: string;
-  memberName: string;
-  equipmentName: string;
-  missingLicenses: string[];
-};
-
-function detectLicenseWarnings(
-  assignments: Assignment[],
-  members: MemberRow[],
-  equipment: EquipmentRow[],
-): LicenseWarning[] {
-  const warnings: LicenseWarning[] = [];
-
-  // Find sites where equipment and members overlap
-  const eqAssignments = assignments.filter(a => a.resourceType === "equipment");
-  const memAssignments = assignments.filter(a => a.resourceType === "member");
-
-  for (const ea of eqAssignments) {
-    const eq = equipment.find(e => e.id === ea.resourceId);
-    if (!eq) continue;
-    const requiredLicenses = EQUIPMENT_LICENSE_REQ[eq.category];
-    if (!requiredLicenses) continue;
-
-    // Find members assigned to the same site and overlapping dates
-    const siteMembers = memAssignments.filter(
-      ma => ma.siteId === ea.siteId && rangeOverlaps(ma.startDate, ma.endDate, ea.startDate, ea.endDate)
-    );
-
-    // Check if at least one member has the required licenses
-    const anyQualified = siteMembers.some(ma => {
-      const member = members.find(m => m.id === ma.resourceId);
-      if (!member) return false;
-      return requiredLicenses.every(lic => member.licenses.includes(lic));
-    });
-
-    if (!anyQualified && siteMembers.length > 0) {
-      // Warn about the first member who doesn't have licenses
-      for (const ma of siteMembers) {
-        const member = members.find(m => m.id === ma.resourceId);
-        if (!member) continue;
-        const missing = requiredLicenses.filter(lic => !member.licenses.includes(lic));
-        if (missing.length > 0) {
-          warnings.push({
-            memberId: member.id,
-            memberName: member.name,
-            equipmentName: eq.name,
-            missingLicenses: missing,
-          });
-        }
-      }
-    }
-  }
-
-  return warnings;
-}
-
-// ─── MonthlyCalendarView ──────────────────────────────────────────────────────
-
-function MonthlyCalendarView({
-  year, month, sites, assignments, conflicts,
+function AssignmentModal({
+  sites, members, equipment, onSave, onClose,
 }: {
-  year: number;
-  month: number;
   sites: SiteRow[];
-  assignments: Assignment[];
-  conflicts: Conflict[];
+  members: MemberRow[];
+  equipment: EquipmentRow[];
+  onSave: (assignments: Assignment[]) => void;
+  onClose: () => void;
 }) {
-  const days = daysInMonth(year, month);
-  const firstDay = firstDayOfMonth(year, month);
-  const totalCells = Math.ceil((firstDay + days) / 7) * 7;
+  const [selectedSiteId, setSelectedSiteId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
+  const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(new Set());
+  const [confirmed, setConfirmed] = useState(true);
 
-  const conflictDates = useMemo(() => {
-    const set = new Set<string>();
-    for (const c of conflicts) {
-      let d = parseDate(c.overlapStart);
-      const end = parseDate(c.overlapEnd);
-      while (d <= end) {
-        set.add(fmtDate(d));
-        d = addDays(d, 1);
-      }
+  // Pre-fill dates from site
+  useEffect(() => {
+    if (!selectedSiteId) return;
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (site) {
+      if (site.startDate && !startDate) setStartDate(site.startDate);
+      if (site.endDate && !endDate) setEndDate(site.endDate);
     }
-    return set;
-  }, [conflicts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSiteId]);
 
-  // Which sites are active on each day of the month
-  const sitesPerDay = useMemo(() => {
-    const map = new Map<number, SiteRow[]>();
-    for (let day = 1; day <= days; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const active = sites.filter(s =>
-        s.startDate && s.endDate && dateInRange(dateStr, s.startDate, s.endDate)
-      );
-      map.set(day, active);
+  const activeSites = sites.filter(s => s.status !== "完工");
+
+  const toggleMember = (id: string) => {
+    setSelectedMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleEquipment = (id: string) => {
+    setSelectedEquipment(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllMembers = () => {
+    if (selectedMembers.size === members.length) {
+      setSelectedMembers(new Set());
+    } else {
+      setSelectedMembers(new Set(members.map(m => m.id)));
     }
-    return map;
-  }, [year, month, days, sites]);
+  };
 
-  // Assignments per day (count)
-  const assignCountPerDay = useMemo(() => {
-    const map = new Map<number, number>();
-    for (let day = 1; day <= days; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const count = assignments.filter(a => dateInRange(dateStr, a.startDate, a.endDate)).length;
-      map.set(day, count);
-    }
-    return map;
-  }, [year, month, days, assignments]);
+  const canSave = selectedSiteId && startDate && endDate && (selectedMembers.size > 0 || selectedEquipment.size > 0);
 
-  const today = fmtDate(new Date());
+  const handleSave = () => {
+    if (!canSave) return;
+    const newAssignments: Assignment[] = [];
+    selectedMembers.forEach(memberId => {
+      newAssignments.push({
+        id: nextId(),
+        resourceType: "member",
+        resourceId: memberId,
+        siteId: selectedSiteId,
+        startDate,
+        endDate,
+        confirmed,
+      });
+    });
+    selectedEquipment.forEach(eqId => {
+      newAssignments.push({
+        id: nextId(),
+        resourceType: "equipment",
+        resourceId: eqId,
+        siteId: selectedSiteId,
+        startDate,
+        endDate,
+        confirmed,
+      });
+    });
+    onSave(newAssignments);
+  };
 
   return (
-    <div>
-      {/* Day headers */}
-      <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${T.border}` }}>
-        {DAYS_JA.map((d, i) => (
-          <div
-            key={d}
-            className="text-center py-2"
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: i === 0 ? "#EF4444" : i === 6 ? "#3B82F6" : T.sub,
-            }}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+        style={{ background: "#fff", border: `1px solid ${T.border}` }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text }}>配置を追加</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
+            <X size={20} style={{ color: T.sub }} />
+          </button>
+        </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7">
-        {Array.from({ length: totalCells }, (_, i) => {
-          const day = i - firstDay + 1;
-          const isValid = day >= 1 && day <= days;
-          const dateStr = isValid
-            ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-            : "";
-          const isToday = dateStr === today;
-          const dayOfWeek = i % 7;
-          const activeSites = isValid ? sitesPerDay.get(day) ?? [] : [];
-          const assignCount = isValid ? assignCountPerDay.get(day) ?? 0 : 0;
-          const hasConflict = isValid && conflictDates.has(dateStr);
-
-          return (
-            <div
-              key={i}
-              className="relative"
+        <div className="px-6 py-5 flex flex-col gap-5">
+          {/* Site selection */}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+              現場を選択 <span style={{ color: "#EF4444" }}>*</span>
+            </label>
+            <select
+              value={selectedSiteId}
+              onChange={e => setSelectedSiteId(e.target.value)}
+              className="w-full rounded-xl outline-none"
               style={{
-                minHeight: 90,
-                padding: "4px 6px",
-                borderRight: `1px solid ${T.border}`,
-                borderBottom: `1px solid ${T.border}`,
-                background: !isValid
-                  ? "#F8FAFC"
-                  : hasConflict
-                    ? "rgba(239,68,68,0.06)"
-                    : isToday
-                      ? "rgba(180,83,9,0.04)"
-                      : "#fff",
+                height: 48, fontSize: 14, padding: "0 14px",
+                border: `1px solid ${T.border}`, color: T.text, background: "#fff",
               }}
             >
-              {isValid && (
-                <>
-                  {/* Day number */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className="inline-flex items-center justify-center"
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        fontSize: 13,
-                        fontWeight: isToday ? 800 : 600,
-                        color: isToday
-                          ? "#fff"
-                          : dayOfWeek === 0
-                            ? "#EF4444"
-                            : dayOfWeek === 6
-                              ? "#3B82F6"
-                              : T.text,
-                        background: isToday ? T.primary : "transparent",
-                      }}
-                    >
-                      {day}
-                    </span>
-                    {hasConflict && (
-                      <AlertTriangle size={14} style={{ color: "#EF4444" }} />
-                    )}
-                  </div>
+              <option value="">-- 現場を選択 --</option>
+              {activeSites.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.status === "施工中" ? "🔶" : "🔷"} {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                  {/* Site bars */}
-                  <div className="flex flex-col gap-0.5">
-                    {activeSites.slice(0, 3).map(site => (
-                      <div
-                        key={site.id}
-                        className="truncate rounded px-1"
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          lineHeight: "16px",
-                          color: "#fff",
-                          background: STATUS_COLOR[site.status] ?? T.muted,
-                        }}
-                      >
-                        {site.name}
-                      </div>
-                    ))}
-                    {activeSites.length > 3 && (
-                      <span style={{ fontSize: 10, color: T.sub }}>
-                        +{activeSites.length - 3}件
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Resource count badge */}
-                  {assignCount > 0 && (
-                    <div
-                      className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full px-1.5"
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        background: "rgba(180,83,9,0.1)",
-                        color: T.primary,
-                        lineHeight: "16px",
-                      }}
-                    >
-                      <Users size={9} />
-                      {assignCount}
-                    </div>
-                  )}
-                </>
-              )}
+          {/* Date range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+                開始日 <span style={{ color: "#EF4444" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full rounded-xl outline-none"
+                style={{
+                  height: 48, fontSize: 14, padding: "0 14px",
+                  border: `1px solid ${T.border}`, color: T.text,
+                }}
+              />
             </div>
-          );
-        })}
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+                終了日 <span style={{ color: "#EF4444" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full rounded-xl outline-none"
+                style={{
+                  height: 48, fontSize: 14, padding: "0 14px",
+                  border: `1px solid ${T.border}`, color: T.text,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Confirmed toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setConfirmed(v => !v)}
+              className="flex items-center justify-center rounded-lg"
+              style={{
+                width: 28, height: 28,
+                background: confirmed ? T.primary : "#fff",
+                border: confirmed ? `2px solid ${T.primary}` : `2px solid ${T.border}`,
+              }}
+            >
+              {confirmed && <Check size={16} color="#fff" strokeWidth={3} />}
+            </button>
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>確定済みとして登録</span>
+          </div>
+
+          {/* Member selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                <Users size={14} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />
+                作業員を選択
+                {selectedMembers.size > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: T.primary, marginLeft: 6 }}>
+                    {selectedMembers.size}名選択中
+                  </span>
+                )}
+              </label>
+              <button
+                onClick={selectAllMembers}
+                className="text-xs font-bold px-2 py-1 rounded-lg hover:bg-gray-100"
+                style={{ color: T.primary }}
+              >
+                {selectedMembers.size === members.length ? "全解除" : "全選択"}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5" style={{ maxHeight: 200, overflowY: "auto" }}>
+              {members.map(m => {
+                const selected = selectedMembers.has(m.id);
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => toggleMember(m.id)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
+                    style={{
+                      background: selected ? T.primaryLt : "#F8FAFC",
+                      border: selected ? `1.5px solid ${T.primaryMd}` : `1.5px solid transparent`,
+                    }}
+                  >
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center rounded-full"
+                      style={{
+                        width: 28, height: 28, fontSize: 12, fontWeight: 800,
+                        background: selected ? T.primary : T.border,
+                        color: selected ? "#fff" : T.sub,
+                      }}
+                    >
+                      {selected ? <Check size={14} /> : m.avatar}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{m.name}</span>
+                      <span className="block truncate" style={{ fontSize: 11, color: T.muted }}>{m.role}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Equipment selection */}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+              <Truck size={14} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />
+              機材を選択
+              {selectedEquipment.size > 0 && (
+                <span style={{ fontSize: 12, fontWeight: 600, color: T.primary, marginLeft: 6 }}>
+                  {selectedEquipment.size}台選択中
+                </span>
+              )}
+            </label>
+            <div className="grid grid-cols-2 gap-1.5" style={{ maxHeight: 160, overflowY: "auto" }}>
+              {equipment.map(e => {
+                const selected = selectedEquipment.has(e.id);
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => toggleEquipment(e.id)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
+                    style={{
+                      background: selected ? T.primaryLt : "#F8FAFC",
+                      border: selected ? `1.5px solid ${T.primaryMd}` : `1.5px solid transparent`,
+                    }}
+                  >
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center rounded-lg"
+                      style={{
+                        width: 28, height: 28,
+                        background: selected ? T.primary : T.border,
+                        color: selected ? "#fff" : T.sub,
+                      }}
+                    >
+                      {selected ? <Check size={14} /> : <Truck size={14} />}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{e.name}</span>
+                      <span className="block truncate" style={{ fontSize: 11, color: T.muted }}>{e.category}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4" style={{ borderTop: `1px solid ${T.border}` }}>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold"
+            style={{ border: `1px solid ${T.border}`, color: T.sub }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-colors"
+            style={{
+              background: canSave ? T.primary : T.border,
+              color: canSave ? "#fff" : T.muted,
+            }}
+          >
+            <Check size={16} />
+            配置を登録（{selectedMembers.size + selectedEquipment.size}件）
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -455,7 +471,8 @@ function MonthlyCalendarView({
 // ─── GanttTimelineView ────────────────────────────────────────────────────────
 
 function GanttTimelineView({
-  year, month, sites, members, equipment, assignments, conflicts, licenseWarnings,
+  year, month, sites, members, equipment, assignments, conflicts,
+  onDeleteAssignment,
 }: {
   year: number;
   month: number;
@@ -464,7 +481,7 @@ function GanttTimelineView({
   equipment: EquipmentRow[];
   assignments: Assignment[];
   conflicts: Conflict[];
-  licenseWarnings: LicenseWarning[];
+  onDeleteAssignment: (id: string) => void;
 }) {
   const days = daysInMonth(year, month);
   const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
@@ -476,12 +493,6 @@ function GanttTimelineView({
     for (const c of conflicts) set.add(c.resourceId);
     return set;
   }, [conflicts]);
-
-  const warningMemberIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const w of licenseWarnings) set.add(w.memberId);
-    return set;
-  }, [licenseWarnings]);
 
   const [tab, setTab] = useState<"member" | "equipment">("member");
 
@@ -503,7 +514,6 @@ function GanttTimelineView({
 
   return (
     <div>
-      {/* Sub-tabs: Member / Equipment */}
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setTab("member")}
@@ -531,15 +541,11 @@ function GanttTimelineView({
         </button>
       </div>
 
-      {/* Gantt chart */}
       <div className="overflow-x-auto" style={{ border: `1px solid ${T.border}`, borderRadius: T.cardRadius }}>
         <div style={{ minWidth: LABEL_W + COL_W * days }}>
-          {/* Header: dates */}
+          {/* Header */}
           <div className="flex" style={{ borderBottom: `1px solid ${T.border}`, background: "#F8FAFC" }}>
-            <div
-              className="flex-shrink-0 flex items-center px-3"
-              style={{ width: LABEL_W, borderRight: `1px solid ${T.border}`, fontSize: 12, fontWeight: 700, color: T.sub }}
-            >
+            <div className="flex-shrink-0 flex items-center px-3" style={{ width: LABEL_W, borderRight: `1px solid ${T.border}`, fontSize: 12, fontWeight: 700, color: T.sub }}>
               {tab === "member" ? "作業員" : "機材"}
             </div>
             {Array.from({ length: days }, (_, i) => {
@@ -549,95 +555,38 @@ function GanttTimelineView({
               const dow = d.getDay();
               const isToday = dateStr === today;
               const isWeekend = dow === 0 || dow === 6;
-
               return (
-                <div
-                  key={day}
-                  className="flex-shrink-0 flex flex-col items-center justify-center"
-                  style={{
-                    width: COL_W,
-                    height: 44,
-                    borderRight: `1px solid ${T.border}`,
-                    background: isToday ? "rgba(180,83,9,0.08)" : isWeekend ? "#F1F5F9" : "transparent",
-                  }}
-                >
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: dow === 0 ? "#EF4444" : dow === 6 ? "#3B82F6" : T.muted,
-                  }}>
-                    {DAYS_JA[dow]}
-                  </span>
-                  <span style={{
-                    fontSize: 13,
-                    fontWeight: isToday ? 800 : 600,
-                    color: isToday ? T.primary : T.text,
-                  }}>
-                    {day}
-                  </span>
+                <div key={day} className="flex-shrink-0 flex flex-col items-center justify-center" style={{ width: COL_W, height: 44, borderRight: `1px solid ${T.border}`, background: isToday ? "rgba(180,83,9,0.08)" : isWeekend ? "#F1F5F9" : "transparent" }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: dow === 0 ? "#EF4444" : dow === 6 ? "#3B82F6" : T.muted }}>{DAYS_JA[dow]}</span>
+                  <span style={{ fontSize: 13, fontWeight: isToday ? 800 : 600, color: isToday ? T.primary : T.text }}>{day}</span>
                 </div>
               );
             })}
           </div>
 
-          {/* Rows: resources */}
+          {/* Rows */}
           {resources.map(resource => {
             const rowAssignments = resourceAssignments(resource.id);
             const hasConflict = conflictResourceIds.has(resource.id);
-            const hasWarning = tab === "member" && warningMemberIds.has(resource.id);
-
             return (
-              <div
-                key={resource.id}
-                className="flex"
-                style={{
-                  borderBottom: `1px solid ${T.border}`,
-                  background: hasConflict ? "rgba(239,68,68,0.04)" : "#fff",
-                }}
-              >
-                {/* Label */}
-                <div
-                  className="flex-shrink-0 flex items-center gap-2 px-3 py-2"
-                  style={{ width: LABEL_W, borderRight: `1px solid ${T.border}` }}
-                >
+              <div key={resource.id} className="flex" style={{ borderBottom: `1px solid ${T.border}`, background: hasConflict ? "rgba(239,68,68,0.04)" : "#fff" }}>
+                <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2" style={{ width: LABEL_W, borderRight: `1px solid ${T.border}` }}>
                   {tab === "member" && resource.avatar && (
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center rounded-full"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background: hasConflict ? "rgba(239,68,68,0.15)" : T.primaryLt,
-                        color: hasConflict ? "#EF4444" : T.primary,
-                      }}
-                    >
+                    <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 28, height: 28, fontSize: 12, fontWeight: 800, background: hasConflict ? "rgba(239,68,68,0.15)" : T.primaryLt, color: hasConflict ? "#EF4444" : T.primary }}>
                       {resource.avatar}
                     </div>
                   )}
-                  {tab === "equipment" && (
-                    <Truck
-                      size={16}
-                      style={{ color: hasConflict ? "#EF4444" : T.muted, flexShrink: 0 }}
-                    />
-                  )}
+                  {tab === "equipment" && <Truck size={16} style={{ color: hasConflict ? "#EF4444" : T.muted, flexShrink: 0 }} />}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1">
-                      <span className="truncate" style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
-                        {resource.name}
-                      </span>
+                      <span className="truncate" style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{resource.name}</span>
                       {hasConflict && <AlertTriangle size={12} style={{ color: "#EF4444", flexShrink: 0 }} />}
-                      {hasWarning && <AlertTriangle size={12} style={{ color: "#F59E0B", flexShrink: 0 }} />}
                     </div>
-                    <span className="truncate block" style={{ fontSize: 11, color: T.sub }}>
-                      {resource.sub}
-                    </span>
+                    <span className="truncate block" style={{ fontSize: 11, color: T.sub }}>{resource.sub}</span>
                   </div>
                 </div>
 
-                {/* Timeline cells */}
                 <div className="flex-1 relative" style={{ height: 52 }}>
-                  {/* Day columns (background) */}
                   <div className="absolute inset-0 flex">
                     {Array.from({ length: days }, (_, i) => {
                       const day = i + 1;
@@ -646,68 +595,36 @@ function GanttTimelineView({
                       const dow = d.getDay();
                       const isToday = dateStr === today;
                       const isWeekend = dow === 0 || dow === 6;
-
-                      return (
-                        <div
-                          key={day}
-                          className="flex-shrink-0"
-                          style={{
-                            width: COL_W,
-                            height: "100%",
-                            borderRight: `1px solid ${T.border}`,
-                            background: isToday
-                              ? "rgba(180,83,9,0.06)"
-                              : isWeekend
-                                ? "rgba(241,245,249,0.5)"
-                                : "transparent",
-                          }}
-                        />
-                      );
+                      return <div key={day} className="flex-shrink-0" style={{ width: COL_W, height: "100%", borderRight: `1px solid ${T.border}`, background: isToday ? "rgba(180,83,9,0.06)" : isWeekend ? "rgba(241,245,249,0.5)" : "transparent" }} />;
                     })}
                   </div>
 
-                  {/* Assignment bars */}
                   {rowAssignments.map(a => {
                     const site = sites.find(s => s.id === a.siteId);
                     if (!site) return null;
-
                     const barStart = a.startDate < monthStart ? monthStart : a.startDate;
                     const barEnd = a.endDate > monthEnd ? monthEnd : a.endDate;
                     const startDay = parseDate(barStart).getDate();
                     const endDay = parseDate(barEnd).getDate();
                     const left = (startDay - 1) * COL_W + 2;
                     const width = (endDay - startDay + 1) * COL_W - 4;
-
-                    const isConflictBar = hasConflict && conflictResourceIds.has(resource.id);
-                    const barColor = isConflictBar
-                      ? "#EF4444"
-                      : a.confirmed
-                        ? STATUS_COLOR[site.status] ?? T.primary
-                        : "#CBD5E1";
-
+                    const isConflictBar = hasConflict;
+                    const barColor = isConflictBar ? "#EF4444" : a.confirmed ? STATUS_COLOR[site.status] ?? T.primary : "#CBD5E1";
                     return (
                       <div
                         key={a.id}
-                        className="absolute truncate rounded"
-                        style={{
-                          left,
-                          width: Math.max(width, 20),
-                          top: 10,
-                          height: 32,
-                          background: barColor,
-                          opacity: a.confirmed ? 1 : 0.7,
-                          color: a.confirmed ? "#fff" : T.text,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          lineHeight: "32px",
-                          paddingLeft: 8,
-                          paddingRight: 4,
-                          border: isConflictBar ? "2px solid #EF4444" : "none",
-                          boxShadow: isConflictBar ? "0 0 0 2px rgba(239,68,68,0.2)" : "none",
-                        }}
+                        className="absolute truncate rounded group"
+                        style={{ left, width: Math.max(width, 20), top: 10, height: 32, background: barColor, opacity: a.confirmed ? 1 : 0.7, color: a.confirmed ? "#fff" : T.text, fontSize: 11, fontWeight: 700, lineHeight: "32px", paddingLeft: 8, paddingRight: 24, border: isConflictBar ? "2px solid #EF4444" : "none" }}
                         title={`${site.name}（${a.startDate} 〜 ${a.endDate}）`}
                       >
                         {site.name}
+                        <button
+                          onClick={() => onDeleteAssignment(a.id)}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex items-center justify-center"
+                          style={{ width: 20, height: 20, background: "rgba(0,0,0,0.3)" }}
+                        >
+                          <X size={12} color="#fff" />
+                        </button>
                       </div>
                     );
                   })}
@@ -716,7 +633,6 @@ function GanttTimelineView({
             );
           })}
 
-          {/* Empty state */}
           {resources.length === 0 && (
             <div className="py-12 text-center" style={{ color: T.sub, fontSize: 14 }}>
               {tab === "member" ? "作業員データがありません" : "機材データがありません"}
@@ -728,78 +644,119 @@ function GanttTimelineView({
   );
 }
 
-// ─── Alerts Panel ─────────────────────────────────────────────────────────────
+// ─── MonthlyCalendarView ──────────────────────────────────────────────────────
 
-function AlertsPanel({
-  conflicts, licenseWarnings, sites,
+function MonthlyCalendarView({
+  year, month, sites, assignments, conflicts,
 }: {
-  conflicts: Conflict[];
-  licenseWarnings: LicenseWarning[];
+  year: number;
+  month: number;
   sites: SiteRow[];
+  assignments: Assignment[];
+  conflicts: Conflict[];
 }) {
-  if (conflicts.length === 0 && licenseWarnings.length === 0) return null;
+  const days = daysInMonth(year, month);
+  const firstDay = firstDayOfMonth(year, month);
+  const totalCells = Math.ceil((firstDay + days) / 7) * 7;
+  const today = fmtDate(new Date());
+
+  const conflictDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of conflicts) {
+      let d = parseDate(c.overlapStart);
+      const end = parseDate(c.overlapEnd);
+      while (d <= end) { set.add(fmtDate(d)); d = new Date(d.getTime() + 86400000); }
+    }
+    return set;
+  }, [conflicts]);
+
+  const sitesPerDay = useMemo(() => {
+    const map = new Map<number, SiteRow[]>();
+    for (let day = 1; day <= days; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      map.set(day, sites.filter(s => s.startDate && s.endDate && dateInRange(dateStr, s.startDate, s.endDate)));
+    }
+    return map;
+  }, [year, month, days, sites]);
+
+  const assignCountPerDay = useMemo(() => {
+    const map = new Map<number, number>();
+    for (let day = 1; day <= days; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      map.set(day, assignments.filter(a => dateInRange(dateStr, a.startDate, a.endDate)).length);
+    }
+    return map;
+  }, [year, month, days, assignments]);
 
   return (
-    <div
-      className="rounded-xl p-4"
-      style={{
-        background: conflicts.length > 0 ? "rgba(239,68,68,0.06)" : "rgba(245,158,11,0.06)",
-        border: `1px solid ${conflicts.length > 0 ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)"}`,
-      }}
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <AlertTriangle
-          size={16}
-          style={{ color: conflicts.length > 0 ? "#EF4444" : "#F59E0B" }}
-        />
-        <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>
-          注意事項（{conflicts.length + licenseWarnings.length}件）
-        </span>
+    <div>
+      <div className="grid grid-cols-7" style={{ borderBottom: `1px solid ${T.border}` }}>
+        {DAYS_JA.map((d, i) => (
+          <div key={d} className="text-center py-2" style={{ fontSize: 12, fontWeight: 700, color: i === 0 ? "#EF4444" : i === 6 ? "#3B82F6" : T.sub }}>{d}</div>
+        ))}
       </div>
-
-      <div className="flex flex-col gap-2">
-        {/* Double-booking conflicts */}
-        {conflicts.map((c, i) => {
-          const siteNames = c.assignments
-            .map(a => sites.find(s => s.id === a.siteId)?.name ?? "不明")
-            .join("、");
+      <div className="grid grid-cols-7">
+        {Array.from({ length: totalCells }, (_, i) => {
+          const day = i - firstDay + 1;
+          const isValid = day >= 1 && day <= days;
+          const dateStr = isValid ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "";
+          const isToday = dateStr === today;
+          const dayOfWeek = i % 7;
+          const activeSites = isValid ? sitesPerDay.get(day) ?? [] : [];
+          const assignCount = isValid ? assignCountPerDay.get(day) ?? 0 : 0;
+          const hasConflict = isValid && conflictDates.has(dateStr);
           return (
-            <div
-              key={`conflict-${i}`}
-              className="flex items-start gap-2 rounded-lg p-3"
-              style={{ background: "#fff", border: `1px solid ${T.border}` }}
-            >
+            <div key={i} className="relative" style={{ minHeight: 90, padding: "4px 6px", borderRight: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: !isValid ? "#F8FAFC" : hasConflict ? "rgba(239,68,68,0.06)" : isToday ? "rgba(180,83,9,0.04)" : "#fff" }}>
+              {isValid && (
+                <>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="inline-flex items-center justify-center" style={{ width: 24, height: 24, borderRadius: 12, fontSize: 13, fontWeight: isToday ? 800 : 600, color: isToday ? "#fff" : dayOfWeek === 0 ? "#EF4444" : dayOfWeek === 6 ? "#3B82F6" : T.text, background: isToday ? T.primary : "transparent" }}>{day}</span>
+                    {hasConflict && <AlertTriangle size={14} style={{ color: "#EF4444" }} />}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {activeSites.slice(0, 3).map(site => (
+                      <div key={site.id} className="truncate rounded px-1" style={{ fontSize: 10, fontWeight: 600, lineHeight: "16px", color: "#fff", background: STATUS_COLOR[site.status] ?? T.muted }}>{site.name}</div>
+                    ))}
+                    {activeSites.length > 3 && <span style={{ fontSize: 10, color: T.sub }}>+{activeSites.length - 3}件</span>}
+                  </div>
+                  {assignCount > 0 && (
+                    <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full px-1.5" style={{ fontSize: 10, fontWeight: 700, background: "rgba(180,83,9,0.1)", color: T.primary, lineHeight: "16px" }}>
+                      <Users size={9} />{assignCount}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Alerts Panel ─────────────────────────────────────────────────────────────
+
+function AlertsPanel({ conflicts, sites }: { conflicts: Conflict[]; sites: SiteRow[] }) {
+  if (conflicts.length === 0) return null;
+  return (
+    <div className="rounded-xl p-4" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle size={16} style={{ color: "#EF4444" }} />
+        <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>二重配置の警告（{conflicts.length}件）</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {conflicts.map((c, i) => {
+          const siteNames = c.assignments.map(a => sites.find(s => s.id === a.siteId)?.name ?? "不明").join("、");
+          return (
+            <div key={i} className="flex items-start gap-2 rounded-lg p-3" style={{ background: "#fff", border: `1px solid ${T.border}` }}>
               <AlertTriangle size={14} style={{ color: "#EF4444", marginTop: 2, flexShrink: 0 }} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>
-                  二重配置：{c.resourceName}
-                </p>
-                <p style={{ fontSize: 12, color: T.sub }}>
-                  {c.overlapStart.replace(/-/g, "/")} 〜 {c.overlapEnd.replace(/-/g, "/")} に {siteNames} で重複
-                </p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>二重配置：{c.resourceName}</p>
+                <p style={{ fontSize: 12, color: T.sub }}>{c.overlapStart.replace(/-/g, "/")} 〜 {c.overlapEnd.replace(/-/g, "/")} に {siteNames} で重複</p>
               </div>
             </div>
           );
         })}
-
-        {/* License warnings */}
-        {licenseWarnings.map((w, i) => (
-          <div
-            key={`warn-${i}`}
-            className="flex items-start gap-2 rounded-lg p-3"
-            style={{ background: "#fff", border: `1px solid ${T.border}` }}
-          >
-            <AlertTriangle size={14} style={{ color: "#F59E0B", marginTop: 2, flexShrink: 0 }} />
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E" }}>
-                資格不足：{w.memberName}
-              </p>
-              <p style={{ fontSize: 12, color: T.sub }}>
-                {w.equipmentName} 操作に必要：{w.missingLicenses.map(l => LICENSE_LABELS[l] ?? l).join("、")}
-              </p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -811,15 +768,15 @@ export default function AdminCalendarPage() {
   const [sites, setSites] = useState<SiteRow[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeded, setSeeded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  // Current view month
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-
-  // View mode
-  const [viewMode, setViewMode] = useState<"calendar" | "timeline">("calendar");
+  const [viewMode, setViewMode] = useState<"calendar" | "timeline">("timeline");
 
   // Fetch data
   useEffect(() => {
@@ -830,63 +787,47 @@ export default function AdminCalendarPage() {
     ])
       .then(([sitesData, membersData, eqData]) => {
         if (sitesData?.sites) {
-          setSites(
-            sitesData.sites.map((s: Record<string, unknown>) => ({
-              id: s.id as string,
-              name: s.name as string,
-              status: (s.status as string) ?? "着工前",
-              startDate: (s.startDate as string) ?? "",
-              endDate: (s.endDate as string) ?? "",
-              structureType: (s.structureType as string) ?? "",
-            }))
-          );
+          setSites(sitesData.sites.map((s: Record<string, unknown>) => ({
+            id: s.id as string, name: s.name as string, status: (s.status as string) ?? "着工前",
+            startDate: (s.startDate as string) ?? "", endDate: (s.endDate as string) ?? "",
+            structureType: (s.structureType as string) ?? "",
+          })));
         }
         if (membersData?.members) {
-          setMembers(
-            membersData.members.map((m: Record<string, unknown>) => ({
-              id: m.id as string,
-              name: m.name as string,
-              role: (m.role as string) ?? "",
-              licenses: (m.licenses as string[]) ?? [],
-              avatar: ((m.name as string) ?? "").charAt(0),
-            }))
-          );
+          setMembers(membersData.members.map((m: Record<string, unknown>) => ({
+            id: m.id as string, name: m.name as string, role: (m.role as string) ?? "",
+            licenses: (m.licenses as string[]) ?? [], avatar: ((m.name as string) ?? "").charAt(0),
+          })));
         }
         if (eqData?.equipment) {
-          setEquipment(
-            eqData.equipment.map((e: Record<string, unknown>) => ({
-              id: e.id as string,
-              name: e.name as string,
-              category: (e.category as string) ?? "",
-              type: (e.type as string) ?? "",
-              status: (e.status as string) ?? "待機中",
-            }))
-          );
+          setEquipment(eqData.equipment.map((e: Record<string, unknown>) => ({
+            id: e.id as string, name: e.name as string, category: (e.category as string) ?? "",
+            type: (e.type as string) ?? "", status: (e.status as string) ?? "待機中",
+          })));
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  // Generate assignments
-  const assignments = useMemo(
-    () => generateAssignments(sites, members, equipment),
-    [sites, members, equipment],
-  );
+  // Generate seed assignments once data is loaded
+  useEffect(() => {
+    if (seeded || sites.length === 0 || members.length === 0) return;
+    setAssignments(generateAssignments(sites, members, equipment));
+    setSeeded(true);
+  }, [sites, members, equipment, seeded]);
 
-  // Detect conflicts
-  const conflicts = useMemo(
-    () => detectConflicts(assignments, members, equipment),
-    [assignments, members, equipment],
-  );
+  const conflicts = useMemo(() => detectConflicts(assignments, members, equipment), [assignments, members, equipment]);
 
-  // Detect license warnings
-  const licenseWarnings = useMemo(
-    () => detectLicenseWarnings(assignments, members, equipment),
-    [assignments, members, equipment],
-  );
+  const handleAddAssignments = useCallback((newAssignments: Assignment[]) => {
+    setAssignments(prev => [...prev, ...newAssignments]);
+    setShowModal(false);
+  }, []);
 
-  // Nav
+  const handleDeleteAssignment = useCallback((id: string) => {
+    setAssignments(prev => prev.filter(a => a.id !== id));
+  }, []);
+
   const goMonth = (delta: number) => {
     let m = month + delta;
     let y = year;
@@ -896,55 +837,44 @@ export default function AdminCalendarPage() {
     setYear(y);
   };
 
-  const goToday = () => {
-    const n = new Date();
-    setYear(n.getFullYear());
-    setMonth(n.getMonth());
-  };
+  const goToday = () => { const n = new Date(); setYear(n.getFullYear()); setMonth(n.getMonth()); };
 
-  // Summary stats
   const activeSiteCount = sites.filter(s => s.status === "施工中").length;
   const upcomingSiteCount = sites.filter(s => s.status === "着工前").length;
-  const assignedMemberCount = new Set(
-    assignments.filter(a => a.resourceType === "member").map(a => a.resourceId)
-  ).size;
+  const assignedMemberCount = new Set(assignments.filter(a => a.resourceType === "member").map(a => a.resourceId)).size;
 
   if (loading) {
-    return (
-      <div className="py-20 text-center" style={{ color: T.sub }}>
-        読み込み中...
-      </div>
-    );
+    return <div className="py-20 text-center" style={{ color: T.sub }}>読み込み中...</div>;
   }
 
   return (
     <div className="py-6 flex flex-col gap-5">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>
-            スケジュール管理
-          </h1>
-          <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>
-            現場・リソースのカレンダー管理
-          </p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>スケジュール管理</h1>
+          <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>現場・リソースの配置管理</p>
         </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
+          style={{ background: T.primary, color: "#fff", fontSize: 15 }}
+        >
+          <Plus size={18} strokeWidth={3} />
+          配置を追加
+        </button>
       </div>
 
-      {/* ── Summary cards ── */}
+      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "解体中", value: activeSiteCount, unit: "件", color: T.primary, icon: Building2 },
           { label: "着工前", value: upcomingSiteCount, unit: "件", color: "#3B82F6", icon: Clock },
-          { label: "配置済み作業員", value: assignedMemberCount, unit: "名", color: "#10B981", icon: Users },
-          { label: "注意事項", value: conflicts.length + licenseWarnings.length, unit: "件", color: conflicts.length > 0 ? "#EF4444" : "#F59E0B", icon: AlertTriangle },
+          { label: "配置済み", value: assignedMemberCount, unit: "名", color: "#10B981", icon: Users },
+          { label: "二重配置", value: conflicts.length, unit: "件", color: conflicts.length > 0 ? "#EF4444" : T.muted, icon: AlertTriangle },
         ].map(card => (
-          <div
-            key={card.label}
-            className="px-4 py-3 rounded-xl"
-            style={{ background: "#fff", border: `1px solid ${T.border}` }}
-          >
+          <div key={card.label} className="px-4 py-3 rounded-xl" style={{ background: "#fff", border: `1px solid ${T.border}` }}>
             <div className="flex items-center gap-2 mb-1">
               <card.icon size={14} style={{ color: card.color }} />
               <span style={{ fontSize: 12, color: T.sub }}>{card.label}</span>
@@ -956,99 +886,44 @@ export default function AdminCalendarPage() {
         ))}
       </div>
 
-      {/* ── Alerts ── */}
-      <AlertsPanel conflicts={conflicts} licenseWarnings={licenseWarnings} sites={sites} />
+      {/* Alerts */}
+      <AlertsPanel conflicts={conflicts} sites={sites} />
 
-      {/* ── Month Nav + View Toggle ── */}
+      {/* Month Nav + View Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => goMonth(-1)}
-            className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            style={{ width: 36, height: 36, border: `1px solid ${T.border}` }}
-          >
+          <button onClick={() => goMonth(-1)} className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100" style={{ width: 36, height: 36, border: `1px solid ${T.border}` }}>
             <ChevronLeft size={18} style={{ color: T.sub }} />
           </button>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: T.text, minWidth: 140, textAlign: "center" }}>
-            {year}年{month + 1}月
-          </h2>
-          <button
-            onClick={() => goMonth(1)}
-            className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            style={{ width: 36, height: 36, border: `1px solid ${T.border}` }}
-          >
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: T.text, minWidth: 140, textAlign: "center" }}>{year}年{month + 1}月</h2>
+          <button onClick={() => goMonth(1)} className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100" style={{ width: 36, height: 36, border: `1px solid ${T.border}` }}>
             <ChevronRight size={18} style={{ color: T.sub }} />
           </button>
-          <button
-            onClick={goToday}
-            className="px-3 py-1.5 rounded-lg text-sm font-bold transition-colors hover:bg-gray-100"
-            style={{ border: `1px solid ${T.border}`, color: T.primary }}
-          >
-            今日
-          </button>
+          <button onClick={goToday} className="px-3 py-1.5 rounded-lg text-sm font-bold transition-colors hover:bg-gray-100" style={{ border: `1px solid ${T.border}`, color: T.primary }}>今日</button>
         </div>
-
         <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-          <button
-            onClick={() => setViewMode("calendar")}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-colors"
-            style={{
-              background: viewMode === "calendar" ? T.primary : "#fff",
-              color: viewMode === "calendar" ? "#fff" : T.sub,
-              borderRight: `1px solid ${T.border}`,
-            }}
-          >
-            <CalendarDays size={14} />
-            カレンダー
+          <button onClick={() => setViewMode("calendar")} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-colors" style={{ background: viewMode === "calendar" ? T.primary : "#fff", color: viewMode === "calendar" ? "#fff" : T.sub, borderRight: `1px solid ${T.border}` }}>
+            <CalendarDays size={14} />カレンダー
           </button>
-          <button
-            onClick={() => setViewMode("timeline")}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-colors"
-            style={{
-              background: viewMode === "timeline" ? T.primary : "#fff",
-              color: viewMode === "timeline" ? "#fff" : T.sub,
-            }}
-          >
-            <GanttChart size={14} />
-            タイムライン
+          <button onClick={() => setViewMode("timeline")} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-colors" style={{ background: viewMode === "timeline" ? T.primary : "#fff", color: viewMode === "timeline" ? "#fff" : T.sub }}>
+            <GanttChart size={14} />タイムライン
           </button>
         </div>
       </div>
 
-      {/* ── View Content ── */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ background: "#fff", border: `1px solid ${T.border}` }}
-      >
+      {/* View Content */}
+      <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: `1px solid ${T.border}` }}>
         {viewMode === "calendar" ? (
-          <MonthlyCalendarView
-            year={year}
-            month={month}
-            sites={sites}
-            assignments={assignments}
-            conflicts={conflicts}
-          />
+          <MonthlyCalendarView year={year} month={month} sites={sites} assignments={assignments} conflicts={conflicts} />
         ) : (
           <div className="p-4">
-            <GanttTimelineView
-              year={year}
-              month={month}
-              sites={sites}
-              members={members}
-              equipment={equipment}
-              assignments={assignments}
-              conflicts={conflicts}
-              licenseWarnings={licenseWarnings}
-            />
+            <GanttTimelineView year={year} month={month} sites={sites} members={members} equipment={equipment} assignments={assignments} conflicts={conflicts} onDeleteAssignment={handleDeleteAssignment} />
           </div>
         )}
       </div>
 
-      {/* ── Legend ── */}
-      <div
-        className="flex items-center flex-wrap gap-4 px-4 py-3 rounded-xl"
-        style={{ background: "#F8FAFC", border: `1px solid ${T.border}` }}
-      >
+      {/* Legend */}
+      <div className="flex items-center flex-wrap gap-4 px-4 py-3 rounded-xl" style={{ background: "#F8FAFC", border: `1px solid ${T.border}` }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: T.sub }}>凡例：</span>
         {[
           { label: "解体中（確定）", color: T.primary },
@@ -1062,6 +937,17 @@ export default function AdminCalendarPage() {
           </div>
         ))}
       </div>
+
+      {/* Assignment Modal */}
+      {showModal && (
+        <AssignmentModal
+          sites={sites}
+          members={members}
+          equipment={equipment}
+          onSave={handleAddAssignments}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }

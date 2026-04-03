@@ -17,16 +17,16 @@ const ADMIN_NAV = [
   { href: "/kaitai/admin",            label: "経営分析",       icon: TrendingUp,   exact: true  },
   { href: "/kaitai/admin/projects",   label: "プロジェクト収支", icon: BarChart2,    exact: false },
   { href: "/kaitai/admin/evaluation", label: "作業評価",       icon: Star,         exact: false },
-  { href: "/kaitai/admin/calendar",   label: "スケジュール管理", icon: CalendarDays, exact: false },
 ] as const;
 
 const EXTERNAL_NAV = [
-  { href: "/kaitai/admin/sites",     label: "現場管理",   icon: Building2 },
-  { href: "/kaitai/admin/members",   label: "従業員管理", icon: Users    },
-  { href: "/kaitai/admin/equipment", label: "機材管理",   icon: Truck    },
-  { href: "/kaitai/admin/docs",      label: "帳票出力",   icon: LayoutDashboard },
-  { href: "/kaitai/admin/clients",   label: "元請け管理", icon: Settings },
-  { href: "/kaitai/admin/master",    label: "設定・権限", icon: Settings },
+  { href: "/kaitai/admin/sites",     label: "現場管理",       icon: Building2 },
+  { href: "/kaitai/admin/calendar",  label: "スケジュール管理", icon: CalendarDays },
+  { href: "/kaitai/admin/members",   label: "従業員管理",     icon: Users    },
+  { href: "/kaitai/admin/equipment", label: "機材管理",       icon: Truck    },
+  { href: "/kaitai/admin/docs",      label: "帳票出力",       icon: LayoutDashboard },
+  { href: "/kaitai/admin/clients",   label: "元請け管理",     icon: Settings },
+  { href: "/kaitai/admin/master",    label: "設定・権限",     icon: Settings },
 ] as const;
 
 const PAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
