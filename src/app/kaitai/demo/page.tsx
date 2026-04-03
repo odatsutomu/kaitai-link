@@ -4,18 +4,18 @@ import Link from "next/link";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:        "#FAFAFA",
+  bg:        "#F9FAFB",
   bgCard:    "#FFFFFF",
-  bgMuted:   "#F1F5F9",
-  border:    "#E2E8F0",
-  borderOr:  "#FED7AA",
-  orange:    "#F97316",
-  orangeL:   "#FB923C",
-  orangeBg:  "#FFF7ED",
-  textPri:   "#0F172A",
-  textSub:   "#475569",
-  textMuted: "#94A3B8",
-  green:     "#16A34A",
+  bgMuted:   "#F3F4F6",
+  border:    "#E5E7EB",
+  rustBdr:   "rgba(154,52,18,0.2)",
+  rust:      "#9A3412",
+  rustMd:    "#B45309",
+  rustLt:    "rgba(154,52,18,0.08)",
+  text:      "#111827",
+  sub:       "#6B7280",
+  muted:     "#9CA3AF",
+  green:     "#059669",
 } as const;
 
 // ─── Feature card data ────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ const features = [
 
 export default function DemoPage() {
   return (
-    <div style={{ background: C.bg, minHeight: "100dvh", fontFamily: "'Noto Sans JP', sans-serif", color: C.textPri }}>
+    <div style={{ background: C.bg, minHeight: "100dvh", fontFamily: "'Noto Sans JP', sans-serif", color: C.text }}>
 
       {/* ── Fixed Header ──────────────────────────────────────────────────── */}
       <header style={{
@@ -86,21 +86,21 @@ export default function DemoPage() {
       }}>
         {/* Left: back link */}
         <Link href="/kaitai/lp" style={{
-          fontSize: 13, color: C.textMuted,
+          fontSize: 13, color: C.muted,
           textDecoration: "none", fontWeight: 500,
           display: "flex", alignItems: "center", gap: 4,
           whiteSpace: "nowrap",
           flexShrink: 0,
         }}>
-          ← 解体LINK LP
+          ← 解体LINK
         </Link>
 
         {/* Center: badge */}
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <span style={{
-            background: "rgba(249,115,22,0.12)",
-            border: `1px solid rgba(249,115,22,0.3)`,
-            color: C.orange,
+            background: C.rustLt,
+            border: `1px solid ${C.rustBdr}`,
+            color: C.rust,
             fontSize: 12, fontWeight: 800,
             padding: "4px 14px", borderRadius: 99,
             letterSpacing: "0.04em",
@@ -113,29 +113,27 @@ export default function DemoPage() {
         {/* Right: CTA */}
         <Link href="/kaitai/signup" style={{
           fontSize: 12, fontWeight: 700,
-          color: C.orange,
-          border: `1.5px solid ${C.orange}`,
-          padding: "6px 14px", borderRadius: 8,
+          color: "#fff",
+          background: C.rust,
+          padding: "7px 14px", borderRadius: 8,
           textDecoration: "none",
           whiteSpace: "nowrap",
           flexShrink: 0,
         }}>
-          本番を始める
+          無料で試してみる
         </Link>
       </header>
 
-      {/* ── Demo Banner ───────────────────────────────────────────────────── */}
+      {/* ── Demo notice bar ────────────────────────────────────────────────── */}
       <div style={{
         marginTop: 56,
-        background: `linear-gradient(135deg, #C2410C, ${C.orange}, ${C.orangeL})`,
-        padding: "18px 24px",
+        background: "#F3F4F6",
+        borderBottom: `1px solid ${C.border}`,
+        padding: "12px 24px",
         textAlign: "center",
       }}>
-        <p style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
-          これはデモ環境です。すべての機能を自由にお試しいただけます。
-        </p>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
-          データはリセットされません。本番環境では自社データで管理できます。
+        <p style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>
+          これはデモ環境です。すべての機能を自由にお試しいただけます。データはリセットされません。
         </p>
       </div>
 
@@ -145,14 +143,14 @@ export default function DemoPage() {
         {/* Hero */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <h1 style={{
-            fontSize: "clamp(26px, 5vw, 40px)",
-            fontWeight: 900, color: C.textPri,
+            fontSize: "clamp(24px, 5vw, 36px)",
+            fontWeight: 900, color: C.text,
             marginBottom: 14, letterSpacing: "-0.03em",
             lineHeight: 1.2,
           }}>
             解体LINKを体験する
           </h1>
-          <p style={{ fontSize: 16, color: C.textSub, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 16, color: C.sub, lineHeight: 1.7 }}>
             現場報告から帳票出力まで、実際に触って確かめてください。
           </p>
         </div>
@@ -168,21 +166,20 @@ export default function DemoPage() {
             <div key={f.href} style={{
               background: C.bgCard,
               border: `1px solid ${C.border}`,
-              borderRadius: 16,
-              padding: "28px 24px",
+              borderRadius: 12,
+              padding: "24px 20px",
               display: "flex", flexDirection: "column",
               gap: 0,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}>
               {/* Emoji + admin badge */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-                <span style={{ fontSize: 40 }}>{f.emoji}</span>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ fontSize: 36 }}>{f.emoji}</span>
                 {f.adminRequired && (
                   <span style={{
                     fontSize: 10, fontWeight: 800,
-                    color: C.orange,
-                    background: C.orangeBg,
-                    border: `1px solid ${C.borderOr}`,
+                    color: C.rust,
+                    background: C.rustLt,
+                    border: `1px solid ${C.rustBdr}`,
                     padding: "2px 8px", borderRadius: 99,
                     letterSpacing: "0.04em",
                     whiteSpace: "nowrap",
@@ -192,18 +189,18 @@ export default function DemoPage() {
                 )}
               </div>
 
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.textPri, marginBottom: 8, lineHeight: 1.3 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 6, lineHeight: 1.3 }}>
                 {f.name}
               </div>
-              <div style={{ fontSize: 14, color: C.textSub, lineHeight: 1.65, marginBottom: f.note ? 10 : 20 }}>
+              <div style={{ fontSize: 14, color: C.sub, lineHeight: 1.65, marginBottom: f.note ? 10 : 20 }}>
                 {f.desc}
               </div>
 
               {f.note && (
                 <div style={{
-                  fontSize: 12, color: C.orange,
-                  background: C.orangeBg,
-                  border: `1px solid ${C.borderOr}`,
+                  fontSize: 12, color: C.rust,
+                  background: C.rustLt,
+                  border: `1px solid ${C.rustBdr}`,
                   borderRadius: 8,
                   padding: "7px 11px",
                   marginBottom: 16,
@@ -216,14 +213,11 @@ export default function DemoPage() {
               <div style={{ marginTop: "auto" }}>
                 <Link href={f.href} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  background: f.adminRequired
-                    ? C.orangeBg
-                    : `linear-gradient(135deg, ${C.orange}, ${C.orangeL})`,
-                  color: f.adminRequired ? C.orange : "#fff",
-                  border: f.adminRequired ? `1.5px solid ${C.borderOr}` : "none",
-                  padding: "12px 20px", borderRadius: 10,
+                  background: f.adminRequired ? C.rustLt : C.rust,
+                  color: f.adminRequired ? C.rust : "#fff",
+                  border: f.adminRequired ? `1.5px solid ${C.rustBdr}` : "none",
+                  padding: "12px 20px", borderRadius: 8,
                   fontWeight: 700, fontSize: 14, textDecoration: "none",
-                  boxShadow: f.adminRequired ? "none" : "0 4px 16px rgba(249,115,22,0.25)",
                 }}>
                   試してみる →
                 </Link>
@@ -235,32 +229,31 @@ export default function DemoPage() {
         {/* Admin mode guide */}
         <div style={{
           background: C.bgCard,
-          border: `2px solid ${C.orange}`,
-          borderRadius: 16,
-          padding: "28px 24px",
+          border: `2px solid ${C.rust}`,
+          borderRadius: 12,
+          padding: "24px 20px",
           marginBottom: 40,
-          boxShadow: `0 0 0 4px rgba(249,115,22,0.06)`,
         }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
-            marginBottom: 14,
+            marginBottom: 12,
           }}>
-            <span style={{ fontSize: 22 }}>📌</span>
-            <span style={{ fontSize: 17, fontWeight: 800, color: C.textPri }}>
+            <span style={{ fontSize: 20 }}>📌</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>
               管理者モードについて
             </span>
           </div>
-          <p style={{ fontSize: 14, color: C.textSub, marginBottom: 20, lineHeight: 1.65 }}>
+          <p style={{ fontSize: 14, color: C.sub, marginBottom: 20, lineHeight: 1.65 }}>
             帳票出力・収支分析・機材管理は管理者モードONが必要です
           </p>
 
           <div style={{
             background: C.bgMuted,
-            borderRadius: 12,
+            borderRadius: 10,
             padding: "16px 20px",
             marginBottom: 20,
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.textPri, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>
               管理者モードの有効化手順
             </div>
             {[
@@ -275,7 +268,7 @@ export default function DemoPage() {
                 <span style={{
                   flexShrink: 0,
                   width: 22, height: 22,
-                  background: C.orange,
+                  background: C.rust,
                   color: "#fff",
                   borderRadius: "50%",
                   fontSize: 12, fontWeight: 800,
@@ -283,7 +276,7 @@ export default function DemoPage() {
                 }}>
                   {i + 1}
                 </span>
-                <span style={{ fontSize: 14, color: C.textSub, lineHeight: 1.5, paddingTop: 2 }}>
+                <span style={{ fontSize: 14, color: C.sub, lineHeight: 1.5, paddingTop: 2 }}>
                   {step}
                 </span>
               </div>
@@ -292,11 +285,10 @@ export default function DemoPage() {
 
           <Link href="/kaitai/menu" style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: `linear-gradient(135deg, ${C.orange}, ${C.orangeL})`,
+            background: C.rust,
             color: "#fff",
-            padding: "14px 24px", borderRadius: 10,
+            padding: "14px 24px", borderRadius: 8,
             fontWeight: 700, fontSize: 15, textDecoration: "none",
-            boxShadow: "0 4px 20px rgba(249,115,22,0.3)",
           }}>
             管理者モードを有効にする →
           </Link>
@@ -308,18 +300,29 @@ export default function DemoPage() {
           paddingTop: 24,
           borderTop: `1px solid ${C.border}`,
         }}>
-          <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 6, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 6, lineHeight: 1.7 }}>
             デモデータは架空の会社・現場情報です。
           </p>
-          <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.7 }}>
             解体LINKの本番環境では自社の情報で管理できます。
           </p>
-          <Link href="/kaitai/lp" style={{
-            fontSize: 14, color: C.orange,
-            textDecoration: "none", fontWeight: 600,
+          <Link href="/kaitai/signup" style={{
+            display: "inline-block",
+            background: C.rust, color: "#fff",
+            padding: "12px 28px", borderRadius: 8,
+            fontWeight: 700, fontSize: 14, textDecoration: "none",
+            marginBottom: 16,
           }}>
-            ← ランディングページに戻る
+            無料で試してみる →
           </Link>
+          <div>
+            <Link href="/kaitai/lp" style={{
+              fontSize: 13, color: C.muted,
+              textDecoration: "none", fontWeight: 500,
+            }}>
+              ← ランディングページに戻る
+            </Link>
+          </div>
         </div>
 
       </div>

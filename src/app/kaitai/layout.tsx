@@ -45,7 +45,7 @@ export default function KaitaiLayout({
         <KaitaiPCHeader />
 
         {/* メインコンテンツ */}
-        <main className="flex-1 overflow-y-auto pb-36 lg:pb-12">
+        <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 0 }}>
           {/*
             コンテナ：
             - 最大幅 1280px で中央寄せ（mx-auto）
@@ -57,7 +57,20 @@ export default function KaitaiLayout({
             style={{ maxWidth: 1280, marginLeft: "auto", marginRight: "auto" }}
           >
             {children}
+            {/*
+              モバイル固定ナビの高さ分スペーサー。
+              Tailwind の padding ユーティリティが globals.css の unlayered * {padding:0} で
+              無効化されているため inline style で確実に確保する。
+              lg 以上では display:none（PC ヘッダーがあるため不要）
+            */}
+            <div
+              aria-hidden="true"
+              className="lg:hidden"
+              style={{ height: "calc(76px + env(safe-area-inset-bottom, 0px) + 8px)" }}
+            />
           </div>
+          {/* PC 用の下余白（lg 以上） */}
+          <div className="hidden lg:block" style={{ height: 48 }} />
         </main>
 
         {/* モバイル底辺ナビ（lg未満で表示） */}

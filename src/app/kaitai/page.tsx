@@ -1,14 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   MapPin, Users, HardHat,
   CheckCircle2, Clock, ChevronRight, ArrowUpRight,
-  Sun, Cloud, CloudRain, Wind,
+  Sun, Cloud, CloudRain, Wind, Wrench, X,
 } from "lucide-react";
 import { KaitaiLogo } from "./components/kaitai-logo";
-import { useAppContext, getSiteStatusMap, type AttendanceStatus } from "./lib/app-context";
+import { useAppContext, getSiteStatusMap, type AttendanceStatus, type AttendanceLog } from "./lib/app-context";
 import { T } from "./lib/design-tokens";
 
 const HomeMap = dynamic(
@@ -108,7 +109,7 @@ const MEMBER_NAMES: Record<string, string> = {
 // 勤怠ステータス表示設定
 const ATTENDANCE_STYLE: Record<AttendanceStatus, { icon: string; label: string; bg: string; color: string }> = {
   clock_in:  { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
-  break_in:  { icon: "☕",  label: "休憩中",  bg: "${T.primaryLt}", color: "#92400E" },
+  break_in:  { icon: "☕",  label: "休憩中",  bg: T.primaryLt, color: "#92400E" },
   break_out: { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
   clock_out: { icon: "🚪", label: "退勤済",  bg: T.bg, color: T.muted },
 };
@@ -120,38 +121,247 @@ function fmtTime(iso: string): string {
 
 // fmt は管理者画面でのみ使用するため削除済み
 
-// ─── KPIカード ────────────────────────────────────────────────────────────────
+// ─── KPIカード（横長・クリック可能） ─────────────────────────────────────────
+type ModalType = "稼働中" | "本日作業員" | "着工前完工" | null;
+
 function KpiCard({
-  label, value, unit, sub, icon: Icon, color, wide,
+  label, value, unit, icon: Icon, color, onClick,
 }: {
-  label: string; value: string; unit?: string; sub?: string;
-  icon: React.ElementType; color: string; wide?: boolean;
+  label: string; value: string; unit?: string;
+  icon: React.ElementType; color: string; onClick?: () => void;
 }) {
   return (
-    <div
-      className={`bg-white rounded-xl p-5 flex flex-col gap-2 ${wide ? "md:col-span-2" : ""}`}
-      style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}
+    <button
+      onClick={onClick}
+      className="bg-white rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+      style={{
+        border: `1px solid ${C.border}`,
+        padding: "18px 20px",
+        cursor: "pointer",
+        width: "100%",
+      }}
     >
-      <div className="flex items-center justify-between">
-        <span style={{ fontSize: 14, fontWeight: 500, color: C.sub }}>{label}</span>
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ background: color + "18" }}>
-          <Icon size={14} style={{ color }} strokeWidth={2} />
+      <div className="flex items-center justify-between gap-3">
+        {/* 左：ラベル＋数値 */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <span style={{ fontSize: 12, fontWeight: 600, color: C.sub, whiteSpace: "nowrap" }}>{label}</span>
+          <div className="flex items-baseline gap-1" style={{ flexWrap: "nowrap" }}>
+            <span className="font-numeric" style={{ fontSize: value.length > 3 ? 22 : 30, fontWeight: 800, color: C.navy, lineHeight: 1, whiteSpace: "nowrap" }}>
+              {value}
+            </span>
+            {unit && <span style={{ fontSize: 12, fontWeight: 700, color: C.sub, whiteSpace: "nowrap" }}>{unit}</span>}
+          </div>
+        </div>
+        {/* 右：アイコン */}
+        <div
+          className="flex items-center justify-center flex-shrink-0 rounded-xl"
+          style={{ width: 44, height: 44, background: color + "18" }}
+        >
+          <Icon size={20} style={{ color }} strokeWidth={2.2} />
         </div>
       </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-numeric" style={{ fontSize: 36, fontWeight: 800, color: C.navy, lineHeight: 1 }}>
-          {value}
-        </span>
-        {unit && <span style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{unit}</span>}
+    </button>
+  );
+}
+
+// ─── KPIモーダル ──────────────────────────────────────────────────────────────
+function KpiModal({
+  type, onClose, sites, attendanceLogs, today,
+}: {
+  type: ModalType;
+  onClose: () => void;
+  sites: typeof import("./page").mockSites;
+  attendanceLogs: AttendanceLog[];
+  today: string;
+}) {
+  if (!type) return null;
+
+  const active   = sites.filter(s => s.status === "解体中");
+  const upcoming = sites.filter(s => s.status === "着工前");
+  const done     = sites.filter(s => s.status === "完工");
+
+  // 本日ログのある全スタッフ
+  const todayLogs = attendanceLogs.filter(l => l.timestamp.startsWith(today));
+  const workerSet = new Map<string, { userId: string; siteId: string; latestStatus: AttendanceStatus; time: string }>();
+  todayLogs.forEach(l => {
+    const prev = workerSet.get(l.userId);
+    if (!prev || l.timestamp > prev.time) {
+      workerSet.set(l.userId, { userId: l.userId, siteId: l.siteId, latestStatus: l.status, time: l.timestamp });
+    }
+  });
+  const todayWorkers = Array.from(workerSet.values());
+
+  let title = "";
+  let content: React.ReactNode = null;
+
+  if (type === "稼働中") {
+    title = "稼働中の現場・スタッフ";
+    content = (
+      <div className="flex flex-col gap-4">
+        {active.length === 0 && <p style={{ color: C.muted, fontSize: 14 }}>稼働中の現場はありません</p>}
+        {active.map(site => {
+          const siteMap = getSiteStatusMap(attendanceLogs, site.id, today);
+          const staff = Array.from(siteMap.entries());
+          return (
+            <div key={site.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <div className="flex items-center justify-between px-4 py-3"
+                style={{ background: T.primaryLt, borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{site.name}</span>
+                <span style={{ fontSize: 12, color: C.sub }}>{site.type}</span>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-2">
+                {staff.length === 0
+                  ? <p style={{ fontSize: 13, color: C.muted }}>本日の作業員なし</p>
+                  : staff.map(([userId, status]) => {
+                      const sty = ATTENDANCE_STYLE[status];
+                      const name = MEMBER_NAMES[userId] ?? userId;
+                      return (
+                        <div key={userId} className="flex items-center gap-3">
+                          <div className="flex items-center justify-center rounded-full font-bold flex-shrink-0"
+                            style={{ width: 34, height: 34, fontSize: 13, background: sty.color, color: "#fff" }}>
+                            {name.charAt(0)}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{name}</p>
+                            <p style={{ fontSize: 11, color: sty.color, fontWeight: 600 }}>{sty.label}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                }
+              </div>
+            </div>
+          );
+        })}
       </div>
-      {sub && <div style={{ fontSize: 14, color: C.muted }}>{sub}</div>}
-      {wide && (
-        <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: T.bg }}>
-          <div className="h-full rounded-full" style={{ width: `${value}%`, background: C.amber }} />
+    );
+  } else if (type === "本日作業員") {
+    title = "本日の作業員一覧";
+    content = (
+      <div className="flex flex-col gap-2">
+        {todayWorkers.length === 0 && <p style={{ color: C.muted, fontSize: 14 }}>本日の作業記録はありません</p>}
+        {todayWorkers.map(w => {
+          const sty = ATTENDANCE_STYLE[w.latestStatus];
+          const name = MEMBER_NAMES[w.userId] ?? w.userId;
+          const site = sites.find(s => s.id === w.siteId);
+          return (
+            <div key={w.userId} className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              style={{ border: `1px solid ${C.border}`, background: C.card }}>
+              <div className="flex items-center justify-center rounded-full font-bold flex-shrink-0"
+                style={{ width: 38, height: 38, fontSize: 14, background: sty.color, color: "#fff" }}>
+                {name.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{name}</p>
+                <p style={{ fontSize: 12, color: C.sub }}>{site?.name ?? w.siteId}</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-lg font-bold"
+                style={{ fontSize: 12, background: sty.bg, color: sty.color }}>{sty.label}</span>
+            </div>
+          );
+        })}
+        {/* モックで10名表示（デモ用追加） */}
+        {todayWorkers.length === 0 && (
+          <div className="pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 12, color: C.muted, textAlign: "center" }}>デモ用スタッフデータがありません</p>
+          </div>
+        )}
+      </div>
+    );
+  } else if (type === "着工前完工") {
+    title = "現場ステータス";
+    content = (
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.blue }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.blue }}>着工前 ({upcoming.length}件)</span>
+          </div>
+          {upcoming.length === 0
+            ? <p style={{ fontSize: 13, color: C.muted }}>なし</p>
+            : upcoming.map(s => (
+                <Link key={s.id} href={`/kaitai/site/${s.id}`} onClick={onClose}>
+                  <div className="flex items-center justify-between px-4 py-3.5 rounded-xl mb-2"
+                    style={{ background: "#EFF6FF", border: "1.5px solid #BFDBFE" }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{s.name}</p>
+                      <p style={{ fontSize: 12, color: C.sub }}>{s.endDate.replace(/-/g, "/")} 着工予定</p>
+                    </div>
+                    <ChevronRight size={15} style={{ color: C.blue }} />
+                  </div>
+                </Link>
+              ))
+          }
         </div>
-      )}
-    </div>
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.green }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.green }}>完工済 ({done.length}件)</span>
+          </div>
+          {done.length === 0
+            ? <p style={{ fontSize: 13, color: C.muted }}>なし</p>
+            : done.map(s => (
+                <Link key={s.id} href={`/kaitai/site/${s.id}`} onClick={onClose}>
+                  <div className="flex items-center justify-between px-4 py-3.5 rounded-xl mb-2"
+                    style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0" }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: C.sub }}>{s.name}</p>
+                      <p style={{ fontSize: 12, color: C.muted }}>{s.endDate.replace(/-/g, "/")} 引渡済</p>
+                    </div>
+                    <CheckCircle2 size={15} style={{ color: C.green }} />
+                  </div>
+                </Link>
+              ))
+          }
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* オーバーレイ */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 9998,
+          background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)",
+        }}
+      />
+      {/* モーダル */}
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        display: "flex", alignItems: "flex-end",
+        justifyContent: "center",
+        padding: "0 0 env(safe-area-inset-bottom, 0)",
+        pointerEvents: "none",
+      }}>
+        <div style={{
+          width: "100%", maxWidth: 540,
+          background: C.card,
+          borderRadius: "20px 20px 0 0",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          pointerEvents: "auto",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+        }}>
+          {/* ヘッダー */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4"
+            style={{ borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.card, zIndex: 1 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>{title}</h3>
+            <button onClick={onClose} style={{
+              width: 32, height: 32, borderRadius: "50%", border: "none",
+              background: T.bg, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <X size={16} style={{ color: C.sub }} />
+            </button>
+          </div>
+          {/* コンテンツ */}
+          <div className="p-5">{content}</div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -452,6 +662,7 @@ export { sites as mockSites };
 
 export default function KaitaiHome() {
   const { attendanceLogs } = useAppContext();
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
   const now = new Date();
   const wd = ["日", "月", "火", "水", "木", "金", "土"][now.getDay()];
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日（${wd}）`;
@@ -462,10 +673,10 @@ export default function KaitaiHome() {
   const done     = sites.filter(s => s.status === "完工");
   const workers  = active.reduce((s, x) => s + x.workers, 0);
 
-  const kpis = [
-    { label: "稼働中",        value: `${active.length}`,   unit: "件", icon: HardHat,    color: C.blue  },
-    { label: "本日作業員",    value: `${workers}`,         unit: "名", icon: Users,      color: C.green },
-    { label: "着工前 / 完工", value: `${upcoming.length}/${done.length}`, unit: "件", icon: Clock, color: "#8B5CF6" },
+  const kpis: { label: string; value: string; unit: string; icon: React.ElementType; color: string; modal: ModalType }[] = [
+    { label: "稼働中",        value: `${active.length}`,                      unit: "件", icon: Wrench, color: C.blue,      modal: "稼働中" },
+    { label: "本日作業員",    value: `${workers}`,                             unit: "名", icon: Users,  color: C.green,     modal: "本日作業員" },
+    { label: "着工前/完工", value: `${upcoming.length}/${done.length}`,   unit: "件", icon: Clock,  color: "#8B5CF6",   modal: "着工前完工" },
   ];
 
   const mapSites = sites.map(s => ({
@@ -474,6 +685,15 @@ export default function KaitaiHome() {
 
   return (
     <div className="flex flex-col">
+
+      {/* ── KPIモーダル ──────────────────── */}
+      <KpiModal
+        type={activeModal}
+        onClose={() => setActiveModal(null)}
+        sites={sites}
+        attendanceLogs={attendanceLogs}
+        today={today}
+      />
 
       {/* ── モバイルヘッダー ─────────────── */}
       <header className="md:hidden px-4 pt-8 pb-3 flex items-center justify-between bg-white"
@@ -485,7 +705,17 @@ export default function KaitaiHome() {
       {/* ── KPI行 ────────────────────────── */}
       <div className="pt-5 pb-4">
         <div className="grid grid-cols-3 gap-3">
-          {kpis.map(kpi => <KpiCard key={kpi.label} {...kpi} />)}
+          {kpis.map(kpi => (
+            <KpiCard
+              key={kpi.label}
+              label={kpi.label}
+              value={kpi.value}
+              unit={kpi.unit}
+              icon={kpi.icon}
+              color={kpi.color}
+              onClick={() => setActiveModal(kpi.modal)}
+            />
+          ))}
         </div>
       </div>
 

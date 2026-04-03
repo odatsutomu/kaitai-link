@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, CheckCircle } from "lucide-react";
+import { ChevronLeft, CheckCircle, X, ClipboardList } from "lucide-react";
 import { useAppContext, getLatestStatus } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
@@ -20,9 +20,19 @@ function StartPageInner() {
   const params = useSearchParams();
   const siteId   = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
-  const { addLog, company, attendanceLogs, addAttendanceLogs } = useAppContext();
+  const { addLog, company, attendanceLogs, addAttendanceLogs, getHandoverMemo } = useAppContext();
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // 前日の引き継ぎメモをチェック
+  const yesterday = (() => {
+    const d = new Date(today + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const prevHandover = getHandoverMemo(siteId, yesterday);
+  const [handoverModalOpen, setHandoverModalOpen] = useState(!!prevHandover);
+
   // Only show members not yet started (no log, or last status = clock_out)
   const MEMBERS = ALL_MEMBERS.filter(m => {
     const s = getLatestStatus(attendanceLogs, siteId, m.id, today);
@@ -46,6 +56,63 @@ function StartPageInner() {
     addAttendanceLogs(selected.map(userId => ({ userId, siteId, status: "clock_in" as const, timestamp: ts })));
     setDone(true);
   }
+
+  // ── 引き継ぎメモモーダル ────────────────────────────────────────────────────
+  const HandoverModal = prevHandover && handoverModalOpen ? (
+    <>
+      <div
+        onClick={() => setHandoverModalOpen(false)}
+        style={{
+          position: "fixed", inset: 0, zIndex: 9998,
+          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)",
+        }}
+      />
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        pointerEvents: "none",
+      }}>
+        <div style={{
+          width: "100%", maxWidth: 540,
+          background: "#FFF",
+          borderRadius: "20px 20px 0 0",
+          pointerEvents: "auto",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.2)",
+          maxHeight: "70vh",
+          overflowY: "auto",
+        }}>
+          <div className="flex items-center justify-between px-5 pt-5 pb-3"
+            style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, background: "#FFF", zIndex: 1 }}>
+            <div className="flex items-center gap-2">
+              <ClipboardList size={18} style={{ color: "#92400E" }} />
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: T.text }}>前日からの引き継ぎメモ</h3>
+            </div>
+            <button onClick={() => setHandoverModalOpen(false)}
+              style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: T.bg, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <X size={16} style={{ color: T.sub }} />
+            </button>
+          </div>
+          <div className="px-5 py-5">
+            <div className="p-4 rounded-xl" style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
+              <p style={{ fontSize: 14, color: "#111", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                {prevHandover.memo}
+              </p>
+            </div>
+            <p style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
+              {prevHandover.date.replace(/-/g, "/")} 作成
+            </p>
+            <button
+              onClick={() => setHandoverModalOpen(false)}
+              className="w-full mt-4 rounded-2xl font-bold"
+              style={{ height: 52, fontSize: 15, background: T.primary, color: "#FFF", border: "none", cursor: "pointer" }}
+            >
+              確認しました
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  ) : null;
 
   if (done) {
     return (
@@ -79,6 +146,7 @@ function StartPageInner() {
 
   return (
     <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
+      {HandoverModal}
       <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>

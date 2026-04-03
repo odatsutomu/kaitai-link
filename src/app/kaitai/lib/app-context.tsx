@@ -166,6 +166,17 @@ export interface OperationLog {
 
 export type SelectedSite = { id: string; name: string } | null;
 
+// ─── Handover memo ────────────────────────────────────────────────────────────
+
+export interface HandoverMemo {
+  id: string;
+  siteId: string;
+  date: string;      // YYYY-MM-DD (the date it was written for)
+  memo: string;
+  evaluatorId: string;
+  createdAt: string;
+}
+
 // ─── Plan limits ──────────────────────────────────────────────────────────────
 
 export const PLAN_LIMITS: Record<PlanId, { sites: number; members: number; retentionDays: number }> = {
@@ -224,6 +235,11 @@ type AppContextType = {
   // 閲覧者ID（職長による緊急連絡先例外制御）
   viewerMemberId: string | null;
   setViewerMemberId: (id: string | null) => void;
+
+  // 引き継ぎメモ
+  handoverMemos: HandoverMemo[];
+  addHandoverMemo: (data: Omit<HandoverMemo, "id" | "createdAt">) => void;
+  getHandoverMemo: (siteId: string, date: string) => HandoverMemo | undefined;
 };
 
 // ─── Default company (demo) ───────────────────────────────────────────────────
@@ -359,6 +375,9 @@ const AppContext = createContext<AppContextType>({
   addAttendanceLogs: () => {},
   viewerMemberId: null,
   setViewerMemberId: () => {},
+  handoverMemos: [],
+  addHandoverMemo: () => {},
+  getHandoverMemo: () => undefined,
 });
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -378,6 +397,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [evaluations,    setEvaluations]    = useState<WorkerEval[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(SEED_ATTENDANCE);
   const [viewerMemberId, setViewerMemberId] = useState<string | null>(null);
+  const [handoverMemos,  setHandoverMemos]  = useState<HandoverMemo[]>([]);
 
   // Derived
   const adminMode = authLevel === "admin" || authLevel === "dev";
@@ -452,6 +472,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAttendanceLogs(prev => [...prev, ...newLogs]);
   }, []);
 
+  const addHandoverMemo = useCallback((data: Omit<HandoverMemo, "id" | "createdAt">) => {
+    const memo: HandoverMemo = { ...data, id: `hm${Date.now().toString(36)}`, createdAt: new Date().toISOString() };
+    setHandoverMemos(prev => [memo, ...prev]);
+  }, []);
+
+  const getHandoverMemo = useCallback((siteId: string, date: string): HandoverMemo | undefined => {
+    return handoverMemos.find(m => m.siteId === siteId && m.date === date);
+  }, [handoverMemos]);
+
   const addLog = useCallback((action: string, user = "system") => {
     const device = typeof window !== "undefined"
       ? window.navigator.userAgent.slice(0, 60)
@@ -483,6 +512,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       evaluations,  addEvaluation,
       attendanceLogs, addAttendanceLogs,
       viewerMemberId, setViewerMemberId,
+      handoverMemos, addHandoverMemo, getHandoverMemo,
     }}>
       {children}
     </AppContext.Provider>
