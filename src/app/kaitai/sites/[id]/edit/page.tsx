@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -209,8 +209,8 @@ export default function SiteEditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const seed = MOCK_SITES[id];
   const { clients } = useAppContext();
+  const [loaded, setLoaded] = useState(false);
 
   const [tab, setTab] = useState(0);
 
@@ -220,30 +220,59 @@ export default function SiteEditPage({
   const [directClientName, setDirectClientName] = useState("");
 
   // Tab 1
-  const [name, setName]               = useState(seed?.name ?? "");
-  const [address, setAddress]         = useState(seed?.address ?? "");
+  const [name, setName]               = useState("");
+  const [address, setAddress]         = useState("");
   const [mapPos, setMapPos]           = useState<LatLng | null>(null);
-  const [startDate, setStartDate]     = useState(seed?.startDate ?? "");
-  const [endDate, setEndDate]         = useState(seed?.endDate ?? "");
+  const [startDate, setStartDate]     = useState("");
+  const [endDate, setEndDate]         = useState("");
   const [extendedEnd, setExtendedEnd] = useState("");
   const [extendReason, setExtendReason] = useState("");
   const [showExtend, setShowExtend]   = useState(false);
-  const [status, setStatus]           = useState<Status>(seed?.status ?? "施工中");
+  const [status, setStatus]           = useState<Status>("施工中");
 
   // Tab 2
-  const [contract, setContract] = useState(seed?.contract ?? "");
-  const [wasteB, setWasteB]     = useState(seed?.wasteB ?? "");
-  const [laborB, setLaborB]     = useState(seed?.laborB ?? "");
-  const [subB, setSubB]         = useState(seed?.subB ?? "");
-  const [otherB, setOtherB]     = useState(seed?.otherB ?? "");
+  const [contract, setContract] = useState("");
+  const [wasteB, setWasteB]     = useState("");
+  const [laborB, setLaborB]     = useState("");
+  const [subB, setSubB]         = useState("");
+  const [otherB, setOtherB]     = useState("");
 
   // Tab 3
-  const [structureType, setStructureType] = useState<StructureType | null>(seed?.structureType ?? null);
-  const [area, setArea]         = useState(seed?.area ?? "");
-  const [asbestos, setAsbestos] = useState<AsbestosLevel>(seed?.asbestos ?? "なし");
-  const [vehicles, setVehicles] = useState<Set<VehicleLimit>>(new Set(seed?.vehicles ?? []));
-  const [utils, setUtils]       = useState<Set<Utility>>(new Set(seed?.utilities ?? ["電気", "ガス", "水道"]));
-  const [memo, setMemo]         = useState(seed?.memo ?? "");
+  const [structureType, setStructureType] = useState<StructureType | null>(null);
+  const [area, setArea]         = useState("");
+  const [asbestos, setAsbestos] = useState<AsbestosLevel>("なし");
+  const [vehicles, setVehicles] = useState<Set<VehicleLimit>>(new Set());
+
+  // Fetch existing site data
+  useEffect(() => {
+    if (!id) return;
+    fetch("/api/kaitai/sites", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const s = data?.sites?.find((site: Record<string, unknown>) => site.id === id);
+        if (!s) return;
+        setName((s.name as string) ?? "");
+        setAddress((s.address as string) ?? "");
+        setStartDate((s.startDate as string) ?? "");
+        setEndDate((s.endDate as string) ?? "");
+        setStatus(((s.status as string) ?? "施工中") as Status);
+        const contractStr = s.contractAmount ? String(s.contractAmount) : "";
+        setContract(contractStr);
+        setSavedContract(contractStr);
+        const endStr = (s.endDate as string) ?? "";
+        setSavedEndDate(endStr);
+        if (s.structureType) setStructureType(s.structureType as StructureType);
+        if (s.clientId) {
+          setClientType("registered");
+          setClientId(s.clientId as string);
+        }
+        if (s.lat && s.lng) setMapPos({ lat: s.lat as number, lng: s.lng as number });
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [id]);
+  const [utils, setUtils]       = useState<Set<Utility>>(new Set(["電気", "ガス", "水道"]));
+  const [memo, setMemo]         = useState("");
 
   // Photos / files
   const [photos, setPhotos] = useState<string[]>([]);
@@ -257,8 +286,8 @@ export default function SiteEditPage({
   const [changeReason, setChangeReason]   = useState("");
 
   // Saved originals for change detection
-  const savedContract = seed?.contract ?? "";
-  const savedEndDate  = seed?.endDate ?? "";
+  const [savedContract, setSavedContract] = useState("");
+  const [savedEndDate, setSavedEndDate]  = useState("");
 
   // Computed — Tab 2
   const contractNum  = parseFloat(contract.replace(/,/g, "")) || 0;
@@ -319,7 +348,15 @@ export default function SiteEditPage({
 
   const canSave = name.trim().length > 0;
 
-  if (!seed) {
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: C.bg, color: C.muted }}>
+        読み込み中...
+      </div>
+    );
+  }
+
+  if (loaded && !name.trim()) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: C.bg, color: C.muted }}>
         現場データが見つかりません
@@ -338,7 +375,7 @@ export default function SiteEditPage({
               現場編集
             </h1>
             <p className="text-sm mt-0.5" style={{ color: C.sub }}>
-              {seed.name}
+              {name}
             </p>
           </div>
           <div className="flex items-center gap-3">

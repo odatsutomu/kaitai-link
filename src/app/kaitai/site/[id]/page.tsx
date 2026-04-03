@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft, MapPin, Calendar, Users, Clock,
@@ -66,9 +66,168 @@ const C = {
   green: "#10B981", red: "#EF4444",
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Work log generation helpers ──────────────────────────────────────────────
 
-const MOCK_SITES: Record<string, Site> = {};
+const STAFF_COLORS = [T.primary, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#0EA5E9", "#F97316"];
+
+const WORK_TASKS_WOOD = [
+  ["足場設置", "養生シート設置"],
+  ["屋根材撤去", "内装解体"],
+  ["内装解体", "建具撤去"],
+  ["柱・梁解体", "重機搬入"],
+  ["基礎解体", "重機作業"],
+  ["産廃搬出", "整地作業"],
+  ["コンクリート殻搬出", "埋め戻し"],
+  ["最終清掃", "養生撤去", "完了検査"],
+];
+
+const WORK_TASKS_STEEL = [
+  ["仮設足場設置", "養生ネット設置"],
+  ["内装撤去", "設備配管撤去"],
+  ["鉄骨切断準備", "ガス溶断"],
+  ["鉄骨解体", "クレーン作業"],
+  ["鉄骨搬出", "スクラップ分別"],
+  ["基礎コンクリート解体", "重機作業"],
+  ["産廃搬出", "鉄くずスクラップ搬出"],
+  ["整地", "境界確認", "完了検査"],
+];
+
+const WORK_TASKS_RC = [
+  ["仮設足場設置", "防音パネル設置"],
+  ["内装解体", "設備撤去"],
+  ["RC壁解体", "コンクリート圧砕"],
+  ["RC梁・柱解体", "鉄筋切断"],
+  ["コンクリート殻搬出", "鉄筋分別"],
+  ["基礎解体", "杭頭処理"],
+  ["埋め戻し", "整地作業"],
+  ["最終清掃", "完了検査"],
+];
+
+const WASTE_ITEMS_MAP: Record<string, string[]> = {
+  木造: ["木くず", "混合廃棄物", "石膏ボード", "ガラス陶磁器"],
+  鉄骨: ["鉄くず", "混合廃棄物", "コンクリート殻", "石膏ボード"],
+  RC: ["コンクリート殻", "鉄筋くず", "混合廃棄物", "石膏ボード"],
+};
+
+const SAFETY_NOTES = [
+  "隣地境界付近の作業時、飛散物に注意。養生シートの点検を毎朝実施すること。",
+  "重機旋回範囲への立入禁止を徹底。誘導員の配置を継続。",
+  "粉塵が多いため散水を適宜実施。マスク着用の徹底。",
+  "高所作業あり。安全帯の使用を確認。足場の点検を朝礼時に実施。",
+  "搬出経路の一般車両通行に注意。誘導員を交差点に配置。",
+  "夏季対策：水分補給の声掛けを1時間おきに実施。WBGT計の確認。",
+  "近隣住民への騒音配慮。作業時間は8:00〜17:00厳守。",
+  "",
+];
+
+const TROUBLE_TEMPLATES: TroubleLog[] = [
+  { type: "埋設物", severity: "中程度", detail: "基礎解体中に想定外の配管（旧下水管）を発見。元請に報告し、対応方針を協議中。作業は一時中断。" },
+  { type: "近隣クレーム", severity: "軽微", detail: "隣家より「振動が大きい」との連絡あり。午後の作業でブレーカー使用を控え、圧砕機に切り替えて対応。" },
+  { type: "機材故障", severity: "軽微", detail: "0.7バックホーの油圧ホースから軽微な漏れを確認。応急処置後、翌日修理予定。予備機で作業継続。" },
+  { type: "安全ヒヤリ", severity: "中程度", detail: "解体材の落下物が養生シート外に飛散。幸い通行人なし。養生範囲を拡大し、見張り員を追加配置。" },
+];
+
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+type MemberInfo = { name: string; avatar: string; role: string };
+
+function generateWorkLogs(
+  siteStatus: string,
+  startDate: string,
+  endDate: string,
+  progressPct: number,
+  structureType: string,
+  members: MemberInfo[],
+  siteId: string,
+): DailyLog[] {
+  if (siteStatus === "着工前" || !startDate) return [];
+
+  const start = new Date(startDate);
+  const today = new Date("2026-04-03");
+  const end = siteStatus === "完工" && endDate ? new Date(endDate) : today;
+  const rand = seededRandom(siteId.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+
+  const tasks = structureType === "鉄骨" ? WORK_TASKS_STEEL
+    : structureType === "RC" ? WORK_TASKS_RC
+    : WORK_TASKS_WOOD;
+  const wasteItems = WASTE_ITEMS_MAP[structureType] ?? WASTE_ITEMS_MAP["木造"];
+
+  const logs: DailyLog[] = [];
+  const d = new Date(start);
+
+  while (d <= end) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) { d.setDate(d.getDate() + 1); continue; }
+
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayLabel = `${d.getMonth() + 1}/${d.getDate()}（${"日月火水木金土"[dow]}）`;
+
+    // Progress through work tasks
+    const elapsed = (d.getTime() - start.getTime()) / (end.getTime() - start.getTime() + 1);
+    const taskIdx = Math.min(Math.floor(elapsed * tasks.length), tasks.length - 1);
+
+    // Staff for the day (3-6 people)
+    const staffCount = Math.min(3 + Math.floor(rand() * 4), members.length);
+    const dayStaff: StaffLog[] = [];
+    const shuffled = [...members].sort(() => rand() - 0.5);
+    for (let i = 0; i < staffCount; i++) {
+      const m = shuffled[i];
+      const clockInH = 7 + Math.floor(rand() * 2);
+      const clockInM = Math.floor(rand() * 4) * 15;
+      const clockOutH = 16 + Math.floor(rand() * 2);
+      const clockOutM = Math.floor(rand() * 4) * 15;
+      const isToday = dateStr === today.toISOString().slice(0, 10);
+      dayStaff.push({
+        name: m.name,
+        avatar: m.avatar,
+        role: m.role,
+        clockIn: `${String(clockInH).padStart(2, "0")}:${String(clockInM).padStart(2, "0")}`,
+        clockOut: isToday && rand() > 0.3 ? null : `${String(clockOutH).padStart(2, "0")}:${String(clockOutM).padStart(2, "0")}`,
+        color: STAFF_COLORS[i % STAFF_COLORS.length],
+      });
+    }
+
+    // Waste volume
+    const wasteM3 = Math.round((2 + rand() * 8) * 10) / 10;
+
+    // Pick 1-2 waste items
+    const dayWaste = wasteItems.slice(0, 1 + Math.floor(rand() * 2));
+
+    // Photos
+    const photos = 2 + Math.floor(rand() * 8);
+
+    // Troubles (occasional)
+    const troubles: TroubleLog[] = [];
+    if (rand() < 0.12) {
+      troubles.push(TROUBLE_TEMPLATES[Math.floor(rand() * TROUBLE_TEMPLATES.length)]);
+    }
+
+    // Safety note
+    const safetyNote = SAFETY_NOTES[Math.floor(rand() * SAFETY_NOTES.length)];
+
+    logs.push({
+      date: dateStr,
+      dateLabel: dayLabel,
+      mainWork: tasks[taskIdx],
+      wasteM3,
+      wasteItems: dayWaste,
+      photos,
+      staff: dayStaff,
+      troubles,
+      safetyNote,
+    });
+
+    d.setDate(d.getDate() + 1);
+  }
+
+  return logs.reverse(); // Most recent first
+}
 
 const STATUS_CONFIG: Record<SiteStatus, { label: string; bg: string; fg: string }> = {
   着工前: { label: "着工前", bg: "#EFF6FF", fg: "#1D4ED8" },
@@ -396,9 +555,86 @@ function TimelineEntry({
 export default function SiteDetailPage() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
-  const site = MOCK_SITES[id];
-
+  const [site, setSite] = useState<Site | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
+
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+
+    Promise.all([
+      fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch("/api/kaitai/members", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch(`/api/kaitai/expense?siteId=${id}`, { credentials: "include" }).then(r => r.ok ? r.json() : null),
+    ]).then(([sitesData, membersData, expenseData]) => {
+      const siteRaw = sitesData?.sites?.find((s: Record<string, unknown>) => s.id === id);
+      if (!siteRaw) { setLoading(false); return; }
+
+      const members: MemberInfo[] = (membersData?.members ?? []).map((m: Record<string, unknown>) => ({
+        name: m.name as string,
+        avatar: (m.avatar as string) ?? (m.name as string).charAt(0),
+        role: (m.role as string) ?? "作業員",
+      }));
+
+      // Calculate costs from expense logs
+      const expenses = expenseData?.logs ?? [];
+      let wasteDisposalCost = 0;
+      let laborCost = 0;
+      let otherCost = 0;
+      for (const e of expenses) {
+        const cat = e.category as string;
+        const amt = (e.amount as number) ?? 0;
+        if (cat === "産廃処分費") wasteDisposalCost += amt;
+        else if (cat === "外注費") laborCost += amt;
+        else otherCost += amt;
+      }
+
+      // If no expenses, estimate from costAmount
+      const costAmount = (siteRaw.costAmount as number) ?? 0;
+      if (wasteDisposalCost === 0 && laborCost === 0 && otherCost === 0 && costAmount > 0) {
+        wasteDisposalCost = Math.round(costAmount * 0.35);
+        laborCost = Math.round(costAmount * 0.45);
+        otherCost = costAmount - wasteDisposalCost - laborCost;
+      }
+
+      const status = ((siteRaw.status as string) === "施工中" ? "解体中" : siteRaw.status as string) as SiteStatus;
+
+      const workLogs = generateWorkLogs(
+        status,
+        (siteRaw.startDate as string) ?? "",
+        (siteRaw.endDate as string) ?? "",
+        (siteRaw.progressPct as number) ?? 0,
+        (siteRaw.structureType as string) ?? "木造",
+        members,
+        id,
+      );
+
+      setSite({
+        id: siteRaw.id as string,
+        name: siteRaw.name as string,
+        address: siteRaw.address as string,
+        status,
+        startDate: (siteRaw.startDate as string) ?? "",
+        endDate: (siteRaw.endDate as string) ?? "",
+        progressPct: (siteRaw.progressPct as number) ?? 0,
+        contractAmount: (siteRaw.contractAmount as number) ?? 0,
+        wasteDisposalCost,
+        laborCost,
+        otherCost,
+        todayWorkers: workLogs.length > 0 ? workLogs[0].staff.filter(s => !s.clockOut).length : 0,
+        workLogs,
+      });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ color: C.sub }}>
+        読み込み中...
+      </div>
+    );
+  }
 
   if (!site) {
     return (

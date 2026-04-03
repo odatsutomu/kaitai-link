@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Star, Award, Calendar,
@@ -9,9 +9,9 @@ import {
   Shield, Clock, ChevronDown, ChevronUp, Lock,
 } from "lucide-react";
 import {
-  MEMBERS, MEMBER_STATS, LICENSE_LABELS,
+  LICENSE_LABELS,
   experienceYears, experienceLevel,
-  type License, type TroubleRecord,
+  type Member, type MemberStats, type License, type TroubleRecord, type DayStatus,
 } from "../../lib/members";
 import { T } from "../../lib/design-tokens";
 
@@ -319,7 +319,7 @@ function TroubleCard({
 
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
-function exportCSV(memberName: string, stats: ReturnType<typeof MEMBER_STATS[0]["memberId"] extends string ? () => typeof MEMBER_STATS[0] : never>) {
+function exportCSV(memberName: string, stats: MemberStats) {
   // Build CSV rows
   const rows: (string | number)[][] = [
     ["項目", "値"],
@@ -342,10 +342,10 @@ function exportCSV(memberName: string, stats: ReturnType<typeof MEMBER_STATS[0][
     ["効率", stats.radar.efficiency],
     [],
     ["トラブル履歴"],
-    ...stats.troubles.map(t => [t.date, t.site, t.type, t.detail.slice(0, 30)]),
+    ...stats.troubles.map((t: TroubleRecord) => [t.date, t.site, t.type, t.detail.slice(0, 30)]),
     [],
     ["現場評価タグ"],
-    ...stats.siteEvals.map(e => [e.date, e.site, e.tags.join(" "), e.memo ?? ""]),
+    ...stats.siteEvals.map((e: { date: string; site: string; tags: string[]; memo?: string }) => [e.date, e.site, e.tags.join(" "), e.memo ?? ""]),
   ];
 
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -363,18 +363,118 @@ function exportCSV(memberName: string, stats: ReturnType<typeof MEMBER_STATS[0][
 
 type Tab = "基本情報" | "勤怠" | "パフォーマンス" | "評価";
 
+function generateStats(memberId: string, member: Member): MemberStats {
+  // Generate realistic stats from member data using seeded random
+  let seed = memberId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+
+  const yrs = experienceYears(member);
+  const workDays = 18 + Math.floor(rand() * 5);
+  const lateDays = rand() < 0.7 ? 0 : Math.floor(rand() * 2);
+  const absentDays = rand() < 0.8 ? 0 : 1;
+  const attendancePct = Math.round(((workDays - lateDays - absentDays) / workDays) * 100);
+
+  const calendar: DayStatus[] = [];
+  for (let i = 1; i <= 30; i++) {
+    const d = new Date(2026, 3, i);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) { calendar.push("休日"); continue; }
+    if (i > 3) { calendar.push("未来"); continue; }
+    if (rand() < 0.05 && lateDays > 0) { calendar.push("遅刻"); continue; }
+    if (rand() < 0.03 && absentDays > 0) { calendar.push("欠勤"); continue; }
+    calendar.push("出勤");
+  }
+
+  return {
+    memberId,
+    workDays,
+    lateDays,
+    absentDays,
+    totalHours: workDays * (8 + rand() * 1.5),
+    avgOvertime: Math.round((0.5 + rand() * 1.5) * 10) / 10,
+    attendancePct,
+    calendar,
+    radar: {
+      attendance: 70 + Math.floor(rand() * 30),
+      safety: 65 + Math.floor(rand() * 35),
+      skill: Math.min(40 + Math.floor(yrs * 4 + rand() * 15), 100),
+      communication: 60 + Math.floor(rand() * 35),
+      efficiency: 55 + Math.floor(rand() * 40),
+    },
+    efficiencyDelta: Math.round((rand() * 20 - 5) * 10) / 10,
+    ruleViolations: rand() < 0.8 ? 0 : 1,
+    positiveFeedback: rand() > 0.4
+      ? ["時間厳守で作業が正確", "後輩への指導が丁寧"].slice(0, 1 + Math.floor(rand() * 2))
+      : [],
+    troubles: rand() < 0.7 ? [] : [{
+      id: `tr-${memberId}`,
+      date: "2026-03-28",
+      site: "旧山陽倉庫解体",
+      type: "機材故障" as const,
+      detail: "バックホーの油圧ホースから軽微な漏れを発見。速やかに報告し、応急処置を実施。",
+      adminScore: 3 as const,
+      adminMemo: "迅速な対応。",
+    }],
+    siteEvals: [{
+      date: "2026-03-25",
+      site: member.siteCount > 100 ? "旧山陽倉庫解体" : "田辺邸解体工事",
+      role: yrs >= 10 ? "責任者" as const : "作業員" as const,
+      tags: yrs >= 10 ? ["統率力", "安全管理", "技術指導"] : ["時間厳守", "作業正確"],
+      memo: yrs >= 10 ? "チーム全体の安全意識向上に貢献" : undefined,
+    }],
+  };
+}
+
 export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
-  const member = MEMBERS.find(m => m.id === id);
-  const [statsState, setStatsState] = useState(() =>
-    MEMBER_STATS.find(s => s.memberId === id) ?? MEMBER_STATS[0]
-  );
+  const [member, setMember] = useState<Member | null>(null);
+  const [statsState, setStatsState] = useState<MemberStats | null>(null);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("基本情報");
   const [newEvalMemo, setNewEvalMemo] = useState("");
   const [newEvalTags, setNewEvalTags] = useState<string[]>([]);
 
-  if (!member) {
+  useEffect(() => {
+    fetch("/api/kaitai/members", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.members) { setLoading(false); return; }
+        const raw = data.members.find((m: Record<string, unknown>) => m.id === id);
+        if (!raw) { setLoading(false); return; }
+        const m: Member = {
+          id: raw.id as string,
+          name: raw.name as string,
+          kana: (raw.kana as string) ?? "",
+          type: ((raw.type as string) ?? "直用") as "直用" | "外注",
+          company: raw.company2 as string | undefined,
+          birthDate: (raw.birthDate as string) ?? "",
+          hireDate: (raw.hireDate as string) ?? "",
+          address: (raw.address as string) ?? "",
+          emergency: (raw.emergency as string) ?? "",
+          licenses: (raw.licenses as License[]) ?? [],
+          preYears: (raw.preYears as number) ?? 0,
+          siteCount: (raw.siteCount as number) ?? 0,
+          dayRate: (raw.dayRate as number) ?? 0,
+          role: (raw.role as string) ?? "作業員",
+          avatar: (raw.avatar as string) ?? (raw.name as string).charAt(0),
+        };
+        setMember(m);
+        setStatsState(generateStats(id, m));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ color: T.sub }}>
+        読み込み中...
+      </div>
+    );
+  }
+
+  if (!member || !statsState) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ color: T.sub }}>
         メンバーが見つかりません
@@ -393,12 +493,15 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const effColor = s.efficiencyDelta >= 0 ? "#4ADE80" : "#F87171";
 
   const handleTroubleScore = (troubleId: string, score: 1 | 2 | 3, memo: string) => {
-    setStatsState(prev => ({
-      ...prev,
-      troubles: prev.troubles.map(t =>
-        t.id === troubleId ? { ...t, adminScore: score, adminMemo: memo } : t
-      ),
-    }));
+    setStatsState(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        troubles: prev.troubles.map(t =>
+          t.id === troubleId ? { ...t, adminScore: score, adminMemo: memo } : t
+        ),
+      };
+    });
   };
 
   const AVAILABLE_TAGS = ["#効率的", "#リーダーシップ", "#安全模範", "#要注意", "#ルール違反", "#成長中", "#冷静対応"];
@@ -811,13 +914,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <button
                   onClick={() => {
                     if (newEvalTags.length === 0 && !newEvalMemo) return;
-                    setStatsState(prev => ({
-                      ...prev,
-                      siteEvals: [
-                        { date: "4月2日", site: "（最新現場）", role: "作業員", tags: newEvalTags, memo: newEvalMemo },
-                        ...prev.siteEvals,
-                      ],
-                    }));
+                    setStatsState(prev => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        siteEvals: [
+                          { date: "4月2日", site: "（最新現場）", role: "作業員" as const, tags: newEvalTags, memo: newEvalMemo },
+                          ...prev.siteEvals,
+                        ],
+                      };
+                    });
                     setNewEvalTags([]);
                     setNewEvalMemo("");
                   }}
