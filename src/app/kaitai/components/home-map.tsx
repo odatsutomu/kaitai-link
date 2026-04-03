@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { LatLng } from "../lib/geocode";
 import { T } from "../lib/design-tokens";
-import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Filter } from "lucide-react";
 
 export interface MapSite {
   id: string;
@@ -15,16 +15,25 @@ export interface MapSite {
   address?: string;
 }
 
-const STATUS_COLOR: Record<MapSite["status"], string> = {
+const STATUSES = ["解体中", "着工前", "完工"] as const;
+type SiteStatus = (typeof STATUSES)[number];
+
+const STATUS_COLOR: Record<SiteStatus, string> = {
   "解体中": T.primary,
   "着工前": "#3B82F6",
   "完工":   T.muted,
 };
 
-const STATUS_STYLE: Record<MapSite["status"], { bg: string; fg: string }> = {
+const STATUS_STYLE: Record<SiteStatus, { bg: string; fg: string }> = {
   "解体中": { bg: "rgba(180,83,9,0.12)", fg: "#92400E" },
   "着工前": { bg: "#DBEAFE",             fg: "#1D4ED8" },
   "完工":   { bg: "#F1F5F9",             fg: "#475569" },
+};
+
+const STATUS_LABEL: Record<SiteStatus, string> = {
+  "解体中": "解体中",
+  "着工前": "着工前",
+  "完工":   "完工済",
 };
 
 // Google Maps スタイルのティアドロップ型ピン SVG
@@ -91,34 +100,39 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
   const markersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
 
-  // Per-site visibility: default all visible
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  // Category-based visibility: all statuses visible by default
+  const [visibleStatuses, setVisibleStatuses] = useState<Set<SiteStatus>>(new Set(STATUSES));
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const toggleSite = useCallback((id: string) => {
-    setHiddenIds(prev => {
+  const toggleStatus = useCallback((status: SiteStatus) => {
+    setVisibleStatuses(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
       return next;
     });
   }, []);
 
-  const showAll = useCallback(() => setHiddenIds(new Set()), []);
-  const hideAll = useCallback(() => setHiddenIds(new Set(sites.map(s => s.id))), [sites]);
+  // Count sites per status
+  const countByStatus = STATUSES.reduce((acc, s) => {
+    acc[s] = sites.filter(site => site.status === s).length;
+    return acc;
+  }, {} as Record<SiteStatus, number>);
 
-  // Sync marker visibility with hiddenIds
+  // Sync marker visibility with visibleStatuses
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     markersRef.current.forEach((marker, id) => {
-      if (hiddenIds.has(id)) {
+      const site = sites.find(s => s.id === id);
+      if (!site) return;
+      if (!visibleStatuses.has(site.status)) {
         if (map.hasLayer(marker)) map.removeLayer(marker);
       } else {
         if (!map.hasLayer(marker)) marker.addTo(map);
       }
     });
-  }, [hiddenIds]);
+  }, [visibleStatuses, sites]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -227,13 +241,13 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const visibleCount = sites.length - hiddenIds.size;
+  const visibleCount = sites.filter(s => visibleStatuses.has(s.status)).length;
 
   return (
     <div style={{ position: "relative" }}>
       <div ref={containerRef} style={{ height, width: "100%", borderRadius: "0 0 12px 12px" }} />
 
-      {/* ピン表示切替パネル */}
+      {/* ── ステータス別フィルター ── */}
       <div style={{
         position: "absolute", top: 8, right: 8, zIndex: 1000,
       }}>
@@ -250,9 +264,8 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           }}
         >
-          <Eye size={14} style={{ color: T.primary }} />
-          表示 {visibleCount}/{sites.length}
-          {panelOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          <Filter size={14} style={{ color: T.primary }} />
+          {visibleCount}/{sites.length}件表示
         </button>
 
         {panelOpen && (
@@ -261,64 +274,61 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
             background: "rgba(255,255,255,0.97)",
             border: "1px solid #E2E8F0",
             borderRadius: 10,
-            padding: "8px 0",
-            maxHeight: 240,
-            overflowY: "auto",
+            padding: 8,
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            minWidth: 200,
+            minWidth: 180,
           }}>
-            {/* 一括操作 */}
-            <div style={{ display: "flex", gap: 6, padding: "2px 10px 8px", borderBottom: "1px solid #F1F5F9" }}>
-              <button
-                onClick={showAll}
-                style={{
-                  flex: 1, fontSize: 12, fontWeight: 600, color: T.primary,
-                  background: T.primaryLt, border: "none", borderRadius: 6, padding: "5px 0", cursor: "pointer",
-                }}
-              >
-                すべて表示
-              </button>
-              <button
-                onClick={hideAll}
-                style={{
-                  flex: 1, fontSize: 12, fontWeight: 600, color: T.sub,
-                  background: "#F1F5F9", border: "none", borderRadius: 6, padding: "5px 0", cursor: "pointer",
-                }}
-              >
-                すべて非表示
-              </button>
-            </div>
-
-            {/* 個別ピン切替 */}
-            {sites.map(site => {
-              const hidden = hiddenIds.has(site.id);
-              const color = STATUS_COLOR[site.status];
+            {STATUSES.map(status => {
+              const active = visibleStatuses.has(status);
+              const color = STATUS_COLOR[status];
+              const count = countByStatus[status];
+              if (count === 0) return null;
               return (
                 <button
-                  key={site.id}
-                  onClick={() => toggleSite(site.id)}
+                  key={status}
+                  onClick={() => toggleStatus(status)}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
-                    width: "100%", padding: "8px 12px",
-                    background: hidden ? "#FAFAFA" : "transparent",
-                    border: "none", cursor: "pointer",
-                    opacity: hidden ? 0.5 : 1,
+                    width: "100%", padding: "8px 10px",
+                    background: active ? "transparent" : "#FAFAFA",
+                    border: "none", borderRadius: 8, cursor: "pointer",
+                    opacity: active ? 1 : 0.45,
                     transition: "opacity 0.15s, background 0.15s",
                   }}
                 >
-                  {hidden
-                    ? <EyeOff size={15} style={{ color: T.muted, flexShrink: 0 }} />
-                    : <Eye size={15} style={{ color: T.primary, flexShrink: 0 }} />
-                  }
+                  {/* チェックボックス風インジケーター */}
+                  <span style={{
+                    width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: active ? color : "#E5E7EB",
+                    transition: "background 0.15s",
+                  }}>
+                    {active && (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5"/>
+                      </svg>
+                    )}
+                  </span>
+
+                  {/* ピンアイコン */}
                   <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
                     <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={color}/>
                     <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
                   </svg>
+
                   <span style={{
-                    fontSize: 13, fontWeight: 600, color: hidden ? T.muted : T.text,
-                    textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    fontSize: 13, fontWeight: 600, color: active ? T.text : T.muted,
+                    flex: 1, textAlign: "left",
                   }}>
-                    {site.name}
+                    {STATUS_LABEL[status]}
+                  </span>
+
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: active ? color : T.muted,
+                    background: active ? STATUS_STYLE[status].bg : "#F1F5F9",
+                    padding: "2px 8px", borderRadius: 10,
+                  }}>
+                    {count}
                   </span>
                 </button>
               );
@@ -336,7 +346,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
         padding: "5px 12px",
         display: "flex", gap: 10, alignItems: "center",
       }}>
-        {(["解体中", "着工前", "完工"] as const).map(s => (
+        {STATUSES.map(s => (
           <div key={s} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg">
               <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={STATUS_COLOR[s]}/>
