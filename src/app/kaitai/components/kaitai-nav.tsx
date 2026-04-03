@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Home, Users, MoreHorizontal,
   Calendar, ClipboardList, Plus, LogOut,
-  Building2,
+  Building2, ClipboardCheck,
 } from "lucide-react";
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
@@ -41,11 +41,12 @@ const SUPPRESS_ROUTES = [
 ];
 
 const WORKER_TABS = [
-  { href: "/kaitai",          label: "現場状況",  icon: Home },
-  { href: "/kaitai/schedule", label: "全体予定",  icon: Calendar },
-  { href: "/kaitai/report",   label: "作業報告",  icon: ClipboardList },
-  { href: "/kaitai/members",  label: "メンバー",  icon: Users },
-  { href: "/kaitai/menu",     label: "メニュー",  icon: MoreHorizontal },
+  { href: "/kaitai",              label: "現場状況",  icon: Home },
+  { href: "/kaitai/schedule",     label: "全体予定",  icon: Calendar },
+  { href: "/kaitai/report",       label: "作業報告",  icon: ClipboardList },
+  { href: "/kaitai/skill-matrix", label: "スキル",    icon: ClipboardCheck },
+  { href: "/kaitai/members",      label: "メンバー",  icon: Users },
+  { href: "/kaitai/menu",         label: "メニュー",  icon: MoreHorizontal },
 ] as const;
 
 function isActive(href: string, p: string) {
@@ -161,11 +162,12 @@ export function KaitaiPCHeader() {
 const NAV_H = 76;
 function WorkerMobileNav({ pathname }: { pathname: string }) {
   const tabs = [
-    { href: "/kaitai",          label: "現場状況", icon: Home,           active: pathname === "/kaitai",                  center: false },
-    { href: "/kaitai/schedule", label: "全体予定", icon: Calendar,       active: pathname.startsWith("/kaitai/schedule"), center: false },
-    { href: "/kaitai/report",   label: "報告",     icon: ClipboardList,  active: pathname.startsWith("/kaitai/report"),   center: true  },
-    { href: "/kaitai/members",  label: "メンバー", icon: Users,          active: pathname.startsWith("/kaitai/members"),  center: false },
-    { href: "/kaitai/menu",     label: "メニュー", icon: MoreHorizontal, active: pathname.startsWith("/kaitai/menu"),     center: false },
+    { href: "/kaitai",              label: "現場",     icon: Home,           active: pathname === "/kaitai",                       center: false },
+    { href: "/kaitai/schedule",     label: "予定",     icon: Calendar,       active: pathname.startsWith("/kaitai/schedule"),      center: false },
+    { href: "/kaitai/report",       label: "報告",     icon: ClipboardList,  active: pathname.startsWith("/kaitai/report"),        center: true  },
+    { href: "/kaitai/skill-matrix", label: "スキル",   icon: ClipboardCheck, active: pathname.startsWith("/kaitai/skill-matrix"), center: false },
+    { href: "/kaitai/members",      label: "メンバー", icon: Users,          active: pathname.startsWith("/kaitai/members"),       center: false },
+    { href: "/kaitai/menu",         label: "その他",   icon: MoreHorizontal, active: pathname.startsWith("/kaitai/menu"),          center: false },
   ];
   return (
     <nav

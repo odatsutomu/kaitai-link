@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import {
   MapPin, Users, HardHat,
   CheckCircle2, Clock, ChevronRight, ArrowUpRight,
-  Sun, Cloud, CloudRain, Wind, Wrench, X, ClipboardList,
+  Sun, Cloud, CloudRain, Wind, Wrench, X,
 } from "lucide-react";
 import { KaitaiLogo } from "./components/kaitai-logo";
 import { useAppContext, getSiteStatusMap, type AttendanceStatus, type AttendanceLog } from "./lib/app-context";
@@ -826,19 +826,6 @@ export default function KaitaiHome() {
           ))}
         </div>
       </div>
-
-      {/* ── スキルマトリックスボタン ──────── */}
-      <Link href="/kaitai/skill-matrix"
-        className="flex items-center justify-center gap-2 mb-4 active:scale-[0.98] transition-all"
-        style={{
-          padding: "14px 20px", borderRadius: 12,
-          background: C.card, border: `1px solid ${C.border}`,
-          fontSize: 15, fontWeight: 700, color: C.amber,
-          textDecoration: "none",
-        }}>
-        <ClipboardList size={18} />
-        スキルチェックシート（全社）
-      </Link>
 
       {/* ── 現場マップ（全幅） ────────────── */}
       <div className="mb-5 overflow-hidden rounded-2xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow, background: C.card }}>
