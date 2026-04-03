@@ -3,8 +3,11 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Find the first company (demo company)
-  const company = await prisma.kaitaiCompany.findFirst();
+  // Find company by name or use first
+  const targetName = process.argv[2];
+  const company = targetName
+    ? await prisma.kaitaiCompany.findFirst({ where: { name: { contains: targetName } } })
+    : await prisma.kaitaiCompany.findFirst();
   if (!company) {
     console.error("No company found. Please create a company first.");
     process.exit(1);
