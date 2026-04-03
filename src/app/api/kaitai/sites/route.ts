@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, address, status, startDate, endDate, contractAmount, clientId, notes } = body;
+  const { name, address, status, startDate, endDate, contractAmount, costAmount, clientId, notes, lat, lng, structureType, progressPct } = body;
 
   if (!name || !address) {
     return NextResponse.json({ error: "現場名と住所は必須です" }, { status: 400 });
@@ -72,8 +72,13 @@ export async function POST(req: NextRequest) {
       startDate:      startDate      ?? null,
       endDate:        endDate        ?? null,
       contractAmount: contractAmount ?? 0,
+      costAmount:     costAmount     ?? 0,
       clientId:       clientId       ?? null,
       notes:          notes          ?? null,
+      lat:            lat != null ? Number(lat) : null,
+      lng:            lng != null ? Number(lng) : null,
+      structureType:  structureType  ?? null,
+      progressPct:    Number(progressPct) || 0,
     },
   });
 
@@ -88,4 +93,31 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, site }, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+  if (session.authLevel !== "admin") {
+    return NextResponse.json({ error: "管理者権限が必要です" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { id, ...patch } = body;
+  if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
+
+  // Ensure we only update sites belonging to this company
+  const existing = await prisma.kaitaiSite.findFirst({
+    where: { id, companyId: session.companyId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "現場が見つかりません" }, { status: 404 });
+  }
+
+  const site = await prisma.kaitaiSite.update({
+    where: { id },
+    data:  patch,
+  });
+
+  return NextResponse.json({ ok: true, site });
 }

@@ -58,7 +58,11 @@ model KaitaiSite {
   startDate      String?
   endDate        String?
   contractAmount Int      @default(0)
+  costAmount     Int      @default(0)
   progressPct    Int      @default(0)
+  lat            Float?
+  lng            Float?
+  structureType  String?
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -71,12 +75,24 @@ model KaitaiSite {
 }
 
 model KaitaiMember {
-  id        String   @id @default(cuid())
-  companyId String
-  name      String
-  role      String   @default("worker")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  kana        String?
+  type        String   @default("直用")   // 直用 | 外注
+  company2    String?                      // 外注先会社名
+  role        String   @default("作業員")
+  birthDate   String?
+  hireDate    String?
+  address     String?
+  emergency   String?
+  licenses    String[] @default([])        // ["kaitai","crane",...]
+  preYears    Int      @default(0)
+  siteCount   Int      @default(0)
+  dayRate     Int      @default(0)
+  avatar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
