@@ -194,37 +194,6 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
         attribution: "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>",
         maxZoom: 19,
       }).addTo(map);
-
-      // ティアドロップ型ピン + 現場カードポップアップ
-      const newMarkers = new Map<string, import("leaflet").Marker>();
-      sites.forEach((site) => {
-        const color = STATUS_COLOR[site.status];
-        const icon = L.divIcon({
-          html: teardropPin(color),
-          iconSize: [32, 48],
-          iconAnchor: [16, 48],
-          popupAnchor: [0, -54],
-          className: "",
-        });
-
-        const marker = L.marker([site.lat, site.lng], { icon })
-          .addTo(map)
-          .bindPopup(buildPopupHtml(site), {
-            className: "kaitai-info-popup",
-            maxWidth: 260,
-            minWidth: 240,
-            closeButton: true,
-            autoClose: true,
-          });
-        newMarkers.set(site.id, marker);
-      });
-      markersRef.current = newMarkers;
-
-      // 全ピンが収まるように自動フィット
-      if (sites.length >= 2) {
-        const bounds = L.latLngBounds(sites.map(s => [s.lat, s.lng]));
-        map.fitBounds(bounds, { padding: [40, 40] });
-      }
     });
 
     return () => {
@@ -234,6 +203,55 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync markers when sites data arrives or changes
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L || sites.length === 0) return;
+
+    // Clear old markers
+    markersRef.current.forEach(marker => map.removeLayer(marker));
+    markersRef.current.clear();
+
+    // Create new markers
+    const newMarkers = new Map<string, import("leaflet").Marker>();
+    sites.forEach((site) => {
+      const color = STATUS_COLOR[site.status];
+      const icon = L.divIcon({
+        html: teardropPin(color),
+        iconSize: [32, 48],
+        iconAnchor: [16, 48],
+        popupAnchor: [0, -54],
+        className: "",
+      });
+
+      const marker = L.marker([site.lat, site.lng], { icon })
+        .bindPopup(buildPopupHtml(site), {
+          className: "kaitai-info-popup",
+          maxWidth: 260,
+          minWidth: 240,
+          closeButton: true,
+          autoClose: true,
+        });
+
+      // Only add to map if status is visible
+      if (visibleStatuses.has(site.status)) {
+        marker.addTo(map);
+      }
+      newMarkers.set(site.id, marker);
+    });
+    markersRef.current = newMarkers;
+
+    // Fit bounds to all sites
+    if (sites.length >= 2) {
+      const bounds = L.latLngBounds(sites.map(s => [s.lat, s.lng]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    } else if (sites.length === 1) {
+      map.setView([sites[0].lat, sites[0].lng], 14);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sites]);
 
   return (
     <div style={{ position: "relative" }}>
