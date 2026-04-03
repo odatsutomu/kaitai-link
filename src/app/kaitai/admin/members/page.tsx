@@ -252,7 +252,7 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
             </>
           )}
           <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: C.muted }}>
-            日当 ¥{m.dailyWage?.toLocaleString("ja-JP") ?? "—"}
+            日当 ¥{m.dayRate?.toLocaleString("ja-JP") ?? "—"}
           </span>
         </div>
       </div>

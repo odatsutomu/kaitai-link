@@ -669,8 +669,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* パフォーマンス・評価タブは管理者ページ (/kaitai/admin/members/[id]) で確認可能 */}
-        {tab === "パフォーマンス__disabled" && (
+        {/* パフォーマンス・評価は管理者ページ (/kaitai/admin/members/[id]) で確認 */}
+        {false && (
           <>
             {/* Radar chart */}
             <section>
@@ -782,7 +782,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {tab === "評価__disabled" && (
+        {false && (
           <>
             {/* Existing evaluations */}
             <section>
