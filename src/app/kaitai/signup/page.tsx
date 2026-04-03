@@ -2,59 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Check, Building2, User, Lock, CreditCard, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Building2, User, Lock, Sparkles } from "lucide-react";
 import { KaitaiLogo } from "../components/kaitai-logo";
-import { useAppContext, Company, PlanId } from "../lib/app-context";
+import { useAppContext, Company } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
 
-// ─── Plan definitions ─────────────────────────────────────────────────────────
+type Step = "company" | "admin" | "password" | "complete";
 
-const PLANS = [
-  {
-    id: "free" as PlanId,
-    name: "Free",
-    price: 0,
-    priceLabel: "無料",
-    features: ["現場2件まで", "メンバー8名まで", "機材・経営分析・元請け管理すべて利用可", "データ保存90日"],
-    color: T.sub,
-  },
-  {
-    id: "standard" as PlanId,
-    name: "Standard",
-    price: 9800,
-    priceLabel: "¥9,800/月",
-    features: ["現場10件まで", "メンバー30名まで", "機材・経営分析・元請け管理すべて利用可", "データ保存1年"],
-    color: "#FF9800",
-    popular: true,
-  },
-  {
-    id: "business" as PlanId,
-    name: "Business",
-    price: 29800,
-    priceLabel: "¥29,800/月",
-    features: ["現場30件まで", "メンバー80名まで", "機材・経営分析・元請け管理すべて利用可", "データ保存2年"],
-    color: "#3B82F6",
-  },
-  {
-    id: "enterprise" as PlanId,
-    name: "Enterprise",
-    price: 0,
-    priceLabel: "要相談",
-    features: ["現場・メンバー無制限", "全機能利用可能", "専任サポート・電話対応", "データ無期限保存"],
-    color: "#7C3AED",
-  },
-];
+const STEPS: Step[] = ["company", "admin", "password", "complete"];
 
-type Step = "company" | "admin" | "password" | "plan" | "complete";
-
-const STEPS: Step[] = ["company", "admin", "password", "plan", "complete"];
-
-const STEP_META: Record<Step, { icon: React.ElementType; label: string }> = {
-  company:  { icon: Building2,   label: "会社情報" },
-  admin:    { icon: User,        label: "管理者情報" },
-  password: { icon: Lock,        label: "パスワード設定" },
-  plan:     { icon: CreditCard,  label: "プラン選択" },
-  complete: { icon: Sparkles,    label: "登録完了" },
+const STEP_META: Record<Step, { label: string }> = {
+  company:  { label: "会社情報" },
+  admin:    { label: "管理者情報" },
+  password: { label: "パスワード設定" },
+  complete: { label: "登録完了" },
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -74,8 +35,6 @@ export default function SignupPage() {
   const [email,       setEmail]       = useState("");
   const [pw1,         setPw1]         = useState(""); // 全従業員
   const [pw2,         setPw2]         = useState(""); // 管理者
-  const [plan,        setPlan]        = useState<PlanId>("standard");
-  const [stripeId,    setStripeId]    = useState("");
 
   const stepIdx = STEPS.indexOf(step);
 
@@ -100,10 +59,8 @@ export default function SignupPage() {
 
   function next() {
     if (!validate()) return;
-    if (step === "plan") {
-      // Generate mock Stripe Customer ID and complete registration
-      const mockId = `cus_mock_${Date.now().toString(36).toUpperCase()}`;
-      setStripeId(mockId);
+    if (step === "password") {
+      // Complete registration with free plan
       const company: Company = {
         id: Date.now().toString(36),
         name: companyName.trim(),
@@ -113,8 +70,8 @@ export default function SignupPage() {
         adminEmail: email.trim(),
         password1: pw1,
         password2: pw2,
-        plan,
-        stripeCustomerId: mockId,
+        plan: "free",
+        stripeCustomerId: "",
         createdAt: new Date().toISOString(),
       };
       setCompany(company);
@@ -179,7 +136,7 @@ export default function SignupPage() {
             return (
               <div key={s} className="flex-1 rounded-full" style={{
                 height: 4,
-                background: done ? "#FF9800" : curr ? "#FFCC80" : "#EEEEEE",
+                background: done ? T.primary : curr ? "#FFCC80" : "#EEEEEE",
               }} />
             );
           })}
@@ -228,7 +185,7 @@ export default function SignupPage() {
               <p style={{ fontSize: 14, color: "#888888", marginTop: 4 }}>2種類のパスワードで権限を分離します</p>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="rounded-2xl p-5" style={{ background: "${T.primaryLt}", border: "1.5px solid #FED7AA" }}>
+              <div className="rounded-2xl p-5" style={{ background: T.primaryLt, border: "1.5px solid #FED7AA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#B45309", marginBottom: 2 }}>第一パスワード（全従業員共有）</p>
                 <p style={{ fontSize: 11, color: "#92400E" }}>現場確認・スケジュール・勤怠報告に使用</p>
               </div>
@@ -236,56 +193,9 @@ export default function SignupPage() {
 
               <div className="rounded-2xl p-5" style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 2 }}>第二パスワード（管理者専用）</p>
-                <p style={{ fontSize: 11, color: "#7F1D1D" }}>経営分析・メンバー評価・支払い管理に使用</p>
+                <p style={{ fontSize: 11, color: "#7F1D1D" }}>経営分析・メンバー評価・管理者ページに使用</p>
               </div>
               {field("第二パスワード", pw2, setPw2, { placeholder: "4文字以上", type: "password", key: "pw2" })}
-            </div>
-          </>
-        )}
-
-        {/* ── Step: plan ── */}
-        {step === "plan" && (
-          <>
-            <div>
-              <h2 style={{ fontSize: 24, fontWeight: 900, color: "#111111" }}>プランを選択</h2>
-              <p style={{ fontSize: 14, color: "#888888", marginTop: 4 }}>あとからいつでも変更できます</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              {PLANS.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setPlan(p.id)}
-                  className="w-full text-left rounded-3xl p-4 transition-all active:scale-[0.99]"
-                  style={{
-                    background: plan === p.id ? `${p.color}08` : "#FAFAFA",
-                    border: plan === p.id ? `2.5px solid ${p.color}` : "2px solid #EEEEEE",
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black" style={{ fontSize: 18, color: p.color }}>{p.name}</span>
-                      {p.popular && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.color, color: "#fff" }}>人気</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-black" style={{ fontSize: 16, color: "#111111" }}>{p.priceLabel}</span>
-                      {plan === p.id && (
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: p.color }}>
-                          <Check size={14} color="#fff" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {p.features.map(f => (
-                      <span key={f} className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#F5F5F5", color: "#666666" }}>
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              ))}
             </div>
           </>
         )}
@@ -301,22 +211,12 @@ export default function SignupPage() {
               {companyName} の<br />解体LINK アカウントが作成されました
             </p>
 
-            {/* Stripe Customer ID */}
-            <div className="w-full rounded-2xl p-4 mb-4" style={{ background: "#F0FFF4", border: "1.5px solid #A7F3D0" }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#065F46", marginBottom: 4 }}>Stripe Customer ID（バックエンド連携用）</p>
-              <p style={{ fontSize: 13, fontWeight: 800, color: "#047857", fontFamily: "monospace", wordBreak: "break-all" }}>
-                {stripeId}
-              </p>
-              <p style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>実装時はサーバーサイドで自動発行・DB保存されます</p>
-            </div>
-
             {/* Summary */}
             <div className="w-full rounded-2xl p-4 mb-6 text-left" style={{ background: T.bg, border: "1.5px solid #EEEEEE" }}>
               {[
                 { label: "会社名",   value: companyName },
                 { label: "管理者",   value: adminName },
                 { label: "メール",   value: email },
-                { label: "プラン",   value: PLANS.find(p => p.id === plan)?.name ?? plan },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between py-2" style={{ borderBottom: "1px solid #EEEEEE" }}>
                   <span style={{ fontSize: 12, color: "#888888" }}>{label}</span>
@@ -345,7 +245,7 @@ export default function SignupPage() {
             className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"
             style={{ height: 64, fontSize: 18, background: "#111111", color: T.surface }}
           >
-            {step === "plan" ? "登録する" : "次へ"} <ChevronRight size={22} />
+            {step === "password" ? "登録する" : "次へ"} <ChevronRight size={22} />
           </button>
         </div>
       )}
