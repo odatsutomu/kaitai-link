@@ -3,6 +3,22 @@ import { getSessionFromRequest } from "@/lib/kaitai/session";
 import { PLAN_CONFIG, isValidPlan } from "@/lib/kaitai/plans";
 import { prisma } from "@/lib/prisma";
 
+// 財務フィールド（一般ユーザーのレスポンスから除外）
+const FINANCIAL_FIELDS = [
+  "contractAmount", "costAmount", "profit", "profitMargin",
+  "budget", "wasteCost", "laborCost", "breakdown",
+] as const;
+
+type SiteRecord = Record<string, unknown>;
+
+function sanitizeForWorker(site: SiteRecord): SiteRecord {
+  const result = { ...site };
+  for (const field of FINANCIAL_FIELDS) {
+    delete result[field];
+  }
+  return result;
+}
+
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
@@ -12,7 +28,16 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ ok: true, sites });
+  // 管理者以外は財務データをレスポンスから除外
+  const isAdmin = session.authLevel === "admin";
+  const payload = isAdmin
+    ? sites
+    : sites.map(s => sanitizeForWorker(s as SiteRecord));
+
+  return NextResponse.json(
+    { ok: true, sites: payload },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(req: NextRequest) {

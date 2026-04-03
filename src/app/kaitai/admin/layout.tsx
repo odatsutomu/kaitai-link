@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
-  LogOut, ChevronRight, LayoutDashboard, Shield,
+  LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -13,8 +13,9 @@ import Image from "next/image";
 // ─── Admin nav items ──────────────────────────────────────────────────────────
 
 const ADMIN_NAV = [
-  { href: "/kaitai/admin",            label: "経営分析",     icon: TrendingUp,      exact: true  },
-  { href: "/kaitai/admin/evaluation", label: "作業評価",     icon: Star,            exact: false },
+  { href: "/kaitai/admin",            label: "経営分析",       icon: TrendingUp, exact: true  },
+  { href: "/kaitai/admin/projects",   label: "プロジェクト収支", icon: BarChart2,  exact: false },
+  { href: "/kaitai/admin/evaluation", label: "作業評価",       icon: Star,       exact: false },
 ] as const;
 
 const EXTERNAL_NAV = [

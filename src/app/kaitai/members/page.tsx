@@ -45,6 +45,19 @@ function tagStyle(tag: string) {
   return TAG_COLORS[tag] ?? { bg: "#F1F5F9", color: "#4B5563" };
 }
 
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+
+type SortOrder = "名前" | "経験" | "スコア";
+
+function activityScore(m: (typeof MEMBERS)[0]): number {
+  const s = MEMBER_STATS.find(x => x.memberId === m.id)!;
+  const att = s.attendancePct * 0.5;
+  const eff = (50 + Math.max(-50, Math.min(50, s.efficiencyDelta))) * 0.3;
+  const lic = Math.min(15, m.licenses.length * 3);
+  const pen = s.ruleViolations * 5 + s.lateDays * 2;
+  return Math.max(0, Math.min(100, Math.round(att + eff + lic - pen)));
+}
+
 // ─── Mini radar sparkline ──────────────────────────────────────────────────────
 
 function MiniRadar({ radar }: { radar: Record<string, number> }) {
@@ -323,8 +336,10 @@ function MemberCardAdmin({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) 
 // ─── Member card (general worker) ─────────────────────────────────────────────
 
 function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
-  const yrs = experienceYears(m);
-  const lvl = experienceLevel(yrs);
+  const yrs   = experienceYears(m);
+  const lvl   = experienceLevel(yrs);
+  const score = activityScore(m);
+  const scoreColor = score >= 70 ? C.green : score >= 50 ? C.amberDk : "#64748B";
 
   return (
     <Link href={`/kaitai/members/${m.id}`}>
@@ -373,9 +388,18 @@ function MemberCardGeneral({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Award size={14} style={{ color: "#D97706" }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#D97706" }}>{m.licenses.length}</span>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1">
+              <Award size={13} style={{ color: "#D97706" }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#D97706" }}>{m.licenses.length}資格</span>
+            </div>
+            <div
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+              style={{ background: `${scoreColor}18`, border: `1px solid ${scoreColor}40` }}
+            >
+              <Zap size={11} style={{ color: scoreColor }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor }}>{score}pt</span>
+            </div>
           </div>
         </div>
       </div>
@@ -446,11 +470,19 @@ type Tab = "一覧" | "勤怠" | "資格";
 export default function MembersPage() {
   const { adminMode, viewerMemberId, setViewerMemberId } = useAppContext();
 
-  const [tab, setTab]       = useState<Tab>("一覧");
-  const [query, setQuery]   = useState("");
+  const [tab, setTab]         = useState<Tab>("一覧");
+  const [query, setQuery]     = useState("");
   const [typeFilter, setTypeFilter] = useState<"全員" | "直用" | "外注">("全員");
+  const [sortOrder, setSortOrder]   = useState<SortOrder>("名前");
 
-  const sorted = [...MEMBERS].sort((a, b) => experienceYears(b) - experienceYears(a));
+  const sorted = [...MEMBERS].sort((a, b) => {
+    if (sortOrder === "経験") {
+      const diff = b.siteCount - a.siteCount;
+      return diff !== 0 ? diff : experienceYears(b) - experienceYears(a);
+    }
+    if (sortOrder === "スコア") return activityScore(b) - activityScore(a);
+    return a.kana.localeCompare(b.kana, "ja");
+  });
 
   const filtered = sorted.filter(m => {
     const matchType  = typeFilter === "全員" || m.type === typeFilter;
@@ -543,19 +575,21 @@ export default function MembersPage() {
         )}
       </div>
 
-      {/* ── Main 2-col layout ── */}
-      <div className="flex flex-col lg:flex-row gap-6">
+      {/* ── Main layout: 2-col for admin, 1-col for general ── */}
+      <div className={`flex gap-6 ${adminMode ? "flex-col lg:flex-row" : "flex-col"}`}>
 
-        {/* ── Left sidebar (lg+) ── */}
-        <div className="lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4">
-          {adminMode && <AlertSection />}
-          <SkillMap />
-        </div>
+        {/* ── Left sidebar (admin only) ── */}
+        {adminMode && (
+          <div className="lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4">
+            <AlertSection />
+            <SkillMap />
+          </div>
+        )}
 
-        {/* ── Right: search + list ── */}
+        {/* ── Right: search + list (full width for general) ── */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
 
-          {/* Search + type filter */}
+          {/* Search + type filter + sort */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12 }}>
               <Search size={16} style={{ color: C.muted }} />
@@ -568,22 +602,44 @@ export default function MembersPage() {
                 style={{ fontSize: 15, color: C.text }}
               />
             </div>
-            <div className="flex gap-2">
-              {(["全員", "直用", "外注"] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
-                  className="px-4 py-2 rounded-xl transition-all"
-                  style={{
-                    fontSize: 14, fontWeight: 700, borderRadius: 10,
-                    ...(typeFilter === t
-                      ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.3)" }
-                      : { background: C.card, color: C.sub, border: `1px solid ${C.border}` })
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex gap-2">
+                {(["全員", "直用", "外注"] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(t)}
+                    className="px-4 py-2 rounded-xl transition-all"
+                    style={{
+                      fontSize: 14, fontWeight: 700, borderRadius: 10,
+                      ...(typeFilter === t
+                        ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.3)" }
+                        : { background: C.card, color: C.sub, border: `1px solid ${C.border}` })
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span style={{ fontSize: 13, color: C.muted, fontWeight: 500 }}>並び替え：</span>
+                <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: "#F1F5F9" }}>
+                  {(["名前", "経験", "スコア"] as SortOrder[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setSortOrder(s)}
+                      className="px-3 py-1.5 rounded-md transition-all"
+                      style={{
+                        fontSize: 13, fontWeight: 700,
+                        ...(sortOrder === s
+                          ? { background: C.card, color: C.amberDk, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+                          : { color: C.muted })
+                      }}
+                    >
+                      {s}順
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -609,9 +665,9 @@ export default function MembersPage() {
           {/* ── Tab: 一覧 ── */}
           {tab === "一覧" && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {filtered.map((m) => adminMode
-                ? <MemberCardAdmin key={m.id} m={m} rank={sorted.indexOf(m)} />
-                : <MemberCardGeneral key={m.id} m={m} rank={sorted.indexOf(m)} />
+              {filtered.map((m, i) => adminMode
+                ? <MemberCardAdmin key={m.id} m={m} rank={i} />
+                : <MemberCardGeneral key={m.id} m={m} rank={i} />
               )}
             </div>
           )}
@@ -698,7 +754,7 @@ export default function MembersPage() {
           {/* ── Tab: 資格 ── */}
           {tab === "資格" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {sorted.map(m => {
+              {filtered.map(m => {
                 const lvl = experienceLevel(experienceYears(m));
                 return (
                   <Link key={m.id} href={`/kaitai/members/${m.id}`}>

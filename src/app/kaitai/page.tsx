@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
-  MapPin, TrendingUp, Users, HardHat,
+  MapPin, Users, HardHat,
   CheckCircle2, Clock, ChevronRight, ArrowUpRight,
   Sun, Cloud, CloudRain, Wind,
 } from "lucide-react";
@@ -117,8 +117,7 @@ function fmtTime(iso: string): string {
   return m ? `${m[1]}:${m[2]}` : "";
 }
 
-// ─── ユーティリティ ───────────────────────────────────────────────────────────
-const fmt = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
+// fmt は管理者画面でのみ使用するため削除済み
 
 // ─── KPIカード ────────────────────────────────────────────────────────────────
 function KpiCard({
@@ -164,9 +163,6 @@ interface SiteAttendance {
 
 function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: SiteAttendance[] }) {
   const st = STATUS_STYLE[site.status];
-  const profit = site.cost > 0 ? site.contract - site.cost : null;
-  const profitPct = profit ? Math.round((profit / site.contract) * 100) : null;
-  const total = site.breakdown.waste + site.breakdown.labor + site.breakdown.other;
   const typeColor = TYPE_COLOR[site.type] ?? C.blue;
 
   return (
@@ -228,58 +224,12 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
             <span style={{ fontSize: 14, color: C.muted }}>{site.address}</span>
           </div>
 
-          {/* コスト内訳バー */}
-          {total > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 14, color: C.sub }}>コスト内訳（原価比率）</span>
-              </div>
-              <div className="flex h-1.5 rounded-full overflow-hidden gap-px">
-                <div style={{ width: `${Math.round((site.breakdown.waste / site.contract) * 100)}%`, background: "#EF4444" }} />
-                <div style={{ width: `${Math.round((site.breakdown.labor / site.contract) * 100)}%`, background: "#3B82F6" }} />
-                <div style={{ width: `${Math.round((site.breakdown.other / site.contract) * 100)}%`, background: "#94A3B8" }} />
-                <div style={{ flex: 1, background: "#F1F5F9" }} />
-              </div>
-              <div className="flex items-center gap-3 mt-1">
-                {[
-                  { color: "#EF4444", label: "産廃" },
-                  { color: "#3B82F6", label: "労務" },
-                  { color: "#94A3B8", label: "他" },
-                ].map(({ color, label }) => (
-                  <div key={label} className="flex items-center gap-1">
-                    <div style={{ width: 6, height: 6, borderRadius: 2, background: color }} />
-                    <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 財務数値 */}
-          <div className="flex items-center gap-4 flex-wrap">
-            {[
-              { label: "受注額",   value: fmt(site.contract),                color: C.text },
-              { label: "現在原価", value: site.cost > 0 ? fmt(site.cost) : "未入力", color: C.text },
-              { label: "予測粗利", value: profit ? fmt(profit) : "—",       color: profit ? C.green : C.muted },
-            ].map(({ label, value, color }) => (
-              <div key={label}>
-                <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>{label}</div>
-                <div className="font-numeric" style={{ fontSize: 14, fontWeight: 700, color }}>{value}</div>
-              </div>
-            ))}
-            {profitPct !== null && (
-              <div className="ml-auto">
-                <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>粗利率</div>
-                <span className="font-numeric px-2 py-0.5 rounded text-sm font-semibold"
-                  style={{
-                    background: profitPct >= 25 ? "#F0FDF4" : profitPct >= 10 ? "#FFFBEB" : "#FEF2F2",
-                    color: profitPct >= 25 ? C.green : profitPct >= 10 ? C.amberDk : C.red,
-                    border: `1px solid ${profitPct >= 25 ? "#BBF7D0" : profitPct >= 10 ? "#FDE68A" : "#FECACA"}`,
-                  }}>
-                  {profitPct}%
-                </span>
-              </div>
-            )}
+          {/* 完工予定 */}
+          <div className="flex items-center gap-1.5" style={{ marginBottom: 4 }}>
+            <Clock size={11} style={{ color: C.muted }} />
+            <span style={{ fontSize: 14, color: C.muted }}>
+              完工予定 <span style={{ color: C.sub, fontWeight: 600 }}>{site.endDate.replace(/-/g, "/")}</span>
+            </span>
           </div>
         </div>
 
@@ -295,19 +245,16 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
         </div>
       </div>
 
-      {/* フッター（作業員・完工予定） */}
-      <div className="flex items-center justify-between px-5 py-3"
+      {/* フッター（本日作業員） */}
+      <div className="flex items-center px-5 py-3"
         style={{ background: "#F8FAFC", borderTop: `1.5px solid ${C.border}` }}>
         <div className="flex items-center gap-1.5">
           <Users size={12} style={{ color: C.sub }} />
           <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
             {site.workers}名
           </span>
-          <span style={{ fontSize: 14, color: C.muted }}>本日</span>
+          <span style={{ fontSize: 14, color: C.muted }}>本日稼働</span>
         </div>
-        <span style={{ fontSize: 14, color: C.muted }}>
-          完工予定 {site.endDate.replace(/-/g, "/")}
-        </span>
       </div>
 
       {/* 勤怠アクティビティ */}
@@ -373,23 +320,20 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
           <span className="ml-auto px-2 py-0.5 rounded text-sm font-bold"
             style={{ background: "#F0FDF4", color: C.green, border: "1px solid #BBF7D0" }}>今月</span>
         </div>
-        {done.map(s => {
-          const pct = Math.round(((s.contract - s.cost) / s.contract) * 100);
-          return (
-            <Link key={s.id} href={`/kaitai/site/${s.id}`}>
-              <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-green-50"
-                style={{ background: "#F0FDF4", border: `1.5px solid #BBF7D0` }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{s.name}</p>
-                  <p style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>
-                    {s.endDate.replace(/-/g, "/")} 引渡済 · 粗利 {pct}%
-                  </p>
-                </div>
-                <CheckCircle2 size={15} style={{ color: C.green }} />
+        {done.map(s => (
+          <Link key={s.id} href={`/kaitai/site/${s.id}`}>
+            <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-green-50"
+              style={{ background: "#F0FDF4", border: `1.5px solid #BBF7D0` }}>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{s.name}</p>
+                <p style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>
+                  {s.endDate.replace(/-/g, "/")} 引渡済
+                </p>
               </div>
-            </Link>
-          );
-        })}
+              <CheckCircle2 size={15} style={{ color: C.green }} />
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -451,82 +395,6 @@ function WeatherPanel() {
   );
 }
 
-// ─── 月次収支サマリー（ダーク） ───────────────────────────────────────────────
-function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites }) {
-  const total   = sites.reduce((s, x) => s + x.contract, 0);
-  const cost    = sites.reduce((s, x) => s + x.cost, 0);
-  const profit  = total - cost;
-  const margin  = total > 0 ? Math.round((profit / total) * 100) : 0;
-
-  // ウィークリーバー（モック）
-  const weekBars = [
-    { label: "WEEK 1", value: 35 },
-    { label: "WEEK 2", value: 55 },
-    { label: "WEEK 3", value: 80 },
-    { label: "WEEK 4", value: 60 },
-  ];
-  const maxBar = Math.max(...weekBars.map(b => b.value));
-
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ background: C.navy, border: `1px solid rgba(255,255,255,0.08)` }}>
-      <div className="px-6 pt-5 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 style={{ fontSize: 15, fontWeight: 600, color: "#F1F5F9" }}>月次収支サマリー</h3>
-            <p style={{ fontSize: 14, color: "#64748B", marginTop: 2 }}>2026年4月度 予測・実績ベース</p>
-          </div>
-          <div className="px-3 py-1.5 rounded-lg" style={{ background: C.amber }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>総合粗利率 </span>
-            <span className="font-numeric" style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{margin}.0%</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 数値 */}
-          <div className="flex flex-col gap-3">
-            {[
-              { label: "受注総額", value: total,  color: "#93C5FD" },
-              { label: "原価合計", value: cost,   color: "#94A3B8" },
-              { label: "粗利合計", value: profit, color: C.amber },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex flex-col" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
-                <span style={{ fontSize: 14, color: "#475569", marginBottom: 2 }}>{label}</span>
-                <span className="font-numeric" style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1.1 }}>
-                  {new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 }).format(value)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* バーチャート */}
-          <div className="flex items-end gap-3 justify-center" style={{ minHeight: 120 }}>
-            {weekBars.map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-full flex items-end justify-center" style={{ height: 80 }}>
-                  <div
-                    className="w-full rounded-t"
-                    style={{
-                      height: `${(value / maxBar) * 100}%`,
-                      background: value === maxBar ? C.amber : "rgba(255,255,255,0.15)",
-                      minHeight: 4,
-                    }}
-                  />
-                </div>
-                <span style={{ fontSize: 14, color: "#64748B" }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="px-6 py-3 flex items-center justify-end" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <Link href="/kaitai/admin" className="flex items-center gap-1 text-sm font-medium" style={{ color: C.amber }}>
-          詳細な分析を見る <ArrowUpRight size={12} />
-        </Link>
-      </div>
-    </div>
-  );
-}
 
 // ─── ページ本体 ───────────────────────────────────────────────────────────────
 export { sites as mockSites };
@@ -542,14 +410,10 @@ export default function KaitaiHome() {
   const upcoming = sites.filter(s => s.status === "着工前");
   const done     = sites.filter(s => s.status === "完工");
   const workers  = active.reduce((s, x) => s + x.workers, 0);
-  const totalContract = sites.reduce((s, x) => s + x.contract, 0);
-  const totalCost     = sites.reduce((s, x) => s + x.cost, 0);
-  const margin = totalContract > 0 ? Math.round(((totalContract - totalCost) / totalContract) * 100) : 0;
 
   const kpis = [
-    { label: "平均粗利率", value: `${margin}`, unit: "%",  icon: TrendingUp, color: C.amber, wide: true },
-    { label: "稼働中",     value: `${active.length}`,   unit: "件", icon: HardHat,    color: C.blue  },
-    { label: "本日作業員", value: `${workers}`,         unit: "名", icon: Users,      color: C.green },
+    { label: "稼働中",        value: `${active.length}`,   unit: "件", icon: HardHat,    color: C.blue  },
+    { label: "本日作業員",    value: `${workers}`,         unit: "名", icon: Users,      color: C.green },
     { label: "着工前 / 完工", value: `${upcoming.length}/${done.length}`, unit: "件", icon: Clock, color: "#8B5CF6" },
   ];
 
@@ -565,7 +429,7 @@ export default function KaitaiHome() {
 
       {/* ── KPI行 ────────────────────────── */}
       <div className="pt-5 pb-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {kpis.map(kpi => <KpiCard key={kpi.label} {...kpi} />)}
         </div>
       </div>
@@ -604,8 +468,6 @@ export default function KaitaiHome() {
             })}
           </div>
 
-          {/* 月次収支サマリー */}
-          <MonthlySummary sites={sites} />
         </div>
 
         {/* 右：ステータス / マップ / 天気 */}
