@@ -199,34 +199,72 @@ function DonutChart({
 
 // ─── SVG Bar chart ───────────────────────────────────────────────────────────
 
+function fmtAxis(n: number): string {
+  if (n >= 10_000_000) return `${(n / 10_000_000).toFixed(n % 10_000_000 === 0 ? 0 : 1)}千万`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}百万`;
+  if (n >= 10_000) return `${Math.round(n / 10_000)}万`;
+  return `${n}`;
+}
+
+function niceStep(maxVal: number): number {
+  const raw = maxVal / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  if (norm <= 1) return mag;
+  if (norm <= 2) return 2 * mag;
+  if (norm <= 5) return 5 * mag;
+  return 10 * mag;
+}
+
 function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boolean }) {
-  const H = 100;
+  const H = 110;
+  const LPAD = 52; // left padding for Y-axis labels
   const maxVal = Math.max(...bars.flatMap(b => [b.revenue, compare ? (b.prevRevenue ?? 0) : 0]), 1);
   const n = bars.length;
-  const VW = 340;
-  const groupW = VW / n;
+  const VW = 400;
+  const chartW = VW - LPAD;
+  const groupW = chartW / n;
   const bw = compare ? 6 : 8;
 
+  // Y-axis ticks
+  const step = niceStep(maxVal);
+  const ticks: number[] = [];
+  for (let v = 0; v <= maxVal; v += step) ticks.push(v);
+  if (ticks[ticks.length - 1] < maxVal) ticks.push(ticks[ticks.length - 1] + step);
+  const yMax = ticks[ticks.length - 1] || 1;
+
+  const toY = (v: number) => H - (v / yMax) * H;
+
   return (
-    <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      <line x1={0} y1={H} x2={VW} y2={H} stroke={T.border} strokeWidth={1} />
+    <svg viewBox={`0 0 ${VW} ${H + 24}`} width="100%" style={{ display: "block" }}>
+      {/* Y-axis grid lines and labels */}
+      {ticks.map(v => (
+        <g key={v}>
+          <line x1={LPAD} y1={toY(v)} x2={VW} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray={v === 0 ? undefined : "3,3"} />
+          <text x={LPAD - 6} y={toY(v) + 3.5} textAnchor="end" fontSize={8} fill={T.muted} fontWeight={500}>
+            ¥{fmtAxis(v)}
+          </text>
+        </g>
+      ))}
+
+      {/* Bars */}
       {bars.map((b, i) => {
-        const cx = i * groupW + groupW / 2;
-        const revH = Math.max((b.revenue / maxVal) * H, 2);
-        const costH = Math.max((b.cost / maxVal) * H, 2);
+        const cx = LPAD + i * groupW + groupW / 2;
+        const revH = Math.max((b.revenue / yMax) * H, 2);
+        const costH = Math.max((b.cost / yMax) * H, 2);
 
         return (
           <g key={i}>
             {compare && b.prevRevenue && (
               <>
                 <rect
-                  x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / maxVal) * H, 2)}
-                  width={bw} height={Math.max((b.prevRevenue / maxVal) * H, 2)}
+                  x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / yMax) * H, 2)}
+                  width={bw} height={Math.max((b.prevRevenue / yMax) * H, 2)}
                   rx={3} fill={T.primaryMd}
                 />
                 <rect
-                  x={cx - bw + 1} y={H - Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
-                  width={bw} height={Math.max(((b.prevCost ?? 0) / maxVal) * H, 2)}
+                  x={cx - bw + 1} y={H - Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
+                  width={bw} height={Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
                   rx={3} fill="rgba(71,85,105,0.2)"
                 />
                 <rect x={cx + 2} y={H - revH} width={bw} height={revH} rx={3} fill={C.brand} />
@@ -253,19 +291,35 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
 
 function GapChart() {
   const H = 90;
-  const VW = 300;
+  const LPAD = 48;
+  const VW = 340;
   const n = GAP_DATA.length;
-  const groupW = VW / n;
+  const chartW = VW - LPAD;
+  const groupW = chartW / n;
   const bw = 10;
   const maxVal = Math.max(...GAP_DATA.flatMap(d => [d.estimate, d.actual ?? 0]), 1);
 
+  const step = niceStep(maxVal);
+  const ticks: number[] = [];
+  for (let v = 0; v <= maxVal; v += step) ticks.push(v);
+  if (ticks[ticks.length - 1] < maxVal) ticks.push(ticks[ticks.length - 1] + step);
+  const yMax = ticks[ticks.length - 1] || 1;
+  const toY = (v: number) => H - (v / yMax) * H;
+
   return (
     <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      <line x1={0} y1={H} x2={VW} y2={H} stroke={T.border} strokeWidth={1} />
+      {ticks.map(v => (
+        <g key={v}>
+          <line x1={LPAD} y1={toY(v)} x2={VW} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray={v === 0 ? undefined : "3,3"} />
+          <text x={LPAD - 5} y={toY(v) + 3} textAnchor="end" fontSize={7} fill={T.muted}>
+            ¥{fmtAxis(v)}
+          </text>
+        </g>
+      ))}
       {GAP_DATA.map((d, i) => {
-        const cx = i * groupW + groupW / 2;
-        const estH = Math.max((d.estimate / maxVal) * H, 2);
-        const actH = d.actual ? Math.max((d.actual / maxVal) * H, 2) : 0;
+        const cx = LPAD + i * groupW + groupW / 2;
+        const estH = Math.max((d.estimate / yMax) * H, 2);
+        const actH = d.actual ? Math.max((d.actual / yMax) * H, 2) : 0;
         const over = d.actual != null && d.actual > d.estimate;
         return (
           <g key={i}>
@@ -330,13 +384,23 @@ function ClientBars() {
 // ─── Panel C: Waste trend line chart ────────────────────────────────────────
 
 function WasteTrendChart() {
-  const W = 300, H = 90, PAD = 24;
+  const LPAD = 48;
+  const W = 340, H = 90, PAD = 8;
   const n = WASTE_TREND.length;
   const costs = WASTE_TREND.map(d => d.cost);
-  const minC = Math.min(...costs) * 0.9;
-  const maxC = Math.max(...costs) * 1.05;
+  const rawMin = Math.min(...costs);
+  const rawMax = Math.max(...costs);
+
+  // Y-axis with nice ticks covering data range
+  const step = niceStep(rawMax);
+  const ticks: number[] = [];
+  const yFloor = Math.floor(rawMin / step) * step;
+  for (let v = yFloor; v <= rawMax + step * 0.5; v += step) ticks.push(v);
+  const minC = ticks[0];
+  const maxC = ticks[ticks.length - 1];
+
   const toY = (v: number) => PAD + ((maxC - v) / (maxC - minC)) * (H - PAD);
-  const toX = (i: number) => (i / (n - 1)) * (W - 32) + 16;
+  const toX = (i: number) => LPAD + (i / (n - 1)) * (W - LPAD - 16) + 8;
 
   const points = WASTE_TREND.map((d, i) => ({ x: toX(i), y: toY(d.cost) }));
   const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
@@ -344,6 +408,15 @@ function WasteTrendChart() {
 
   return (
     <svg viewBox={`0 0 ${W} ${H + 18}`} width="100%" style={{ display: "block" }}>
+      {/* Y-axis grid lines and labels */}
+      {ticks.map(v => (
+        <g key={v}>
+          <line x1={LPAD} y1={toY(v)} x2={W} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray="3,3" />
+          <text x={LPAD - 5} y={toY(v) + 3} textAnchor="end" fontSize={7} fill={T.muted}>
+            ¥{fmtAxis(v)}
+          </text>
+        </g>
+      ))}
       <path d={areaD} fill="url(#wasteGrad)" fillOpacity={0.3} />
       <path d={pathD} fill="none" stroke={C.brand} strokeWidth={2} strokeLinejoin="round" />
       {points.map((p, i) => (
