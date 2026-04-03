@@ -572,39 +572,146 @@ function MapPanel({ sites }: { sites: SiteData[] }) {
 }
 
 // ─── 右パネル：天気 ──────────────────────────────────────────────────────────
-function WeatherPanel() {
-  const forecast = [
-    { label: "明日",   icon: Cloud,      hi: 16, lo: 9  },
-    { label: "4/4",   icon: CloudRain,  hi: 13, lo: 8  },
-    { label: "4/5",   icon: Cloud,      hi: 15, lo: 10 },
-    { label: "4/6",   icon: Sun,        hi: 19, lo: 11 },
-  ];
+// WMO Weather Code → icon + label mapping
+const WMO_WEATHER: Record<number, { icon: React.ElementType; label: string }> = {
+  0: { icon: Sun, label: "快晴" },
+  1: { icon: Sun, label: "晴れ" },
+  2: { icon: Cloud, label: "くもり" },
+  3: { icon: Cloud, label: "曇天" },
+  45: { icon: Cloud, label: "霧" },
+  48: { icon: Cloud, label: "霧氷" },
+  51: { icon: CloudRain, label: "小雨" },
+  53: { icon: CloudRain, label: "雨" },
+  55: { icon: CloudRain, label: "強雨" },
+  61: { icon: CloudRain, label: "小雨" },
+  63: { icon: CloudRain, label: "雨" },
+  65: { icon: CloudRain, label: "大雨" },
+  71: { icon: Cloud, label: "小雪" },
+  73: { icon: Cloud, label: "雪" },
+  75: { icon: Cloud, label: "大雪" },
+  80: { icon: CloudRain, label: "にわか雨" },
+  81: { icon: CloudRain, label: "にわか雨" },
+  82: { icon: CloudRain, label: "激しい雨" },
+  95: { icon: CloudRain, label: "雷雨" },
+};
+
+function getWeatherInfo(code: number) {
+  return WMO_WEATHER[code] ?? { icon: Cloud, label: "—" };
+}
+
+const WIND_DIR_JA = ["北", "北北東", "北東", "東北東", "東", "東南東", "南東", "南南東", "南", "南南西", "南西", "西南西", "西", "西北西", "北西", "北北西"];
+function windDirLabel(deg: number) {
+  return WIND_DIR_JA[Math.round(deg / 22.5) % 16] + "の風";
+}
+
+type WeatherData = {
+  city: string;
+  currentTemp: number;
+  currentHi: number;
+  currentLo: number;
+  currentCode: number;
+  windSpeed: number;
+  windDir: number;
+  humidity: number;
+  forecast: { label: string; code: number; hi: number; lo: number }[];
+};
+
+function WeatherPanel({ sites }: { sites: SiteData[] }) {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    // Use the first active site's coordinates, or default to Okayama
+    const activeSite = sites.find(s => s.status === "解体中");
+    const lat = activeSite?.lat ?? 34.6617;
+    const lng = activeSite?.lng ?? 133.9175;
+    const city = activeSite ? activeSite.address.split("市")[0] + "市" : "岡山市";
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=5`;
+
+    fetch(url)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.current || !data?.daily) return;
+        const daily = data.daily;
+        const forecast: WeatherData["forecast"] = [];
+        // Skip today (index 0), show next 4 days
+        for (let i = 1; i < Math.min(daily.time.length, 5); i++) {
+          const d = new Date(daily.time[i]);
+          const label = i === 1 ? "明日" : `${d.getMonth() + 1}/${d.getDate()}`;
+          forecast.push({
+            label,
+            code: daily.weather_code[i],
+            hi: Math.round(daily.temperature_2m_max[i]),
+            lo: Math.round(daily.temperature_2m_min[i]),
+          });
+        }
+        setWeather({
+          city,
+          currentTemp: Math.round(data.current.temperature_2m),
+          currentHi: Math.round(daily.temperature_2m_max[0]),
+          currentLo: Math.round(daily.temperature_2m_min[0]),
+          currentCode: data.current.weather_code,
+          windSpeed: Math.round(data.current.wind_speed_10m * 10) / 10,
+          windDir: data.current.wind_direction_10m,
+          humidity: data.current.relative_humidity_2m,
+          forecast,
+        });
+      })
+      .catch(() => {});
+  }, [sites]);
+
+  // Loading state
+  if (!weather) {
+    return (
+      <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
+        <div className="px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>本日の天気</h3>
+        </div>
+        <div className="px-5 py-8 text-center">
+          <span style={{ fontSize: 14, color: C.muted }}>天気情報を取得中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const currentWeather = getWeatherInfo(weather.currentCode);
+  const CurrentIcon = currentWeather.icon;
+
   return (
     <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
       <div className="px-5 py-4" style={{ borderBottom: `1.5px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>本日の天気（世田谷区）</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>本日の天気（{weather.city}）</h3>
       </div>
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <Sun size={36} style={{ color: "#92400E" }} />
+          <CurrentIcon size={36} style={{ color: "#92400E" }} />
           <div>
-            <span className="font-numeric" style={{ fontSize: 28, fontWeight: 800, color: C.navy }}>18°</span>
-            <span style={{ fontSize: 14, color: C.sub }}> / 12°C</span>
+            <span className="font-numeric" style={{ fontSize: 28, fontWeight: 800, color: C.navy }}>{weather.currentTemp}°</span>
+            <span style={{ fontSize: 14, color: C.sub }}> / {weather.currentLo}°C</span>
           </div>
+          <span className="ml-auto px-3 py-1 rounded-lg" style={{ fontSize: 13, fontWeight: 700, background: T.primaryLt, color: C.amberDk }}>
+            {currentWeather.label}
+          </span>
         </div>
         <div className="flex items-center gap-1 mb-3">
           <Wind size={11} style={{ color: C.muted }} />
-          <span style={{ fontSize: 14, color: C.muted }}>南西の風 3m/s · 湿度 62%</span>
+          <span style={{ fontSize: 14, color: C.muted }}>
+            {windDirLabel(weather.windDir)} {weather.windSpeed}m/s · 湿度 {weather.humidity}%
+          </span>
         </div>
         <div className="grid grid-cols-4 gap-1 pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
-          {forecast.map(({ label, icon: Icon, hi, lo }) => (
-            <div key={label} className="flex flex-col items-center gap-1.5 py-2">
-              <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
-              <Icon size={14} style={{ color: C.sub }} />
-              <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{hi}°</span>
-              <span className="font-numeric" style={{ fontSize: 14, color: C.muted }}>{lo}°</span>
-            </div>
-          ))}
+          {weather.forecast.map(({ label, code, hi, lo }) => {
+            const fw = getWeatherInfo(code);
+            const FIcon = fw.icon;
+            return (
+              <div key={label} className="flex flex-col items-center gap-1.5 py-2">
+                <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
+                <FIcon size={14} style={{ color: C.sub }} />
+                <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{hi}°</span>
+                <span className="font-numeric" style={{ fontSize: 14, color: C.muted }}>{lo}°</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -776,7 +883,7 @@ export default function KaitaiHome() {
         {/* 右：ステータス / 天気 */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           <StatusPanel sites={sites} />
-          <WeatherPanel />
+          <WeatherPanel sites={sites} />
         </div>
       </div>
     </div>
