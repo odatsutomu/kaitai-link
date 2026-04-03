@@ -21,12 +21,12 @@ const ADMIN_NAV = [
 ] as const;
 
 const EXTERNAL_NAV = [
-  { href: "/kaitai/admin/sites",    label: "現場管理",   icon: Building2 },
-  { href: "/kaitai/admin/members",  label: "従業員管理", icon: Users    },
-  { href: "/kaitai/equipment",      label: "機材管理",   icon: Truck    },
-  { href: "/kaitai/docs",           label: "帳票出力",   icon: LayoutDashboard },
-  { href: "/kaitai/clients",        label: "元請け管理", icon: Settings },
-  { href: "/kaitai/master",         label: "設定・権限", icon: Settings },
+  { href: "/kaitai/admin/sites",     label: "現場管理",   icon: Building2 },
+  { href: "/kaitai/admin/members",   label: "従業員管理", icon: Users    },
+  { href: "/kaitai/admin/equipment", label: "機材管理",   icon: Truck    },
+  { href: "/kaitai/admin/docs",      label: "帳票出力",   icon: LayoutDashboard },
+  { href: "/kaitai/admin/clients",   label: "元請け管理", icon: Settings },
+  { href: "/kaitai/admin/master",    label: "設定・権限", icon: Settings },
 ] as const;
 
 const PAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
@@ -318,23 +318,25 @@ function AdminSidebar({ pathname }: { pathname: string }) {
           管理機能
         </p>
         <nav className="flex flex-col gap-1">
-          {EXTERNAL_NAV.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors group"
-              style={{ color: "rgba(255,255,255,0.55)", border: "1px solid transparent" }}
-            >
-              <Icon size={17} strokeWidth={2} />
-              <span style={{ fontSize: 14, fontWeight: 500 }}>{label}</span>
-              <span
-                className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}
+          {EXTERNAL_NAV.map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
+                style={{
+                  background: active ? TDark.primaryLt : "transparent",
+                  border: active ? `1px solid ${TDark.primaryMd}` : "1px solid transparent",
+                  color: active ? TDark.primary : "rgba(255,255,255,0.55)",
+                }}
               >
-                ↗
-              </span>
-            </Link>
-          ))}
+                <Icon size={17} strokeWidth={active ? 2.5 : 2} />
+                <span style={{ fontSize: 14, fontWeight: active ? 700 : 500 }}>{label}</span>
+                {active && <ChevronRight size={13} className="ml-auto" />}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 

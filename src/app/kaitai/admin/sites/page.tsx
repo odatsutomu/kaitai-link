@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin, Calendar, Edit3, ChevronRight, Search,
-  Building2, AlertTriangle, CheckCircle, Clock,
+  Building2, CheckCircle, Clock,
 } from "lucide-react";
-import { T, TDark } from "../../lib/design-tokens";
+import { T } from "../../lib/design-tokens";
 
 type SiteRow = {
   id: string;
@@ -25,9 +25,9 @@ const STATUS_ORDER: Record<string, number> = { "施工中": 0, "着工前": 1, "
 const STATUS_DISPLAY: Record<string, string> = { "施工中": "解体中", "着工前": "着工前", "完工": "完工" };
 
 const STATUS_STYLE: Record<string, { bg: string; fg: string; icon: typeof Building2 }> = {
-  "施工中": { bg: "rgba(217,119,6,0.15)", fg: "#D97706", icon: Building2 },
-  "着工前": { bg: "rgba(59,130,246,0.15)", fg: "#3B82F6", icon: Clock },
-  "完工":   { bg: "rgba(16,185,129,0.15)", fg: "#10B981", icon: CheckCircle },
+  "施工中": { bg: "rgba(180,83,9,0.1)", fg: T.primary, icon: Building2 },
+  "着工前": { bg: "rgba(59,130,246,0.1)", fg: "#3B82F6", icon: Clock },
+  "完工":   { bg: "rgba(16,185,129,0.1)", fg: "#10B981", icon: CheckCircle },
 };
 
 const fmt = (n: number) => n > 0 ? `¥${Math.round(n).toLocaleString("ja-JP")}` : "—";
@@ -74,14 +74,14 @@ export default function AdminSitesPage() {
   const done     = filtered.filter(s => s.status === "完工");
 
   const groups = [
-    { label: "解体中", sites: active,   color: "#D97706", count: active.length },
+    { label: "解体中", sites: active,   color: T.primary, count: active.length },
     { label: "着工前", sites: upcoming, color: "#3B82F6", count: upcoming.length },
     { label: "完工",   sites: done,     color: "#10B981", count: done.length },
   ];
 
   if (loading) {
     return (
-      <div className="py-20 text-center" style={{ color: TDark.sub }}>
+      <div className="py-20 text-center" style={{ color: T.sub }}>
         読み込み中...
       </div>
     );
@@ -93,8 +93,8 @@ export default function AdminSitesPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>現場管理</h1>
-          <p style={{ fontSize: 14, marginTop: 4, color: TDark.sub }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>現場管理</h1>
+          <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>
             登録現場の確認・編集（{sites.length}件）
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function AdminSitesPage() {
       <div className="relative">
         <Search
           size={16}
-          style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.3)" }}
+          style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.muted }}
         />
         <input
           value={search}
@@ -119,9 +119,9 @@ export default function AdminSitesPage() {
           placeholder="現場名・住所で検索..."
           className="w-full rounded-xl outline-none"
           style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "#fff",
+            background: "#fff",
+            border: `1px solid ${T.border}`,
+            color: T.text,
             padding: "12px 14px 12px 40px",
             fontSize: 14,
           }}
@@ -134,11 +134,11 @@ export default function AdminSitesPage() {
           <div
             key={g.label}
             className="px-4 py-3 rounded-xl"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: "#fff", border: `1px solid ${T.border}` }}
           >
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>{g.label}</p>
+            <p style={{ fontSize: 12, color: T.sub, marginBottom: 4 }}>{g.label}</p>
             <p style={{ fontSize: 28, fontWeight: 800, color: g.color, lineHeight: 1 }}>
-              {g.count}<span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2 }}>件</span>
+              {g.count}<span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: T.sub }}>件</span>
             </p>
           </div>
         ))}
@@ -151,9 +151,9 @@ export default function AdminSitesPage() {
           <section key={group.label}>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-5 rounded-full" style={{ background: group.color }} />
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
                 {group.label}
-                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.4)", marginLeft: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, marginLeft: 8 }}>
                   {group.count}件
                 </span>
               </h2>
@@ -174,8 +174,8 @@ export default function AdminSitesPage() {
                     key={site.id}
                     className="rounded-xl transition-colors"
                     style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: "#fff",
+                      border: `1px solid ${T.border}`,
                     }}
                   >
                     <div className="px-5 py-4">
@@ -190,13 +190,13 @@ export default function AdminSitesPage() {
                               {STATUS_DISPLAY[site.status] ?? site.status}
                             </span>
                             {site.structureType && (
-                              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                              <span style={{ fontSize: 12, color: T.muted }}>
                                 {site.structureType}
                               </span>
                             )}
                           </div>
                           <p style={{
-                            fontSize: 15, fontWeight: 700, color: "#fff",
+                            fontSize: 15, fontWeight: 700, color: T.text,
                             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           }}>
                             {site.name}
@@ -207,10 +207,10 @@ export default function AdminSitesPage() {
                           href={`/kaitai/sites/${site.id}/edit`}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold flex-shrink-0"
                           style={{
-                            background: "rgba(255,255,255,0.08)",
-                            color: TDark.primary,
+                            background: T.primaryLt,
+                            color: T.primary,
                             textDecoration: "none",
-                            border: "1px solid rgba(255,255,255,0.1)",
+                            border: `1px solid ${T.primaryMd}`,
                           }}
                         >
                           <Edit3 size={12} />
@@ -221,8 +221,8 @@ export default function AdminSitesPage() {
                       {/* Row 2: address */}
                       {site.address && (
                         <div className="flex items-center gap-1.5 mb-3">
-                          <MapPin size={12} style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }} />
-                          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <MapPin size={12} style={{ color: T.muted, flexShrink: 0 }} />
+                          <p style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {site.address}
                           </p>
                         </div>
@@ -233,8 +233,8 @@ export default function AdminSitesPage() {
                         {/* 工期 */}
                         {(site.startDate || site.endDate) && (
                           <div className="flex items-center gap-1.5">
-                            <Calendar size={12} style={{ color: "rgba(255,255,255,0.3)" }} />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+                            <Calendar size={12} style={{ color: T.muted }} />
+                            <span style={{ fontSize: 12, color: T.sub }}>
                               {site.startDate.replace(/-/g, "/")} 〜 {site.endDate.replace(/-/g, "/")}
                             </span>
                           </div>
@@ -242,7 +242,7 @@ export default function AdminSitesPage() {
 
                         {/* 受注金額 */}
                         {site.contractAmount > 0 && (
-                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+                          <span style={{ fontSize: 12, color: T.sub }}>
                             受注 {fmt(site.contractAmount)}
                           </span>
                         )}
@@ -259,7 +259,7 @@ export default function AdminSitesPage() {
 
                         {/* 進捗 */}
                         {site.status === "施工中" && site.progressPct > 0 && (
-                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+                          <span style={{ fontSize: 12, color: T.sub }}>
                             進捗 {site.progressPct}%
                           </span>
                         )}
@@ -267,7 +267,7 @@ export default function AdminSitesPage() {
 
                       {/* Progress bar for active sites */}
                       {site.status === "施工中" && site.progressPct > 0 && (
-                        <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                        <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: T.border }}>
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -284,13 +284,13 @@ export default function AdminSitesPage() {
                       href={`/kaitai/site/${site.id}`}
                       className="flex items-center justify-between px-5 py-3 rounded-b-xl"
                       style={{
-                        borderTop: "1px solid rgba(255,255,255,0.06)",
+                        borderTop: `1px solid ${T.border}`,
                         textDecoration: "none",
-                        background: "rgba(255,255,255,0.02)",
+                        background: "#F8FAFC",
                       }}
                     >
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>現場詳細を見る</span>
-                      <ChevronRight size={14} style={{ color: "rgba(255,255,255,0.25)" }} />
+                      <span style={{ fontSize: 13, color: T.sub }}>現場詳細を見る</span>
+                      <ChevronRight size={14} style={{ color: T.muted }} />
                     </Link>
                   </div>
                 );
@@ -302,8 +302,8 @@ export default function AdminSitesPage() {
 
       {filtered.length === 0 && !loading && (
         <div className="py-16 text-center">
-          <Building2 size={36} style={{ color: "rgba(255,255,255,0.15)", margin: "0 auto 12px" }} />
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>
+          <Building2 size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
+          <p style={{ fontSize: 15, color: T.sub }}>
             {search ? "検索条件に一致する現場がありません" : "登録されている現場がありません"}
           </p>
         </div>
