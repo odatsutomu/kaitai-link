@@ -41,6 +41,14 @@ type DailyLog = {
   safetyNote: string;
 };
 
+type CostBreakdown = {
+  wasteDisposal: number;      // 産廃処分費
+  labor: number;              // 労務費（人工×日当）
+  equipmentRental: number;    // 重機リース費
+  transport: number;          // 運搬費
+  misc: number;               // その他（養生材・消耗品等）
+};
+
 type Site = {
   id: string;
   name: string;
@@ -50,11 +58,10 @@ type Site = {
   endDate: string;
   progressPct: number;
   contractAmount: number;
-  wasteDisposalCost: number;
-  laborCost: number;
-  otherCost: number;
+  costs: CostBreakdown;
   todayWorkers: number;
   workLogs: DailyLog[];
+  structureType: string;
 };
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -227,6 +234,72 @@ function generateWorkLogs(
   }
 
   return logs.reverse(); // Most recent first
+}
+
+// ─── Cost calculation from work logs ─────────────────────────────────────────
+
+// 産廃処分単価（円/㎥）— 構造種別で異なる
+const WASTE_UNIT_COST: Record<string, number> = {
+  木造: 18_000,   // 木くず中心、比較的安価
+  鉄骨: 22_000,   // 鉄くず＋混合
+  RC:   28_000,    // コンクリート殻が重い
+};
+
+// 日当（円/人日）— 役割別
+const DAY_RATE: Record<string, number> = {
+  現場責任者: 28_000,
+  重機オペ: 25_000,
+  作業員: 18_000,
+  見習い: 14_000,
+};
+
+function calcCostsFromLogs(
+  workLogs: DailyLog[],
+  structureType: string,
+  contractAmount: number,
+): CostBreakdown {
+  if (workLogs.length === 0) {
+    return { wasteDisposal: 0, labor: 0, equipmentRental: 0, transport: 0, misc: 0 };
+  }
+
+  const wasteUnitCost = WASTE_UNIT_COST[structureType] ?? 20_000;
+
+  // 産廃処分費: 各日の搬出量 × 単価
+  let totalWasteM3 = 0;
+  let totalStaffDays = 0;
+  let totalLaborCost = 0;
+  let transportTrips = 0;
+
+  for (const log of workLogs) {
+    totalWasteM3 += log.wasteM3;
+
+    // 搬出がある日は運搬1回カウント（4㎥以上で2回）
+    if (log.wasteM3 > 0) {
+      transportTrips += log.wasteM3 >= 4 ? 2 : 1;
+    }
+
+    // 労務費: スタッフ人数×役割別日当
+    for (const s of log.staff) {
+      totalStaffDays++;
+      const rate = s.role === "責任者" || s.role === "現場責任者" ? DAY_RATE["現場責任者"]
+        : s.role === "重機オペ" ? DAY_RATE["重機オペ"]
+        : s.role === "見習い" ? DAY_RATE["見習い"]
+        : DAY_RATE["作業員"];
+      totalLaborCost += rate;
+    }
+  }
+
+  const wasteDisposal = Math.round(totalWasteM3 * wasteUnitCost);
+  const labor = totalLaborCost;
+  // 重機リース: 作業日数ベース（日額35,000〜55,000、構造種別で変動）
+  const equipmentDailyRate = structureType === "RC" ? 55_000 : structureType === "鉄骨" ? 48_000 : 35_000;
+  const equipmentRental = workLogs.length * equipmentDailyRate;
+  // 運搬費: トリップ数 × 運搬単価
+  const transport = transportTrips * 25_000;
+  // その他: 養生材・消耗品・ガス代等（受注額の3〜5%程度、日数按分）
+  const misc = Math.round(contractAmount * 0.04 * (workLogs.length / Math.max(workLogs.length, 20)));
+
+  return { wasteDisposal, labor, equipmentRental, transport, misc };
 }
 
 const STATUS_CONFIG: Record<SiteStatus, { label: string; bg: string; fg: string }> = {
@@ -565,8 +638,7 @@ export default function SiteDetailPage() {
     Promise.all([
       fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/members", { credentials: "include" }).then(r => r.ok ? r.json() : null),
-      fetch(`/api/kaitai/expense?siteId=${id}`, { credentials: "include" }).then(r => r.ok ? r.json() : null),
-    ]).then(([sitesData, membersData, expenseData]) => {
+    ]).then(([sitesData, membersData]) => {
       const siteRaw = sitesData?.sites?.find((s: Record<string, unknown>) => s.id === id);
       if (!siteRaw) { setLoading(false); return; }
 
@@ -576,26 +648,7 @@ export default function SiteDetailPage() {
         role: (m.role as string) ?? "作業員",
       }));
 
-      // Calculate costs from expense logs
-      const expenses = expenseData?.logs ?? [];
-      let wasteDisposalCost = 0;
-      let laborCost = 0;
-      let otherCost = 0;
-      for (const e of expenses) {
-        const cat = e.category as string;
-        const amt = (e.amount as number) ?? 0;
-        if (cat === "産廃処分費") wasteDisposalCost += amt;
-        else if (cat === "外注費") laborCost += amt;
-        else otherCost += amt;
-      }
-
-      // If no expenses, estimate from costAmount
-      const costAmount = (siteRaw.costAmount as number) ?? 0;
-      if (wasteDisposalCost === 0 && laborCost === 0 && otherCost === 0 && costAmount > 0) {
-        wasteDisposalCost = Math.round(costAmount * 0.35);
-        laborCost = Math.round(costAmount * 0.45);
-        otherCost = costAmount - wasteDisposalCost - laborCost;
-      }
+      const structureType = (siteRaw.structureType as string) ?? "木造";
 
       const status = ((siteRaw.status as string) === "施工中" ? "解体中" : siteRaw.status as string) as SiteStatus;
 
@@ -604,10 +657,13 @@ export default function SiteDetailPage() {
         (siteRaw.startDate as string) ?? "",
         (siteRaw.endDate as string) ?? "",
         (siteRaw.progressPct as number) ?? 0,
-        (siteRaw.structureType as string) ?? "木造",
+        structureType,
         members,
         id,
       );
+
+      const contractAmount = (siteRaw.contractAmount as number) ?? 0;
+      const costs = calcCostsFromLogs(workLogs, structureType, contractAmount);
 
       setSite({
         id: siteRaw.id as string,
@@ -617,12 +673,11 @@ export default function SiteDetailPage() {
         startDate: (siteRaw.startDate as string) ?? "",
         endDate: (siteRaw.endDate as string) ?? "",
         progressPct: (siteRaw.progressPct as number) ?? 0,
-        contractAmount: (siteRaw.contractAmount as number) ?? 0,
-        wasteDisposalCost,
-        laborCost,
-        otherCost,
+        contractAmount,
+        costs,
         todayWorkers: workLogs.length > 0 ? workLogs[0].staff.filter(s => !s.clockOut).length : 0,
         workLogs,
+        structureType,
       });
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -645,10 +700,15 @@ export default function SiteDetailPage() {
   }
 
   const cfg = STATUS_CONFIG[site.status];
-  const totalCost = site.wasteDisposalCost + site.laborCost + site.otherCost;
+  const { wasteDisposal, labor, equipmentRental, transport, misc } = site.costs;
+  const totalCost = wasteDisposal + labor + equipmentRental + transport + misc;
   const profit = site.contractAmount - totalCost;
   const profitPct = site.contractAmount > 0 ? Math.round((profit / site.contractAmount) * 100) : 0;
   const costPct   = site.contractAmount > 0 ? Math.round((totalCost / site.contractAmount) * 100) : 0;
+
+  // 作業履歴サマリ
+  const totalWasteM3 = site.workLogs.reduce((s, l) => s + l.wasteM3, 0);
+  const totalStaffDays = site.workLogs.reduce((s, l) => s + l.staff.length, 0);
 
   return (
     <div className="py-6 pb-28 md:pb-8 flex flex-col gap-6">
@@ -816,6 +876,7 @@ export default function SiteDetailPage() {
         ══════════════════════════════════════════ */}
         <div className="lg:w-80 xl:w-96 flex flex-col gap-6">
 
+          {/* ── 受注・利益サマリ ── */}
           <section>
             <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.amber, marginBottom: 12 }}>
               原価・利益（現在値）
@@ -827,67 +888,103 @@ export default function SiteDetailPage() {
                 <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 6 }}>
                   現状利益
                 </p>
-                <p
-                  style={{
-                    fontSize: 36, fontWeight: 800, lineHeight: 1,
-                    color: profit >= 0 ? C.green : C.red,
-                    fontFeatureSettings: "'tnum'",
-                  }}
-                >
+                <p style={{
+                  fontSize: 36, fontWeight: 800, lineHeight: 1,
+                  color: profit >= 0 ? C.green : C.red,
+                  fontFeatureSettings: "'tnum'",
+                }}>
                   {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
                 </p>
-                <p style={{ fontSize: 13, color: C.sub, marginTop: 6 }}>粗利率 {profitPct}%</p>
+                <p style={{ fontSize: 13, color: C.sub, marginTop: 6 }}>
+                  粗利率 <span style={{ fontWeight: 700, color: profitPct >= 20 ? C.green : profitPct >= 10 ? C.amber : C.red }}>{profitPct}%</span>
+                </p>
               </div>
 
-              {/* Cost breakdown */}
-              <div className="flex flex-col gap-3 mb-5">
+              {/* 受注金額 */}
+              <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>受注金額</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>¥{site.contractAmount.toLocaleString()}</span>
+              </div>
+
+              {/* Cost breakdown — 5 categories */}
+              <div className="flex flex-col gap-2.5 mb-4">
                 {[
-                  { label: "受注金額",   value: site.contractAmount,    color: C.green, bold: true },
-                  { label: "産廃処分費", value: site.wasteDisposalCost, color: C.red },
-                  { label: "労務費",     value: site.laborCost,         color: T.primary },
-                  { label: "その他経費", value: site.otherCost,         color: "#3B82F6" },
-                ].map(({ label, value, color, bold }) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                      <span style={{ fontSize: 13, color: C.muted }}>{label}</span>
+                  { label: "産廃処分費",   value: wasteDisposal,    color: C.red,      sub: `${Math.round(totalWasteM3)}㎥ × 単価` },
+                  { label: "労務費",       value: labor,            color: T.primary,  sub: `${totalStaffDays}人日` },
+                  { label: "重機リース費", value: equipmentRental,  color: "#8B5CF6",  sub: `${site.workLogs.length}日稼働` },
+                  { label: "運搬費",       value: transport,        color: "#0EA5E9",  sub: "産廃搬出" },
+                  { label: "その他経費",   value: misc,             color: "#6B7280",  sub: "養生材・消耗品等" },
+                ].map(({ label, value, color, sub }) => (
+                  <div key={label}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                        <span style={{ fontSize: 13, color: C.text }}>{label}</span>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFeatureSettings: "'tnum'" }}>
+                        ¥{value.toLocaleString()}
+                      </span>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: bold ? 700 : 600, color: bold ? C.text : C.muted }}>
-                      ¥{value.toLocaleString()}
-                    </span>
+                    <p style={{ fontSize: 11, color: C.muted, marginLeft: 18, marginTop: 1 }}>{sub}</p>
                   </div>
                 ))}
-                <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: C.muted }} />
-                    <span style={{ fontSize: 13, color: C.muted }}>原価合計</span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                    ¥{totalCost.toLocaleString()}
-                    <span style={{ fontSize: 12, fontWeight: 400, color: C.sub, marginLeft: 4 }}>
-                      ({costPct}%)
-                    </span>
+              </div>
+
+              {/* 原価合計 */}
+              <div className="flex items-center justify-between pt-3 mb-5" style={{ borderTop: `2px solid ${C.border}` }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>原価合計</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
+                  ¥{totalCost.toLocaleString()}
+                  <span style={{ fontSize: 12, fontWeight: 500, color: C.sub, marginLeft: 4 }}>
+                    ({costPct}%)
                   </span>
-                </div>
+                </span>
               </div>
 
-              {/* Cost gauge */}
+              {/* Cost gauge — stacked bar */}
               <div>
-                <div className="flex justify-between mb-1.5" style={{ fontSize: 13, color: C.sub }}>
+                <div className="flex justify-between mb-1.5" style={{ fontSize: 12, color: C.sub }}>
                   <span>原価消化率</span>
-                  <span>{costPct}% / 100%</span>
+                  <span style={{ fontWeight: 600 }}>{costPct}%</span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(costPct, 100)}%`,
-                      background: `linear-gradient(90deg, ${T.primary} 0%, ${T.primaryDk} 100%)`,
-                    }}
-                  />
+                <div className="h-3 rounded-full overflow-hidden flex" style={{ background: T.bg }}>
+                  {[
+                    { value: wasteDisposal, color: C.red },
+                    { value: labor, color: T.primary },
+                    { value: equipmentRental, color: "#8B5CF6" },
+                    { value: transport, color: "#0EA5E9" },
+                    { value: misc, color: "#6B7280" },
+                  ].map(({ value, color }, i) => {
+                    const pct = site.contractAmount > 0 ? (value / site.contractAmount) * 100 : 0;
+                    return pct > 0 ? (
+                      <div key={i} style={{ width: `${pct}%`, background: color, minWidth: pct > 0 ? 2 : 0 }} />
+                    ) : null;
+                  })}
                 </div>
               </div>
 
+            </div>
+          </section>
+
+          {/* ── 作業実績サマリ ── */}
+          <section className="p-5 rounded-xl" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.amber, marginBottom: 14 }}>
+              作業実績サマリ
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: "稼働日数", value: `${site.workLogs.length}`, unit: "日" },
+                { label: "延べ人工", value: `${totalStaffDays}`, unit: "人日" },
+                { label: "産廃搬出量", value: `${Math.round(totalWasteM3 * 10) / 10}`, unit: "㎥" },
+                { label: "構造種別", value: site.structureType, unit: "" },
+              ].map(({ label, value, unit }) => (
+                <div key={label} className="py-3 px-4 rounded-lg" style={{ background: T.bg }}>
+                  <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{label}</p>
+                  <p style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                    {value}<span style={{ fontSize: 12, fontWeight: 500, color: C.sub, marginLeft: 2 }}>{unit}</span>
+                  </p>
+                </div>
+              ))}
             </div>
           </section>
 
