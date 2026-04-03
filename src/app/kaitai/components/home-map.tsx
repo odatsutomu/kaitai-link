@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { LatLng } from "../lib/geocode";
 import { T } from "../lib/design-tokens";
-import { Filter } from "lucide-react";
+import { Check } from "lucide-react";
 
 export interface MapSite {
   id: string;
@@ -30,11 +30,6 @@ const STATUS_STYLE: Record<SiteStatus, { bg: string; fg: string }> = {
   "完工":   { bg: "#F1F5F9",             fg: "#475569" },
 };
 
-const STATUS_LABEL: Record<SiteStatus, string> = {
-  "解体中": "解体中",
-  "着工前": "着工前",
-  "完工":   "完工済",
-};
 
 // Google Maps スタイルのティアドロップ型ピン SVG
 function teardropPin(color: string): string {
@@ -102,7 +97,6 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
 
   // Category-based visibility: all statuses visible by default
   const [visibleStatuses, setVisibleStatuses] = useState<Set<SiteStatus>>(new Set(STATUSES));
-  const [panelOpen, setPanelOpen] = useState(false);
 
   const toggleStatus = useCallback((status: SiteStatus) => {
     setVisibleStatuses(prev => {
@@ -241,120 +235,58 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const visibleCount = sites.filter(s => visibleStatuses.has(s.status)).length;
-
   return (
     <div style={{ position: "relative" }}>
       <div ref={containerRef} style={{ height, width: "100%", borderRadius: "0 0 12px 12px" }} />
 
-      {/* ── ステータス別フィルター ── */}
-      <div style={{
-        position: "absolute", top: 8, right: 8, zIndex: 1000,
-      }}>
-        <button
-          onClick={() => setPanelOpen(v => !v)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5,
-            background: "rgba(255,255,255,0.95)",
-            border: "1px solid #E2E8F0",
-            borderRadius: 8,
-            padding: "6px 12px",
-            fontSize: 13, fontWeight: 600, color: T.text,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          <Filter size={14} style={{ color: T.primary }} />
-          {visibleCount}/{sites.length}件表示
-        </button>
-
-        {panelOpen && (
-          <div style={{
-            marginTop: 4,
-            background: "rgba(255,255,255,0.97)",
-            border: "1px solid #E2E8F0",
-            borderRadius: 10,
-            padding: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            minWidth: 180,
-          }}>
-            {STATUSES.map(status => {
-              const active = visibleStatuses.has(status);
-              const color = STATUS_COLOR[status];
-              const count = countByStatus[status];
-              if (count === 0) return null;
-              return (
-                <button
-                  key={status}
-                  onClick={() => toggleStatus(status)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    width: "100%", padding: "8px 10px",
-                    background: active ? "transparent" : "#FAFAFA",
-                    border: "none", borderRadius: 8, cursor: "pointer",
-                    opacity: active ? 1 : 0.45,
-                    transition: "opacity 0.15s, background 0.15s",
-                  }}
-                >
-                  {/* チェックボックス風インジケーター */}
-                  <span style={{
-                    width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: active ? color : "#E5E7EB",
-                    transition: "background 0.15s",
-                  }}>
-                    {active && (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6 9 17l-5-5"/>
-                      </svg>
-                    )}
-                  </span>
-
-                  {/* ピンアイコン */}
-                  <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                    <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={color}/>
-                    <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
-                  </svg>
-
-                  <span style={{
-                    fontSize: 13, fontWeight: 600, color: active ? T.text : T.muted,
-                    flex: 1, textAlign: "left",
-                  }}>
-                    {STATUS_LABEL[status]}
-                  </span>
-
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, color: active ? color : T.muted,
-                    background: active ? STATUS_STYLE[status].bg : "#F1F5F9",
-                    padding: "2px 8px", borderRadius: 10,
-                  }}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 凡例 */}
+      {/* ── 凡例 兼 フィルター（左下） ── */}
       <div style={{
         position: "absolute", bottom: 8, left: 8, zIndex: 1000,
         background: "rgba(255,255,255,0.92)",
         border: "1px solid #E2E8F0",
         borderRadius: 8,
-        padding: "5px 12px",
-        display: "flex", gap: 10, alignItems: "center",
+        padding: "3px 6px",
+        display: "flex", gap: 2, alignItems: "center",
       }}>
-        {STATUSES.map(s => (
-          <div key={s} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={STATUS_COLOR[s]}/>
-              <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
-            </svg>
-            <span style={{ fontSize: 12, color: T.sub, fontWeight: 600 }}>{s}</span>
-          </div>
-        ))}
+        {STATUSES.map(status => {
+          const active = visibleStatuses.has(status);
+          const color = STATUS_COLOR[status];
+          const count = countByStatus[status];
+          if (count === 0) return null;
+          return (
+            <button
+              key={status}
+              onClick={() => toggleStatus(status)}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "4px 8px", border: "none", borderRadius: 6,
+                background: "transparent", cursor: "pointer",
+                opacity: active ? 1 : 0.35,
+                transition: "opacity 0.15s",
+              }}
+            >
+              <span style={{ position: "relative", flexShrink: 0 }}>
+                <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={color}/>
+                  <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
+                </svg>
+                {active && (
+                  <Check
+                    size={8}
+                    strokeWidth={3}
+                    style={{
+                      position: "absolute", top: 2, left: 1,
+                      color,
+                    }}
+                  />
+                )}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: active ? T.text : T.muted }}>
+                {status}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
