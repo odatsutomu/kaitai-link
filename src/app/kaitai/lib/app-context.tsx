@@ -337,6 +337,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, []);
 
+  // Fetch company data once session is ready
+  useEffect(() => {
+    if (!sessionReady || !company) return;
+
+    // Fetch clients
+    fetch("/api/kaitai/clients", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.clients) setClients(data.clients);
+      })
+      .catch(() => {});
+
+    // Fetch equipment
+    fetch("/api/kaitai/equipment", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.equipment) setEquipment(data.equipment);
+      })
+      .catch(() => {});
+
+    // Fetch expense logs
+    fetch("/api/kaitai/expense", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.logs) setExpenseLogs(data.logs);
+      })
+      .catch(() => {});
+  }, [sessionReady, company]);
+
   // Derived
   const adminMode = authLevel === "admin" || authLevel === "dev";
   const plan = company?.plan ?? "free";
@@ -365,6 +394,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
     const newClient: Client = { ...data, id: `cl${Date.now().toString(36)}`, createdAt: now, updatedAt: now };
     setClients(prev => [newClient, ...prev]);
+    // Persist to API
+    fetch("/api/kaitai/clients", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.ok ? r.json() : null).then(res => {
+      if (res?.client) {
+        setClients(prev => prev.map(c => c.id === newClient.id ? { ...res.client } : c));
+      }
+    }).catch(() => {});
     return newClient;
   }, []);
 
@@ -373,6 +412,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ? { ...c, ...patch, updatedAt: new Date().toISOString() }
       : c
     ));
+    // Persist to API
+    fetch("/api/kaitai/clients", {
+      method: "PATCH", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...patch }),
+    }).catch(() => {});
   }, []);
 
   const addEquipment = useCallback((data: Omit<Equipment, "id" | "createdAt">): Equipment => {

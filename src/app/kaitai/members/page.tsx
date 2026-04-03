@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Star, Award } from "lucide-react";
 import {
-  MEMBERS, LICENSE_LABELS,
+  LICENSE_LABELS,
   experienceYears, experienceLevel,
 } from "../lib/members";
+import type { Member } from "../lib/members";
 import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ type SortOrder = "名前" | "経験";
 
 // ─── Member card ──────────────────────────────────────────────────────────────
 
-function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
+function MemberCard({ m, rank }: { m: Member; rank: number }) {
   const yrs = experienceYears(m);
   const lvl = experienceLevel(yrs);
 
@@ -105,6 +106,34 @@ export default function MembersPage() {
   const [query, setQuery]     = useState("");
   const [typeFilter, setTypeFilter] = useState<"全員" | "直用" | "外注">("全員");
   const [sortOrder, setSortOrder]   = useState<SortOrder>("名前");
+  const [MEMBERS, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    fetch("/api/kaitai/members", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.members) return;
+        const mapped: Member[] = data.members.map((m: Record<string, unknown>) => ({
+          id: m.id as string,
+          name: m.name as string,
+          kana: (m.kana as string) ?? "",
+          type: (m.type as string) ?? "直用",
+          company: m.company2 as string | undefined,
+          birthDate: (m.birthDate as string) ?? "",
+          hireDate: (m.hireDate as string) ?? "",
+          address: (m.address as string) ?? "",
+          emergency: (m.emergency as string) ?? "",
+          licenses: (m.licenses as string[]) ?? [],
+          preYears: (m.preYears as number) ?? 0,
+          siteCount: (m.siteCount as number) ?? 0,
+          dayRate: (m.dayRate as number) ?? 0,
+          role: (m.role as string) ?? "作業員",
+          avatar: (m.avatar as string) ?? (m.name as string).charAt(0),
+        }));
+        setMembers(mapped);
+      })
+      .catch(() => {});
+  }, []);
 
   const sorted = [...MEMBERS].sort((a, b) => {
     if (sortOrder === "経験") {

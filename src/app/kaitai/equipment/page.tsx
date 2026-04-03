@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Edit3, X, AlertTriangle, Search } from "lucide-react";
 import { T } from "../lib/design-tokens";
 
@@ -349,43 +349,58 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function EquipmentPage() {
-  let ctxEquipment: Equipment[] | undefined;
-  let ctxAddEquipment: ((data: Omit<Equipment, "id" | "createdAt">) => void) | undefined;
-  let ctxUpdateEquipment: ((id: string, patch: Partial<Omit<Equipment, "id" | "createdAt">>) => void) | undefined;
-  let ctxAssignments: EquipmentAssignment[] | undefined;
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [assignments] = useState<EquipmentAssignment[]>([]);
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const ctx = require("../lib/app-context");
-    const appCtx = ctx.useAppContext?.();
-    if (appCtx) {
-      ctxEquipment       = (appCtx as { equipment?: Equipment[] }).equipment;
-      ctxAddEquipment    = (appCtx as { addEquipment?: typeof ctxAddEquipment }).addEquipment;
-      ctxUpdateEquipment = (appCtx as { updateEquipment?: typeof ctxUpdateEquipment }).updateEquipment;
-      ctxAssignments     = (appCtx as { assignments?: EquipmentAssignment[] }).assignments;
-    }
-  } catch { /* context not extended */ }
-
-  const [localEquipment, setLocalEquipment] = useState<Equipment[]>(ctxEquipment ?? SEED_EQUIPMENT);
-  const [localAssignments] = useState<EquipmentAssignment[]>(ctxAssignments ?? SEED_ASSIGNMENTS);
-
-  const equipment   = ctxEquipment   ?? localEquipment;
-  const assignments = ctxAssignments ?? localAssignments;
+  useEffect(() => {
+    fetch("/api/kaitai/equipment", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.equipment) return;
+        setEquipment(data.equipment.map((e: Record<string, unknown>) => ({
+          id: e.id as string,
+          name: e.name as string,
+          category: e.category as EquipmentCategory,
+          type: e.type as EquipmentType,
+          supplier: (e.supplier as string) ?? "",
+          unitPrice: (e.unitPrice as number) ?? 0,
+          status: e.status as EquipmentStatus,
+          returnDeadline: e.returnDeadline as string | undefined,
+          notes: e.notes as string | undefined,
+          createdAt: e.createdAt as string,
+        })));
+      })
+      .catch(() => {});
+  }, []);
 
   function addEquipment(data: Omit<Equipment, "id" | "createdAt">) {
-    if (ctxAddEquipment) {
-      ctxAddEquipment(data);
-    } else {
-      setLocalEquipment(prev => [{ ...data, id: newId(), createdAt: new Date().toISOString() }, ...prev]);
-    }
+    fetch("/api/kaitai/equipment", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(res => {
+        if (res?.equipment) {
+          setEquipment(prev => [res.equipment, ...prev]);
+        }
+      })
+      .catch(() => {});
   }
 
   function updateEquipment(id: string, patch: Partial<Omit<Equipment, "id" | "createdAt">>) {
-    if (ctxUpdateEquipment) {
-      ctxUpdateEquipment(id, patch);
-    } else {
-      setLocalEquipment(prev => prev.map(e => e.id === id ? { ...e, ...patch } : e));
-    }
+    fetch("/api/kaitai/equipment", {
+      method: "PATCH", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...patch }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(res => {
+        if (res?.equipment) {
+          setEquipment(prev => prev.map(e => e.id === id ? { ...e, ...res.equipment } : e));
+        }
+      })
+      .catch(() => {});
   }
 
   const [typeFilter,   setTypeFilter]   = useState<EquipmentType | "全て">("全て");

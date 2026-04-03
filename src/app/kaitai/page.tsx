@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -34,17 +34,17 @@ const C = {
 };
 const shadow = "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)";
 
-// ─── モックデータ ─────────────────────────────────────────────────────────────
+// ─── 型定義 ──────────────────────────────────────────────────────────────────
 type SiteStatus = "着工前" | "解体中" | "完工";
 
-const sites: {
+type SiteData = {
   id: string; code: string; name: string; type: string;
   address: string; status: SiteStatus; endDate: string;
   progressPct: number; workers: number; hasWorkToday: boolean;
   contract: number; cost: number;
   breakdown: { waste: number; labor: number; other: number };
   imgHue: string; lat: number; lng: number;
-}[] = [];
+};
 
 const STATUS_STYLE: Record<SiteStatus, { dot: string; bg: string; text: string }> = {
   着工前: { dot: C.blue,  bg: "#EFF6FF", text: "#1D4ED8" },
@@ -58,8 +58,7 @@ const TYPE_COLOR: Record<string, string> = {
   "鉄骨解体": T.primary,
 };
 
-// ─── メンバー名前引き ─────────────────────────────────────────────────────────
-const MEMBER_NAMES: Record<string, string> = {};
+// MEMBER_NAMES is populated dynamically from API
 
 // 勤怠ステータス表示設定
 const ATTENDANCE_STYLE: Record<AttendanceStatus, { icon: string; label: string; bg: string; color: string }> = {
@@ -121,13 +120,14 @@ function KpiCard({
 
 // ─── KPIモーダル ──────────────────────────────────────────────────────────────
 function KpiModal({
-  type, onClose, sites, attendanceLogs, today,
+  type, onClose, sites, attendanceLogs, today, MEMBER_NAMES,
 }: {
   type: ModalType;
   onClose: () => void;
-  sites: typeof import("./page").mockSites;
+  sites: SiteData[];
   attendanceLogs: AttendanceLog[];
   today: string;
+  MEMBER_NAMES: Record<string, string>;
 }) {
   if (!type) return null;
 
@@ -327,7 +327,7 @@ interface SiteAttendance {
   latestTimestamp: string;
 }
 
-function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: SiteAttendance[] }) {
+function SiteCard({ site, attendance, MEMBER_NAMES }: { site: SiteData; attendance: SiteAttendance[]; MEMBER_NAMES: Record<string, string> }) {
   const st = STATUS_STYLE[site.status];
   const typeColor = TYPE_COLOR[site.type] ?? C.blue;
 
@@ -500,7 +500,7 @@ function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: Sit
 }
 
 // ─── 右パネル：ステータス管理 ─────────────────────────────────────────────────
-function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
+function StatusPanel({ sites }: { sites: SiteData[] }) {
   const upcoming = sites.filter(s => s.status === "着工前");
   const done = sites.filter(s => s.status === "完工");
   return (
@@ -556,7 +556,7 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
 }
 
 // ─── 右パネル：現場マップ ─────────────────────────────────────────────────────
-function MapPanel() {
+function MapPanel({ sites }: { sites: SiteData[] }) {
   const mapSites = sites.map(s => ({
     id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status, address: s.address,
   }));
@@ -613,11 +613,56 @@ function WeatherPanel() {
 
 
 // ─── ページ本体 ───────────────────────────────────────────────────────────────
-export { sites as mockSites };
+
+// Structure type → display name mapping
+const STRUCTURE_TYPE_LABEL: Record<string, string> = {
+  "木造": "木造解体", "RC": "RC解体", "鉄骨": "鉄骨解体", "S造": "鉄骨解体",
+};
 
 export default function KaitaiHome() {
   const { attendanceLogs } = useAppContext();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [sites, setSites] = useState<SiteData[]>([]);
+  const [MEMBER_NAMES, setMemberNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/kaitai/sites", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.sites) return;
+        const mapped: SiteData[] = data.sites.map((s: Record<string, unknown>) => ({
+          id: s.id as string,
+          code: (s.id as string).slice(-6).toUpperCase(),
+          name: s.name as string,
+          type: STRUCTURE_TYPE_LABEL[s.structureType as string] ?? (s.structureType ? `${s.structureType}解体` : "解体工事"),
+          address: s.address as string,
+          status: (s.status === "施工中" ? "解体中" : s.status) as SiteStatus,
+          endDate: (s.endDate as string) ?? "",
+          progressPct: (s.progressPct as number) ?? 0,
+          workers: 0,
+          hasWorkToday: false,
+          contract: (s.contractAmount as number) ?? 0,
+          cost: (s.costAmount as number) ?? 0,
+          breakdown: { waste: 0, labor: 0, other: 0 },
+          imgHue: "",
+          lat: (s.lat as number) ?? 34.6617,
+          lng: (s.lng as number) ?? 133.9175,
+        }));
+        setSites(mapped);
+      })
+      .catch(() => {});
+
+    fetch("/api/kaitai/members", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.members) return;
+        const names: Record<string, string> = {};
+        for (const m of data.members) names[m.id] = m.name;
+        setMemberNames(names);
+      })
+      .catch(() => {});
+  }, []);
+
   const now = new Date();
   const wd = ["日", "月", "火", "水", "木", "金", "土"][now.getDay()];
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日（${wd}）`;
@@ -648,6 +693,7 @@ export default function KaitaiHome() {
         sites={sites}
         attendanceLogs={attendanceLogs}
         today={today}
+        MEMBER_NAMES={MEMBER_NAMES}
       />
 
       {/* ── モバイルヘッダー ─────────────── */}
@@ -722,7 +768,7 @@ export default function KaitaiHome() {
                   .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
                 return { userId, status, latestTimestamp: latestLog?.timestamp ?? "" };
               });
-              return <SiteCard key={site.id} site={site} attendance={siteAttendance} />;
+              return <SiteCard key={site.id} site={site} attendance={siteAttendance} MEMBER_NAMES={MEMBER_NAMES} />;
             })}
           </div>
         </div>

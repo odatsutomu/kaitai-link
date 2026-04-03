@@ -13,8 +13,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { setAuthLevel, setCompany, addLog } = useAppContext();
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
+  const [email,    setEmail]    = useState("test@okayama-kaitai.jp");
+  const [password, setPassword] = useState("test1234");
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);

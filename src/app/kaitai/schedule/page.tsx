@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { T } from "../lib/design-tokens";
 
@@ -11,42 +11,134 @@ const C = {
   amber: T.primary, amberDk: T.primaryDk,
 };
 
-// ─── Mock schedule data ────────────────────────────────────────────────────────
+type SiteSched = { id: string; name: string; shortName: string; color: string; startDay: number; endDay: number };
+type StaffSched = { name: string; short: string; color: string; days: number[] };
+type EquipSched = { name: string; short: string; color: string; days: number[] };
 
-const SITES = [
-  { id: "s1", name: "山田邸",   shortName: "山田",   color: T.primary, startDay: 1,  endDay: 10 },
-  { id: "s2", name: "田中倉庫", shortName: "田中",   color: "#3B82F6", startDay: 1,  endDay: 20 },
-  { id: "s3", name: "松本AP",   shortName: "松本",   color: "#8B5CF6", startDay: 7,  endDay: 30 },
-];
-
-const STAFF: { name: string; short: string; color: string; days: number[] }[] = [
-  { name: "田中 義雄", short: "田", color: T.primary, days: [1,2,3,6,7,8,9,10,13,14,15,16,17,20] },
-  { name: "佐藤 健太", short: "佐", color: "#EF4444", days: [1,2,3,6,7,8,9,10,13,14,15] },
-  { name: "鈴木 大地", short: "鈴", color: "#10B981", days: [7,8,9,10,13,14,15,16,17,20] },
-  { name: "山本 拓也", short: "山", color: "#8B5CF6", days: [6,7,8,9,13,14] },
-  { name: "高橋 真一", short: "高", color: "#0EA5E9", days: [1,2,3,6,7,8,9,10,13,14,15,16,17] },
-];
-
-const EQUIPMENT: { name: string; short: string; color: string; days: number[] }[] = [
-  { name: "バックホウ",   short: "重", color: "#DC2626", days: [1,2,3,7,8,9,10,13,14] },
-  { name: "産廃トラック", short: "ト", color: "#059669", days: [3,8,10,14,17,20] },
-  { name: "高所作業車",   short: "高", color: T.primaryDk, days: [7,8,9] },
-];
-
-const DAYS_IN_MONTH = 30;
-const FIRST_DAY_OFFSET = 2; // Wednesday = index 2 (Mon=0)
-const WEEKENDS = new Set<number>();
-for (let i = 0; i < DAYS_IN_MONTH; i++) {
-  const col = (FIRST_DAY_OFFSET + i) % 7;
-  if (col === 5 || col === 6) WEEKENDS.add(i + 1);
-}
+const SITE_COLORS = [T.primary, "#3B82F6", "#8B5CF6", "#10B981", "#EF4444", "#0EA5E9", "#DC2626"];
+const STAFF_COLORS = [T.primary, "#EF4444", "#10B981", "#8B5CF6", "#0EA5E9", "#DC2626", "#F97316"];
 
 const DAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
+
+function getMonthInfo(year: number, month: number) {
+  const firstDate = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let dayOfWeek = firstDate.getDay(); // 0=Sun
+  const firstDayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Mon=0
+  const weekends = new Set<number>();
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(year, month - 1, i);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) weekends.add(i);
+  }
+  return { daysInMonth, firstDayOffset, weekends };
+}
+
+function parseDateDay(dateStr: string, year: number, month: number): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (d.getFullYear() === year && d.getMonth() + 1 === month) return d.getDate();
+  return null;
+}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
-  const [selectedDay, setSelectedDay] = useState<number | null>(2);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const now = new Date();
+  const [year]  = useState(now.getFullYear());
+  const [month] = useState(now.getMonth() + 1);
+
+  const [SITES, setSites] = useState<SiteSched[]>([]);
+  const [STAFF, setStaff] = useState<StaffSched[]>([]);
+  const [EQUIPMENT, setEquipment] = useState<EquipSched[]>([]);
+
+  const { daysInMonth: DAYS_IN_MONTH, firstDayOffset: FIRST_DAY_OFFSET, weekends: WEEKENDS } = useMemo(
+    () => getMonthInfo(year, month), [year, month]
+  );
+
+  useEffect(() => {
+    // Fetch sites
+    fetch("/api/kaitai/sites", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.sites) return;
+        const mapped: SiteSched[] = data.sites
+          .filter((s: Record<string, unknown>) => s.status !== "完工")
+          .map((s: Record<string, unknown>, i: number) => {
+            const start = parseDateDay(s.startDate as string, year, month);
+            const end   = parseDateDay(s.endDate as string, year, month);
+            const name = s.name as string;
+            return {
+              id: s.id as string,
+              name,
+              shortName: name.length > 4 ? name.slice(0, 4) : name,
+              color: SITE_COLORS[i % SITE_COLORS.length],
+              startDay: start ?? 1,
+              endDay: end ?? DAYS_IN_MONTH,
+            };
+          });
+        setSites(mapped);
+      })
+      .catch(() => {});
+
+    // Fetch members for staff schedule
+    fetch("/api/kaitai/members", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.members) return;
+        const mapped: StaffSched[] = data.members.map((m: Record<string, unknown>, i: number) => {
+          // Generate working days (weekdays) for the month
+          const days: number[] = [];
+          for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+            const date = new Date(year, month - 1, d);
+            const dow = date.getDay();
+            if (dow !== 0 && dow !== 6) days.push(d);
+          }
+          return {
+            name: m.name as string,
+            short: ((m.avatar as string) ?? (m.name as string).charAt(0)),
+            color: STAFF_COLORS[i % STAFF_COLORS.length],
+            days,
+          };
+        });
+        setStaff(mapped);
+      })
+      .catch(() => {});
+
+    // Fetch equipment
+    fetch("/api/kaitai/equipment", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.equipment) return;
+        const mapped: EquipSched[] = data.equipment
+          .filter((e: Record<string, unknown>) => e.status === "稼働中")
+          .map((e: Record<string, unknown>, i: number) => {
+            const days: number[] = [];
+            for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+              const date = new Date(year, month - 1, d);
+              const dow = date.getDay();
+              if (dow !== 0 && dow !== 6) days.push(d);
+            }
+            return {
+              name: e.name as string,
+              short: (e.name as string).charAt(0),
+              color: SITE_COLORS[(i + 3) % SITE_COLORS.length],
+              days,
+            };
+          });
+        setEquipment(mapped);
+      })
+      .catch(() => {});
+  }, [year, month, DAYS_IN_MONTH]);
+
+  // Set selectedDay to today if in current month
+  useEffect(() => {
+    if (now.getFullYear() === year && now.getMonth() + 1 === month) {
+      setSelectedDay(now.getDate());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalCells = FIRST_DAY_OFFSET + DAYS_IN_MONTH;
   const rows = Math.ceil(totalCells / 7);
@@ -69,7 +161,7 @@ export default function SchedulePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>全体スケジュール</h1>
-          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>2026年 4月</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>{year}年 {month}月</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -78,7 +170,7 @@ export default function SchedulePage() {
           >
             <ChevronLeft size={20} style={{ color: C.sub }} />
           </button>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, padding: "0 8px" }}>2026年 4月</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, padding: "0 8px" }}>{year}年 {month}月</span>
           <button
             className="flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
             style={{ width: 40, height: 40, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10 }}
@@ -123,7 +215,7 @@ export default function SchedulePage() {
                 const dayNum = cellIdx - FIRST_DAY_OFFSET + 1;
                 const isValid = dayNum >= 1 && dayNum <= DAYS_IN_MONTH;
                 const isSelected = selectedDay === dayNum;
-                const isToday = dayNum === 2;
+                const isToday = dayNum === now.getDate() && year === now.getFullYear() && month === now.getMonth() + 1;
                 const weekend = WEEKENDS.has(dayNum);
                 const events = isValid ? getDayEvents(dayNum) : null;
 
