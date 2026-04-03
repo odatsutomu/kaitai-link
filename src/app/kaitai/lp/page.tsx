@@ -133,7 +133,7 @@ export default function KaitaiLpPage() {
           }}>
             デモ画面を見る
           </Link>
-          <Link href="/kaitai/signup" style={{
+          <Link href="/kaitai/login" style={{
             border: `1.5px solid rgba(255,255,255,0.2)`,
             color: C.textPri,
             padding: "16px 32px", borderRadius: 12,
@@ -339,7 +339,7 @@ export default function KaitaiLpPage() {
             }}>
               デモ画面を見る →
             </Link>
-            <Link href="/kaitai/signup" style={{
+            <Link href="/kaitai/login" style={{
               display: "inline-block",
               background: "transparent",
               border: "2px solid rgba(255,255,255,0.5)",
