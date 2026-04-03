@@ -5,7 +5,7 @@ import { MEMBERS, LICENSE_LABELS, experienceYears, experienceLevel } from "../li
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
   green: "#10B981",
 };
@@ -57,7 +57,7 @@ const mockWastePrices = [
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl ${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
       {children}
     </div>
   );
@@ -66,7 +66,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode; onAdd?: boolean; addHref?: string }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: C.amber }}>
+      <p className="text-sm font-bold tracking-widest uppercase" style={{ color: C.amber }}>
         {children}
       </p>
       {onAdd && addHref && (
@@ -81,7 +81,7 @@ function SectionLabel({ children, onAdd, addHref }: { children: React.ReactNode;
       )}
       {onAdd && !addHref && (
         <button
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold"
+          className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold"
           style={{ background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.2)" }}
         >
           <Plus size={12} /> 追加
@@ -127,14 +127,14 @@ export default function MasterPage() {
                     <p className="text-sm font-semibold truncate" style={{ color: C.text }}>
                       {site.name}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+                    <p className="text-sm mt-0.5" style={{ color: C.muted }}>
                       ¥{(site.contractAmount / 10_000).toFixed(0)}万 ·{" "}
                       {site.startDate.replace(/-/g, "/")}〜{site.endDate.replace(/-/g, "/")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-sm font-bold px-2 py-0.5 rounded-full"
                       style={
                         site.status === "解体中"
                           ? { background: "#FFF7ED", color: C.amberDk }
@@ -147,8 +147,8 @@ export default function MasterPage() {
                     </span>
                     <Link href={`/kaitai/docs?site=${site.id}`}>
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all"
-                        style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-sm transition-all"
+                        style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                         title="帳票出力"
                       >
                         <FileText size={11} />
@@ -156,7 +156,7 @@ export default function MasterPage() {
                       </button>
                     </Link>
                     <Link href={`/kaitai/sites/${site.id}/edit`}>
-                      <button className="inline-flex items-center p-2 rounded-xl transition-all" style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                      <button className="inline-flex items-center p-2 rounded-xl transition-all" style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                         <Edit3 size={14} />
                       </button>
                     </Link>
@@ -181,7 +181,7 @@ export default function MasterPage() {
             <SectionLabel onAdd>処分単価マスタ</SectionLabel>
             <Card>
               <div
-                className="grid grid-cols-12 px-5 py-3 text-[10px] font-bold uppercase tracking-wider"
+                className="grid grid-cols-12 px-5 py-3 text-sm font-bold uppercase tracking-wider"
                 style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
               >
                 <span className="col-span-5">品目</span>
@@ -201,7 +201,7 @@ export default function MasterPage() {
                       {item.label}
                     </span>
                   </div>
-                  <span className="col-span-2 text-center text-xs" style={{ color: C.muted }}>
+                  <span className="col-span-2 text-center text-sm" style={{ color: C.muted }}>
                     {item.unit}
                   </span>
                   <span
@@ -218,7 +218,7 @@ export default function MasterPage() {
                 </div>
               ))}
             </Card>
-            <p className="text-xs mt-2 px-1" style={{ color: C.muted }}>
+            <p className="text-sm mt-2 px-1" style={{ color: C.muted }}>
               ※ 単価変更は翌日以降の産廃集計に反映されます
             </p>
           </section>
@@ -230,16 +230,16 @@ export default function MasterPage() {
           {/* 労務単価マスタ */}
           <section>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: C.amber }}>
+              <p className="text-sm font-bold tracking-widest uppercase" style={{ color: C.amber }}>
                 労務単価マスタ（メンバー別）
               </p>
-              <Link href="/kaitai/members" className="text-xs font-semibold" style={{ color: C.amber }}>
+              <Link href="/kaitai/members" className="text-sm font-semibold" style={{ color: C.amber }}>
                 詳細 →
               </Link>
             </div>
             <Card>
               <div
-                className="grid grid-cols-12 px-5 py-3 text-[10px] font-bold uppercase tracking-wider"
+                className="grid grid-cols-12 px-5 py-3 text-sm font-bold uppercase tracking-wider"
                 style={{ color: C.muted, borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
               >
                 <span className="col-span-5">氏名</span>
@@ -258,7 +258,7 @@ export default function MasterPage() {
                   >
                     <div className="col-span-5 flex items-center gap-2.5 min-w-0">
                       <div
-                        className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                        className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold"
                         style={{ background: lvl.bg, color: lvl.color }}
                       >
                         {m.avatar}
@@ -276,7 +276,7 @@ export default function MasterPage() {
                     </div>
                     <div className="col-span-2 flex justify-center">
                       <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                        className="text-sm font-bold px-1.5 py-0.5 rounded-full"
                         style={
                           m.type === "直用"
                             ? { background: "#EFF6FF", color: "#2563EB" }
@@ -293,7 +293,7 @@ export default function MasterPage() {
                       ¥{m.dayRate.toLocaleString()}
                     </span>
                     <div className="col-span-1 flex justify-end">
-                      <button className="p-1.5 rounded-lg transition-all hover:bg-slate-100" style={{ color: "#334155", border: "1px solid #E2E8F0" }}>
+                      <button className="p-1.5 rounded-lg transition-all hover:bg-slate-100" style={{ color: "#334155", border: "1px solid #E5E7EB" }}>
                         <Edit3 size={13} />
                       </button>
                     </div>
@@ -301,7 +301,7 @@ export default function MasterPage() {
                 );
               })}
             </Card>
-            <p className="text-xs mt-2 px-1" style={{ color: C.muted }}>
+            <p className="text-sm mt-2 px-1" style={{ color: C.muted }}>
               ※ 常用単価 / 日（税抜）· 労務費 ＝ 日当 × 出勤日数で自動計算
             </p>
           </section>

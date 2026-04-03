@@ -41,7 +41,7 @@ function StepIndicator({ step, total }: { step: number; total: number }) {
           }}
         />
       ))}
-      <span className="text-xs font-bold ml-1" style={{ color: "#64748B" }}>
+      <span className="text-sm font-bold ml-1" style={{ color: "#64748B" }}>
         {step + 1}/{total}
       </span>
     </div>
@@ -117,7 +117,7 @@ export default function WorkStartPage({
           </div>
         )}
 
-        <p className="text-xs mb-2" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-2" style={{ color: "#64748B" }}>
           出勤 {selectedMembers.size}名・写真 {photoCount}枚
         </p>
 
@@ -127,7 +127,7 @@ export default function WorkStartPage({
             return item ? (
               <span
                 key={id}
-                className="text-xs px-3 py-1 rounded-full"
+                className="text-sm px-3 py-1 rounded-full"
                 style={{ background: "rgba(249,115,22,0.15)", color: "#FB923C" }}
               >
                 {item.label}
@@ -184,7 +184,7 @@ export default function WorkStartPage({
         {step === 0 && (
           <>
             <section>
-              <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
                 STEP 1｜本日の作業項目
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -227,7 +227,7 @@ export default function WorkStartPage({
         {step === 1 && (
           <>
             <section>
-              <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
                 STEP 2｜本日の作業員を選択（複数可）
               </p>
               <div className="flex flex-col gap-2">
@@ -271,21 +271,21 @@ export default function WorkStartPage({
                             {m.name}
                           </span>
                           <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            className="text-sm font-bold px-1.5 py-0.5 rounded-full"
                             style={{ background: lvl.bg, color: lvl.color }}
                           >
                             {lvl.label}
                           </span>
                           {m.type === "外注" && (
                             <span
-                              className="text-[9px] px-1.5 py-0.5 rounded-full"
+                              className="text-sm px-1.5 py-0.5 rounded-full"
                               style={{ background: "rgba(99,102,241,0.1)", color: "#818CF8" }}
                             >
                               外注
                             </span>
                           )}
                         </div>
-                        <p className="text-xs" style={{ color: "#64748B" }}>{m.role}</p>
+                        <p className="text-sm" style={{ color: "#64748B" }}>{m.role}</p>
                       </div>
 
                       {/* Stars */}
@@ -328,7 +328,7 @@ export default function WorkStartPage({
           <>
             {/* 責任者選択 */}
             <section>
-              <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
                 STEP 3｜責任者を1名指定
               </p>
               <div className="flex flex-col gap-2">
@@ -358,7 +358,7 @@ export default function WorkStartPage({
                         <p className="text-sm font-bold" style={{ color: isLeader ? "#FBBF24" : "#F1F5F9" }}>
                           {m.name}
                         </p>
-                        <p className="text-xs" style={{ color: "#64748B" }}>{m.role}</p>
+                        <p className="text-sm" style={{ color: "#64748B" }}>{m.role}</p>
                       </div>
                       {isLeader ? (
                         <div
@@ -366,7 +366,7 @@ export default function WorkStartPage({
                           style={{ background: "rgba(251,191,36,0.15)" }}
                         >
                           <Crown size={13} style={{ color: "#FBBF24" }} />
-                          <span className="text-xs font-bold" style={{ color: "#FBBF24" }}>責任者</span>
+                          <span className="text-sm font-bold" style={{ color: "#FBBF24" }}>責任者</span>
                         </div>
                       ) : (
                         <div
@@ -383,11 +383,11 @@ export default function WorkStartPage({
             {/* 着工前写真（必須） */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#F97316" }}>
+                <p className="text-sm font-bold tracking-widest uppercase" style={{ color: "#F97316" }}>
                   着工前写真（必須）
                 </p>
                 {photoCount === 0 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(248,113,113,0.1)", color: "#F87171" }}>
+                  <span className="text-sm px-2 py-0.5 rounded-full" style={{ background: "rgba(248,113,113,0.1)", color: "#F87171" }}>
                     未撮影
                   </span>
                 )}
@@ -404,7 +404,7 @@ export default function WorkStartPage({
                 <span className="text-sm font-bold" style={{ color: photoCount > 0 ? "#F97316" : "#F87171" }}>
                   {photoCount > 0 ? `${photoCount}枚 撮影済み ✓` : "現場状況を撮影する（必須）"}
                 </span>
-                <span className="text-xs" style={{ color: "#475569" }}>
+                <span className="text-sm" style={{ color: "#475569" }}>
                   着工前の現場全景・各部位を記録
                 </span>
               </button>
@@ -432,7 +432,7 @@ export default function WorkStartPage({
               </button>
             </div>
             {(!responsible || photoCount === 0) && (
-              <p className="text-center text-xs -mt-2" style={{ color: "#64748B" }}>
+              <p className="text-center text-sm -mt-2" style={{ color: "#64748B" }}>
                 {!responsible ? "責任者を指定" : ""}
                 {!responsible && photoCount === 0 ? "・" : ""}
                 {photoCount === 0 ? "着工前写真を撮影" : ""}

@@ -149,7 +149,7 @@ export default function EvaluationPage() {
           <section>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 700,
                 color: C.sub,
                 textTransform: "uppercase",
@@ -221,7 +221,7 @@ export default function EvaluationPage() {
           <section>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 700,
                 color: C.sub,
                 textTransform: "uppercase",
@@ -241,7 +241,7 @@ export default function EvaluationPage() {
                     color: "#fff",
                     borderRadius: 20,
                     padding: "1px 8px",
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: 700,
                   }}
                 >
@@ -424,7 +424,7 @@ export default function EvaluationPage() {
                           <span style={{ fontSize: 16 }}>{cat.emoji}</span>
                           <span
                             style={{
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: 600,
                               color: C.sub,
                             }}
@@ -454,7 +454,7 @@ export default function EvaluationPage() {
                                   border: `2px solid ${active ? meta.color : C.border}`,
                                   background: active ? meta.bg : "#FAFAFA",
                                   color: active ? meta.color : C.muted,
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: active ? 700 : 500,
                                   cursor: "pointer",
                                   transition: "all 0.12s",
@@ -481,7 +481,7 @@ export default function EvaluationPage() {
                     <label
                       style={{
                         display: "block",
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: 600,
                         color: "#DC2626",
                         marginBottom: 6,
@@ -594,7 +594,7 @@ export default function EvaluationPage() {
             width: "100%",
           }}
         >
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>
+          <div style={{ fontSize: 14, color: C.muted, marginBottom: 4 }}>
             現場
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>

@@ -67,7 +67,7 @@ function DocTypeModal({
         >
           <div>
             <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>帳票を選択</p>
-            <p style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{site.name}</p>
+            <p style={{ fontSize: 14, color: C.sub, marginTop: 2 }}>{site.name}</p>
           </div>
           <button
             onClick={onClose}
@@ -111,7 +111,7 @@ function DocTypeModal({
               <span style={{ fontSize: 24 }}>{meta.emoji}</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{meta.label}</p>
-                <p style={{ fontSize: 11, color: C.sub, margin: "2px 0 0" }}>{meta.desc}</p>
+                <p style={{ fontSize: 14, color: C.sub, margin: "2px 0 0" }}>{meta.desc}</p>
               </div>
               <ChevronRight size={16} color={C.muted} />
             </button>
@@ -133,7 +133,7 @@ export default function DocsPage() {
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 16, marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>帳票出力</h1>
-        <p style={{ fontSize: 13, color: C.sub, margin: "4px 0 0" }}>案件を選択して帳票を生成</p>
+        <p style={{ fontSize: 14, color: C.sub, margin: "4px 0 0" }}>案件を選択して帳票を生成</p>
 
         {/* Available doc types */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
@@ -141,7 +141,7 @@ export default function DocsPage() {
             <span
               key={meta.label}
               style={{
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: 600,
                 color: C.amberDk,
                 background: "#FFFBEB",
@@ -159,7 +159,7 @@ export default function DocsPage() {
       {/* Site grid */}
       <p
         style={{
-          fontSize: 11,
+          fontSize: 14,
           fontWeight: 700,
           color: C.muted,
           textTransform: "uppercase",
@@ -220,17 +220,17 @@ export default function DocsPage() {
                     >
                       {site.name}
                     </p>
-                    <p style={{ fontSize: 11, color: C.sub, margin: "2px 0 0" }}>{site.address}</p>
-                    <p style={{ fontSize: 11, color: C.sub, margin: "1px 0 0" }}>
+                    <p style={{ fontSize: 14, color: C.sub, margin: "2px 0 0" }}>{site.address}</p>
+                    <p style={{ fontSize: 14, color: C.sub, margin: "1px 0 0" }}>
                       {site.startDate.replace(/-/g, "/")} ～ {site.endDate.replace(/-/g, "/")}
                     </p>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 800, color: C.amberDk, margin: 0 }}>{yen(total)}</p>
-                    <p style={{ fontSize: 10, color: C.muted, margin: "1px 0 0" }}>税込</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: C.amberDk, margin: 0 }}>{yen(total)}</p>
+                    <p style={{ fontSize: 14, color: C.muted, margin: "1px 0 0" }}>税込</p>
                     <span
                       style={{
-                        fontSize: 10,
+                        fontSize: 14,
                         fontWeight: 700,
                         padding: "2px 8px",
                         borderRadius: 20,
@@ -247,7 +247,7 @@ export default function DocsPage() {
 
                 {/* Client */}
                 {site.clientName && (
-                  <p style={{ fontSize: 11, color: C.sub, marginBottom: 12 }}>
+                  <p style={{ fontSize: 14, color: C.sub, marginBottom: 12 }}>
                     発注者：{site.clientName}{site.clientContact ? `（${site.clientContact}）` : ""}
                   </p>
                 )}

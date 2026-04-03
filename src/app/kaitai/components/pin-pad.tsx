@@ -60,7 +60,7 @@ export function PinPad({ title, subtitle, correctPin, onSuccess, onBack, dark = 
       {/* Title + dots */}
       <div className="flex flex-col items-center pt-12 pb-4">
         <p style={{ fontSize: 18, fontWeight: 700, color: dim, marginBottom: 6 }}>{title}</p>
-        {subtitle && <p style={{ fontSize: 13, color: dim, marginBottom: 20 }}>{subtitle}</p>}
+        {subtitle && <p style={{ fontSize: 14, color: dim, marginBottom: 20 }}>{subtitle}</p>}
 
         <div style={{ animation: shake ? "shake 0.45s ease" : "none", display: "flex", gap: 20 }}>
           {[0,1,2,3].map(i => (
@@ -73,7 +73,7 @@ export function PinPad({ title, subtitle, correctPin, onSuccess, onBack, dark = 
           ))}
         </div>
 
-        <p style={{ fontSize: 13, fontWeight: 700, color: "#EF5350", marginTop: 14, minHeight: 18, opacity: error ? 1 : 0, transition: "opacity 0.2s" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: "#EF5350", marginTop: 14, minHeight: 18, opacity: error ? 1 : 0, transition: "opacity 0.2s" }}>
           {error || "　"}
         </p>
       </div>

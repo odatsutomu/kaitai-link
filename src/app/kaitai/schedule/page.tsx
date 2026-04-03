@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
+  border: "#D1D5DB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
 };
 
@@ -68,20 +68,21 @@ export default function SchedulePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>全体スケジュール</h1>
-          <p className="text-sm mt-1" style={{ color: C.sub }}>2026年 4月</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>2026年 4月</p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            style={{ background: C.card, border: `1px solid ${C.border}` }}
+            className="flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
+            style={{ width: 40, height: 40, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10 }}
           >
-            <ChevronLeft size={18} style={{ color: C.sub }} />
+            <ChevronLeft size={20} style={{ color: C.sub }} />
           </button>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, padding: "0 8px" }}>2026年 4月</span>
           <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            style={{ background: C.card, border: `1px solid ${C.border}` }}
+            className="flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
+            style={{ width: 40, height: 40, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10 }}
           >
-            <ChevronRight size={18} style={{ color: C.sub }} />
+            <ChevronRight size={20} style={{ color: C.sub }} />
           </button>
         </div>
       </div>
@@ -92,15 +93,15 @@ export default function SchedulePage() {
         {/* ── Calendar panel ── */}
         <div className="flex-1 min-w-0">
           <div
-            className="rounded-xl p-5"
-            style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+            className="p-5"
+            style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
           >
             {/* Site legend */}
             <div className="flex flex-wrap gap-2 mb-5">
               {SITES.map(s => (
                 <div key={s.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: `${s.color}12`, border: `1px solid ${s.color}30` }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.name}</span>
                 </div>
               ))}
             </div>
@@ -108,7 +109,7 @@ export default function SchedulePage() {
             {/* Day headers */}
             <div className="grid grid-cols-7 gap-1 mb-1">
               {DAY_LABELS.map((d, i) => (
-                <div key={d} className="text-center py-1.5" style={{ fontSize: 11, fontWeight: 700, color: i >= 5 ? "#EF4444" : C.muted }}>
+                <div key={d} className="text-center py-1.5" style={{ fontSize: 14, fontWeight: 700, color: i >= 5 ? "#EF4444" : C.muted }}>
                   {d}
                 </div>
               ))}
@@ -129,7 +130,7 @@ export default function SchedulePage() {
                     key={cellIdx}
                     disabled={!isValid}
                     onClick={() => isValid && setSelectedDay(isSelected ? null : dayNum)}
-                    className="rounded-lg flex flex-col overflow-hidden transition-all"
+                    className="rounded-xl flex flex-col overflow-hidden transition-all"
                     style={{
                       minHeight: 58,
                       background: isSelected
@@ -152,8 +153,8 @@ export default function SchedulePage() {
                       <>
                         <div className="text-center pt-1.5 pb-0.5">
                           <span style={{
-                            fontSize: 13,
-                            fontWeight: isToday || isSelected ? 800 : 600,
+                            fontSize: isToday || isSelected ? 16 : 14,
+                            fontWeight: isToday || isSelected ? 700 : 500,
                             color: isSelected ? "#FFFFFF" : isToday ? C.amberDk : weekend ? "#EF4444" : C.text,
                           }}>
                             {dayNum}
@@ -173,9 +174,9 @@ export default function SchedulePage() {
                             <div
                               className="rounded-full flex items-center justify-center"
                               style={{
-                                width: 14, height: 14,
+                                width: 20, height: 20,
                                 background: isSelected ? "rgba(255,255,255,0.3)" : "#1E293B",
-                                fontSize: 8, fontWeight: 800,
+                                fontSize: 14, fontWeight: 800,
                                 color: "#FFFFFF",
                               }}
                             >
@@ -194,17 +195,17 @@ export default function SchedulePage() {
             <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
               <div className="flex items-center gap-1.5">
                 <div style={{ width: 16, height: 4, borderRadius: 2, background: C.amber }} />
-                <span className="text-[10px]" style={{ color: C.muted }}>現場稼働</span>
+                <span style={{ fontSize: 14, color: C.muted }}>現場稼働</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div style={{ width: 14, height: 14, borderRadius: 7, background: C.text, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 8, color: "#fff", fontWeight: 800 }}>n</span>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: C.text, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14, color: "#fff", fontWeight: 800 }}>n</span>
                 </div>
-                <span className="text-[10px]" style={{ color: C.muted }}>作業員数</span>
+                <span style={{ fontSize: 14, color: C.muted }}>作業員数</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div style={{ width: 16, height: 16, borderRadius: 4, background: "#FFFBEB", border: `2px solid ${C.amber}` }} />
-                <span className="text-[10px]" style={{ color: C.muted }}>今日</span>
+                <span style={{ fontSize: 14, color: C.muted }}>今日</span>
               </div>
             </div>
           </div>
@@ -214,31 +215,31 @@ export default function SchedulePage() {
         <div className="lg:w-80 xl:w-96 flex-shrink-0">
           {selectedDay && selectedEvents ? (
             <div
-              className="rounded-xl p-5 flex flex-col gap-5"
-              style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+              className="p-5 flex flex-col gap-5"
+              style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
             >
               <div className="flex items-center gap-2">
-                <Calendar size={16} style={{ color: C.amber }} />
-                <h2 className="text-base font-bold" style={{ color: C.text }}>
+                <Calendar size={18} style={{ color: C.amber }} />
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text }}>
                   4月{selectedDay}日（{DAY_LABELS[(FIRST_DAY_OFFSET + selectedDay - 1) % 7]}）
                 </h2>
                 {isWeekend && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FEF2F2", color: "#EF4444" }}>休日</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: "#FEF2F2", color: "#EF4444" }}>休日</span>
                 )}
               </div>
 
               {selectedEvents.sites.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5" style={{ color: C.muted }}>稼働現場</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 10, color: C.muted }}>稼働現場</p>
                   <div className="flex flex-col gap-2">
                     {selectedEvents.sites.map(s => (
                       <div
                         key={s.id}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg"
-                        style={{ background: `${s.color}10`, border: `1.5px solid ${s.color}30` }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                        style={{ background: `${s.color}10`, border: `1.5px solid ${s.color}30`, borderRadius: 12 }}
                       >
                         <div style={{ width: 10, height: 28, borderRadius: 3, background: s.color, flexShrink: 0 }} />
-                        <p className="text-sm font-bold" style={{ color: C.text }}>{s.name}</p>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{s.name}</p>
                       </div>
                     ))}
                   </div>
@@ -247,23 +248,23 @@ export default function SchedulePage() {
 
               {selectedEvents.staff.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5" style={{ color: C.muted }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 10, color: C.muted }}>
                     出勤予定（{selectedEvents.staff.length}名）
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2">
                     {selectedEvents.staff.map(s => (
                       <div
                         key={s.name}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                        style={{ background: `${s.color}10`, border: `1px solid ${s.color}25` }}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl"
+                        style={{ background: `${s.color}10`, border: `1px solid ${s.color}25`, borderRadius: 12 }}
                       >
                         <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{ background: s.color, color: "#fff" }}
+                          className="flex items-center justify-center rounded-xl flex-shrink-0"
+                          style={{ width: 32, height: 32, background: s.color, color: "#fff", fontSize: 14, fontWeight: 700 }}
                         >
                           {s.short}
                         </div>
-                        <span className="text-sm font-medium" style={{ color: C.text }}>{s.name}</span>
+                        <span style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{s.name}</span>
                       </div>
                     ))}
                   </div>
@@ -272,16 +273,16 @@ export default function SchedulePage() {
 
               {selectedEvents.equipment.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5" style={{ color: C.muted }}>重機・車両</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 10, color: C.muted }}>重機・車両</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedEvents.equipment.map(e => (
                       <div
                         key={e.name}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                        style={{ background: `${e.color}10`, border: `1px solid ${e.color}25` }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                        style={{ background: `${e.color}10`, border: `1px solid ${e.color}25`, borderRadius: 10 }}
                       >
                         <span style={{ fontSize: 16 }}>🚜</span>
-                        <span className="text-sm font-medium" style={{ color: C.text }}>{e.name}</span>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: C.text }}>{e.name}</span>
                       </div>
                     ))}
                   </div>
@@ -290,20 +291,20 @@ export default function SchedulePage() {
 
               {selectedEvents.sites.length === 0 && selectedEvents.staff.length === 0 && (
                 <div
-                  className="flex flex-col items-center justify-center py-10 rounded-lg"
+                  className="flex flex-col items-center justify-center py-10 rounded-xl"
                   style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}
                 >
-                  <p className="text-sm" style={{ color: C.muted }}>この日の予定はありません</p>
+                  <p style={{ fontSize: 15, color: C.muted }}>この日の予定はありません</p>
                 </div>
               )}
             </div>
           ) : (
             <div
-              className="rounded-xl p-8 flex flex-col items-center justify-center text-center"
-              style={{ background: C.card, border: `1px dashed ${C.border}` }}
+              className="p-8 flex flex-col items-center justify-center text-center rounded-2xl"
+              style={{ background: C.card, border: `1px dashed ${C.border}`, borderRadius: 16 }}
             >
               <Calendar size={32} style={{ color: C.border, marginBottom: 12 }} />
-              <p className="text-sm font-medium" style={{ color: C.muted }}>日付を選択すると<br />詳細を表示します</p>
+              <p style={{ fontSize: 15, fontWeight: 500, color: C.muted }}>日付を選択すると<br />詳細を表示します</p>
             </div>
           )}
         </div>

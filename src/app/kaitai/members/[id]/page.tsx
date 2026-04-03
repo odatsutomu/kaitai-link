@@ -42,7 +42,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: C_MEM.sub }}>
+    <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12, color: C_MEM.sub }}>
       {children}
     </p>
   );
@@ -149,7 +149,7 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {days.map((d, i) => (
-          <div key={d} className="text-center text-[9px] font-bold py-0.5" style={{ color: i >= 5 ? "#F87171" : "#64748B" }}>
+          <div key={d} className="text-center py-0.5" style={{ fontSize: 14, fontWeight: 700, color: i >= 5 ? "#F87171" : "#64748B" }}>
             {d}
           </div>
         ))}
@@ -176,11 +176,11 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
                 opacity: status === "未来" ? 0.3 : 1,
               }}
             >
-              <span className="text-[9px] font-bold" style={{ color: colIdx >= 5 ? (status === "休日" ? "#F87171" : c.text) : c.text }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: colIdx >= 5 ? (status === "休日" ? "#F87171" : c.text) : c.text }}>
                 {dayNum}
               </span>
-              {status === "遅刻" && <span className="text-[7px]" style={{ color: "#FBBF24" }}>遅</span>}
-              {status === "欠勤" && <span className="text-[7px]" style={{ color: "#EF4444" }}>欠</span>}
+              {status === "遅刻" && <span style={{ fontSize: 14, color: "#FBBF24" }}>遅</span>}
+              {status === "欠勤" && <span style={{ fontSize: 14, color: "#EF4444" }}>欠</span>}
             </div>
           );
         })}
@@ -189,8 +189,8 @@ function AttendanceCalendar({ calendar }: { calendar: string[] }) {
       <div className="flex items-center gap-3 mt-2 justify-end">
         {[["出勤","#4ADE80"],["遅刻","#FBBF24"],["欠勤","#EF4444"],["休日","#475569"]].map(([label, color]) => (
           <div key={label} className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm" style={{ background: color, opacity: 0.6 }} />
-            <span className="text-[9px]" style={{ color: "#64748B" }}>{label}</span>
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color, opacity: 0.6 }} />
+            <span style={{ fontSize: 14, color: "#64748B" }}>{label}</span>
           </div>
         ))}
       </div>
@@ -241,16 +241,16 @@ function TroubleCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${typeColor}1A`, color: typeColor }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${typeColor}1A`, color: typeColor }}>
               {t.type}
             </span>
-            <span className="text-[10px]" style={{ color: "#64748B" }}>{t.date}・{t.site}</span>
+            <span style={{ fontSize: 14, color: "#64748B" }}>{t.date}・{t.site}</span>
           </div>
-          <p className="text-xs line-clamp-2" style={{ color: "#94A3B8" }}>{t.detail}</p>
+          <p style={{ fontSize: 14, color: "#94A3B8" }} className="line-clamp-2">{t.detail}</p>
           {cfg && !open && (
             <div className="flex items-center gap-1 mt-1">
-              <cfg.icon size={10} style={{ color: cfg.color }} />
-              <span className="text-[10px] font-bold" style={{ color: cfg.color }}>管理者評価: {cfg.label}</span>
+              <cfg.icon size={12} style={{ color: cfg.color }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: cfg.color }}>管理者評価: {cfg.label}</span>
             </div>
           )}
         </div>
@@ -260,11 +260,11 @@ function TroubleCard({
 
       {open && (
         <div className="px-4 pb-4 flex flex-col gap-3" style={{ borderTop: "1px solid #0F1928" }}>
-          <p className="text-xs pt-3" style={{ color: "#94A3B8" }}>{t.detail}</p>
+          <p style={{ fontSize: 14, paddingTop: 12, color: "#94A3B8" }}>{t.detail}</p>
 
           {/* Admin evaluation */}
           <div>
-            <p className="text-[10px] font-bold mb-2" style={{ color: "#64748B" }}>管理者評価（3段階）</p>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: "#64748B" }}>管理者評価（3段階）</p>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map(score => {
                 const c = SCORE_CONFIG[score];
@@ -274,14 +274,15 @@ function TroubleCard({
                     key={score}
                     onClick={() => handleScore(score)}
                     disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all"
                     style={{
+                      fontSize: 14, fontWeight: 700,
                       background: active ? c.bg : "rgba(15,25,40,0.5)",
                       color: active ? c.color : "#475569",
                       border: active ? `1px solid ${c.color}30` : "1px solid #2D3E54",
                     }}
                   >
-                    <c.icon size={12} />
+                    <c.icon size={14} />
                     {c.label}
                   </button>
                 );
@@ -291,21 +292,21 @@ function TroubleCard({
 
           {/* Memo */}
           <div>
-            <p className="text-[10px] font-bold mb-1" style={{ color: "#64748B" }}>管理者メモ</p>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: "#64748B" }}>管理者メモ</p>
             <textarea
               value={memo}
               onChange={e => setMemo(e.target.value)}
               rows={2}
               placeholder="対応内容・指示事項など…"
-              className="w-full text-xs rounded-xl px-3 py-2 resize-none outline-none"
-              style={{ background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
+              className="w-full rounded-xl px-3 py-2 resize-none outline-none"
+              style={{ fontSize: 14, background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
             />
           </div>
 
           {t.adminMemo && (
             <div className="px-3 py-2 rounded-xl" style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.12)" }}>
-              <p className="text-[9px] font-bold mb-0.5" style={{ color: "#F97316" }}>保存済メモ</p>
-              <p className="text-xs" style={{ color: "#94A3B8" }}>{t.adminMemo}</p>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2, color: "#F97316" }}>保存済メモ</p>
+              <p style={{ fontSize: 14, color: "#94A3B8" }}>{t.adminMemo}</p>
             </div>
           )}
         </div>
@@ -421,16 +422,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
               {member.type === "外注" && (
-                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>
               )}
               {s.troubles.length > 0 && (
-                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>
               )}
             </div>
-            <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>{member.name}</h1>
-            <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>{member.kana}</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "#F1F5F9" }}>{member.name}</h1>
+            <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{member.kana}</p>
           </div>
           {/* CSV export */}
           <button
@@ -438,27 +439,27 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl active:scale-95 transition-transform"
             style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}
           >
-            <Download size={14} style={{ color: "#F97316" }} />
-            <span className="text-[9px] font-bold" style={{ color: "#F97316" }}>CSV</span>
+            <Download size={16} style={{ color: "#F97316" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>CSV</span>
           </button>
         </div>
 
         {/* Stars + experience */}
         <div className="flex items-center gap-3 mb-3">
           <Stars n={lvl.stars} color={lvl.color} />
-          <span className="text-sm font-bold" style={{ color: lvl.color }}>累計 {yrs}年</span>
-          <span className="text-xs" style={{ color: "#64748B" }}>（前職 {member.preYears}年 + {member.siteCount}現場）</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: lvl.color }}>累計 {yrs}年</span>
+          <span style={{ fontSize: 14, color: "#64748B" }}>（前職 {member.preYears}年 + {member.siteCount}現場）</span>
         </div>
 
         {/* Experience gauge */}
         <div>
-          <div className="flex justify-between text-[10px] mb-1" style={{ color: "#64748B" }}>
+          <div className="flex justify-between mb-1" style={{ fontSize: 14, color: "#64748B" }}>
             <span>経験値ゲージ</span><span>{expPct}%</span>
           </div>
           <div className="h-3 rounded-full overflow-hidden" style={{ background: "#0F1928" }}>
             <div className="h-full rounded-full" style={{ width: `${expPct}%`, background: `linear-gradient(90deg, ${lvl.color}, #FBBF24)` }} />
           </div>
-          <div className="flex justify-between text-[9px] mt-1" style={{ color: "#2D3E54" }}>
+          <div className="flex justify-between mt-1" style={{ fontSize: 14, color: "#2D3E54" }}>
             <span>見習い</span><span>一般</span><span>中堅</span><span>熟練</span><span>職長</span>
           </div>
         </div>
@@ -471,11 +472,13 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="flex-1 py-2 rounded-xl text-[10px] font-bold transition-all"
-              style={tab === t
-                ? { background: "rgba(249,115,22,0.15)", color: "#F97316" }
-                : { color: "#64748B" }
-              }
+              className="flex-1 py-2 rounded-xl transition-all"
+              style={{
+                fontSize: 14, fontWeight: 700,
+                ...(tab === t
+                  ? { background: "rgba(249,115,22,0.15)", color: "#F97316" }
+                  : { color: "#64748B" })
+              }}
             >
               {t}
             </button>
@@ -497,11 +500,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <div className="flex flex-wrap gap-2">
                   {member.licenses.map(lic => (
                     <div key={lic} className="flex items-center gap-1.5 px-3 py-2 rounded-xl" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}>
-                      <Award size={12} style={{ color: "#FBBF24" }} />
-                      <span className="text-xs font-semibold" style={{ color: "#F1F5F9" }}>{LICENSE_LABELS[lic as License] ?? lic}</span>
+                      <Award size={14} style={{ color: "#FBBF24" }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "#F1F5F9" }}>{LICENSE_LABELS[lic as License] ?? lic}</span>
                     </div>
                   ))}
-                  {member.licenses.length === 0 && <p className="text-sm" style={{ color: "#64748B" }}>資格なし</p>}
+                  {member.licenses.length === 0 && <p style={{ fontSize: 14, color: "#64748B" }}>資格なし</p>}
                 </div>
               </Card>
             </section>
@@ -516,11 +519,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   { icon: MapPin,    label: "住所",       value: member.address },
                   { icon: Phone,     label: "緊急連絡先", value: member.emergency },
                 ].map(({ icon: Icon, label, value }, i) => (
-                  <div key={label} className="flex items-start gap-3 px-4 py-3" style={{ borderTop: i > 0 ? "1px solid #0F1928" : undefined }}>
-                    <Icon size={15} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
+                  <div key={label} className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: i > 0 ? "1px solid #0F1928" : undefined }}>
+                    <Icon size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px]" style={{ color: "#64748B" }}>{label}</p>
-                      <p className="text-sm font-medium mt-0.5" style={{ color: "#F1F5F9" }}>{value}</p>
+                      <p style={{ fontSize: 14, color: "#64748B" }}>{label}</p>
+                      <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{value}</p>
                     </div>
                   </div>
                 ))}
@@ -535,9 +538,9 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   { label: "累計経験年数",  value: `${yrs}年`,               color: lvl.color },
                   { label: "日当",          value: `¥${member.dayRate.toLocaleString()}`, color: "#4ADE80" },
                 ].map(({ label, value, color }) => (
-                  <Card key={label} className="p-3 text-center">
-                    <p className="text-sm font-bold" style={{ color }}>{value}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "#64748B" }}>{label}</p>
+                  <Card key={label} className="p-4 text-center">
+                    <p style={{ fontSize: 18, fontWeight: 700, color }}>{value}</p>
+                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{label}</p>
                   </Card>
                 ))}
               </div>
@@ -547,16 +550,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <SectionLabel>直近の現場出勤</SectionLabel>
               {s.siteEvals.map((e, i) => (
-                <Card key={i} className="px-4 py-3 flex items-center gap-3 mb-2">
-                  <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(249,115,22,0.1)" }}>
-                    <TrendingUp size={15} style={{ color: "#F97316" }} />
+                <Card key={i} className="px-4 flex items-center gap-3 mb-2" style={{ paddingTop: 14, paddingBottom: 14, minHeight: 64 }}>
+                  <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(249,115,22,0.1)" }}>
+                    <TrendingUp size={18} style={{ color: "#F97316" }} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold" style={{ color: "#F1F5F9" }}>{e.site}</p>
-                    <p className="text-xs" style={{ color: "#64748B" }}>{e.date}</p>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: "#F1F5F9" }}>{e.site}</p>
+                    <p style={{ fontSize: 14, color: "#64748B" }}>{e.date}</p>
                   </div>
                   {e.role === "責任者" && (
-                    <span className="text-[9px] font-bold px-2 py-1 rounded-full" style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
                   )}
                 </Card>
               ))}
@@ -581,9 +584,9 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   { label: "平均残業",     value: `${s.avgOvertime}h/日`,     color: "#94A3B8" },
                   { label: "出勤率",       value: `${s.attendancePct}%`,      color: attColor },
                 ].map(({ label, value, color }) => (
-                  <Card key={label} className="p-3">
-                    <p className="text-[10px] mb-0.5" style={{ color: "#64748B" }}>{label}</p>
-                    <p className="text-lg font-bold" style={{ color, fontFeatureSettings: "'tnum'" }}>{value}</p>
+                  <Card key={label} className="p-4">
+                    <p style={{ fontSize: 14, marginBottom: 4, color: "#64748B" }}>{label}</p>
+                    <p style={{ fontSize: 28, fontWeight: 800, color, fontFeatureSettings: "'tnum'", lineHeight: 1 }}>{value}</p>
                   </Card>
                 ))}
               </div>
@@ -591,14 +594,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
             {/* Attendance bar */}
             <section>
-              <div className="flex justify-between text-xs mb-1">
-                <span style={{ color: "#64748B" }}>出勤率</span>
-                <span className="font-bold" style={{ color: attColor }}>{s.attendancePct}%</span>
+              <div className="flex justify-between mb-1">
+                <span style={{ fontSize: 14, color: "#64748B" }}>出勤率</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: attColor }}>{s.attendancePct}%</span>
               </div>
               <div className="h-3 rounded-full overflow-hidden" style={{ background: "#0F1928" }}>
                 <div className="h-full rounded-full" style={{ width: `${s.attendancePct}%`, background: attColor }} />
               </div>
-              <div className="flex justify-between text-[9px] mt-1" style={{ color: "#2D3E54" }}>
+              <div className="flex justify-between mt-1" style={{ fontSize: 14, color: "#2D3E54" }}>
                 <span>0%</span><span>50%</span><span>100%</span>
               </div>
             </section>
@@ -614,10 +617,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             {/* Overtime note */}
             {s.lateDays > 0 && (
               <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
-                <Clock size={14} style={{ color: "#FBBF24" }} />
+                <Clock size={16} style={{ color: "#FBBF24" }} />
                 <div>
-                  <p className="text-xs font-bold" style={{ color: "#FBBF24" }}>遅刻フラグ: {s.lateDays}件</p>
-                  <p className="text-[10px]" style={{ color: "#94A3B8" }}>現場端末の開始打刻が予定時刻を超過した記録</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#FBBF24" }}>遅刻フラグ: {s.lateDays}件</p>
+                  <p style={{ fontSize: 14, color: "#94A3B8" }}>現場端末の開始打刻が予定時刻を超過した記録</p>
                 </div>
               </div>
             )}
@@ -643,8 +646,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     { label: "効率", v: s.radar.efficiency },
                   ].map(({ label, v }) => (
                     <div key={label} className="text-center">
-                      <p className="text-xs font-bold" style={{ color: "#F97316" }}>{v}</p>
-                      <p className="text-[9px]" style={{ color: "#64748B" }}>{label}</p>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: "#F97316" }}>{v}</p>
+                      <p style={{ fontSize: 14, color: "#64748B" }}>{label}</p>
                     </div>
                   ))}
                 </div>
@@ -666,13 +669,13 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     }
                   </div>
                   <div className="flex-1">
-                    <p className="text-2xl font-bold" style={{ color: effColor, fontFeatureSettings: "'tnum'" }}>
+                    <p style={{ fontSize: 32, fontWeight: 800, color: effColor, fontFeatureSettings: "'tnum'", lineHeight: 1 }}>
                       {s.efficiencyDelta > 0 ? "+" : ""}{s.efficiencyDelta}%
                     </p>
-                    <p className="text-xs" style={{ color: "#64748B" }}>
+                    <p style={{ fontSize: 14, color: "#64748B", marginTop: 4 }}>
                       標準工数との比較（マイナスが速い）
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "#475569" }}>
+                    <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>
                       坪数あたり標準作業時間を基準に算出
                     </p>
                   </div>
@@ -685,22 +688,22 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               <SectionLabel>安全・ルール遵守</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
                 <Card className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield size={14} style={{ color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80" }} />
-                    <p className="text-[10px] font-bold" style={{ color: "#64748B" }}>ルール違反</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield size={16} style={{ color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80" }} />
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#64748B" }}>ルール違反</p>
                   </div>
-                  <p className="text-2xl font-bold" style={{ color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80" }}>
+                  <p style={{ fontSize: 28, fontWeight: 800, color: s.ruleViolations > 0 ? "#F87171" : "#4ADE80", lineHeight: 1 }}>
                     {s.ruleViolations}件
                   </p>
-                  <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>当月</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>当月</p>
                 </Card>
                 <Card className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle size={14} style={{ color: "#4ADE80" }} />
-                    <p className="text-[10px] font-bold" style={{ color: "#64748B" }}>ポジティブ</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle size={16} style={{ color: "#4ADE80" }} />
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#64748B" }}>ポジティブ</p>
                   </div>
-                  <p className="text-2xl font-bold" style={{ color: "#4ADE80" }}>{s.positiveFeedback.length}件</p>
-                  <p className="text-[9px] mt-0.5" style={{ color: "#475569" }}>好評価記録</p>
+                  <p style={{ fontSize: 28, fontWeight: 800, color: "#4ADE80", lineHeight: 1 }}>{s.positiveFeedback.length}件</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>好評価記録</p>
                 </Card>
               </div>
             </section>
@@ -712,8 +715,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <div className="flex flex-col gap-2">
                   {s.positiveFeedback.map((fb, i) => (
                     <div key={i} className="flex items-start gap-3 px-4 py-3 rounded-2xl" style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.15)" }}>
-                      <CheckCircle size={14} style={{ color: "#4ADE80" }} className="flex-shrink-0 mt-0.5" />
-                      <p className="text-xs" style={{ color: "#94A3B8" }}>{fb}</p>
+                      <CheckCircle size={16} style={{ color: "#4ADE80" }} className="flex-shrink-0 mt-0.5" />
+                      <p style={{ fontSize: 14, color: "#94A3B8" }}>{fb}</p>
                     </div>
                   ))}
                 </div>
@@ -726,7 +729,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               {s.troubles.length === 0 ? (
                 <div className="flex items-center gap-3 px-4 py-5 rounded-2xl" style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.15)" }}>
                   <CheckCircle size={18} style={{ color: "#4ADE80" }} />
-                  <p className="text-sm" style={{ color: "#4ADE80" }}>当月トラブルなし</p>
+                  <p style={{ fontSize: 15, color: "#4ADE80" }}>当月トラブルなし</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -754,17 +757,17 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   {s.siteEvals.map((e, i) => (
                     <Card key={i} className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px]" style={{ color: "#64748B" }}>{e.date}</span>
-                        <span className="text-[10px] font-bold" style={{ color: "#F1F5F9" }}>・{e.site}</span>
+                        <span style={{ fontSize: 14, color: "#64748B" }}>{e.date}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>・{e.site}</span>
                         {e.role === "責任者" && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: "auto", background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>責任者</span>
                         )}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {e.tags.map(tag => {
                           const ts = tagStyle(tag);
                           return (
-                            <span key={tag} className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: ts.bg, color: ts.color }}>
+                            <span key={tag} style={{ fontSize: 14, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: ts.bg, color: ts.color }}>
                               {tag}
                             </span>
                           );
@@ -772,8 +775,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                       </div>
                       {e.memo && (
                         <div className="flex items-start gap-2 pt-2" style={{ borderTop: "1px solid #0F1928" }}>
-                          <MessageSquare size={11} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
-                          <p className="text-xs" style={{ color: "#94A3B8" }}>{e.memo}</p>
+                          <MessageSquare size={14} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
+                          <p style={{ fontSize: 14, color: "#94A3B8" }}>{e.memo}</p>
                         </div>
                       )}
                     </Card>
@@ -786,7 +789,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <SectionLabel>新規評価を追加</SectionLabel>
               <Card className="p-4">
-                <p className="text-[10px] font-bold mb-2" style={{ color: "#64748B" }}>タグを選択</p>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: "#64748B" }}>タグを選択</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {AVAILABLE_TAGS.map(tag => {
                     const active = newEvalTags.includes(tag);
@@ -795,11 +798,12 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                       <button
                         key={tag}
                         onClick={() => setNewEvalTags(prev => active ? prev.filter(t => t !== tag) : [...prev, tag])}
-                        className="text-[10px] font-bold px-2 py-1 rounded-full transition-all"
-                        style={active
-                          ? { background: ts.bg, color: ts.color, border: `1px solid ${ts.color}40` }
-                          : { background: "#0F1928", color: "#475569", border: "1px solid #2D3E54" }
-                        }
+                        style={{
+                          fontSize: 14, fontWeight: 700, padding: "4px 12px", borderRadius: 20, transition: "all 0.15s",
+                          ...(active
+                            ? { background: ts.bg, color: ts.color, border: `1px solid ${ts.color}40` }
+                            : { background: "#0F1928", color: "#475569", border: "1px solid #2D3E54" })
+                        }}
                       >
                         {tag}
                       </button>
@@ -807,14 +811,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   })}
                 </div>
 
-                <p className="text-[10px] font-bold mb-1" style={{ color: "#64748B" }}>メモ</p>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: "#64748B" }}>メモ</p>
                 <textarea
                   value={newEvalMemo}
                   onChange={e => setNewEvalMemo(e.target.value)}
                   rows={3}
                   placeholder="今回の仕事ぶりについてメモ…"
-                  className="w-full text-xs rounded-xl px-3 py-2 resize-none outline-none"
-                  style={{ background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
+                  className="w-full rounded-xl px-3 py-2 resize-none outline-none"
+                  style={{ fontSize: 14, background: "#0F1928", color: "#F1F5F9", border: "1px solid #2D3E54" }}
                 />
 
                 <button

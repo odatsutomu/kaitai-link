@@ -14,8 +14,8 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
   green: "#10B981", red: "#EF4444",
 };
@@ -26,7 +26,7 @@ function Stars({ n, color }: { n: number; color: string }) {
   return (
     <span className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={10} fill={i < n ? color : "transparent"} style={{ color: i < n ? color : "#E2E8F0" }} />
+        <Star key={i} size={12} fill={i < n ? color : "transparent"} style={{ color: i < n ? color : "#E5E7EB" }} />
       ))}
     </span>
   );
@@ -41,7 +41,7 @@ const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   "#成長中":         { bg: "#F5F3FF", color: "#7C3AED" },
 };
 function tagStyle(tag: string) {
-  return TAG_COLORS[tag] ?? { bg: "#F1F5F9", color: "#64748B" };
+  return TAG_COLORS[tag] ?? { bg: "#F1F5F9", color: "#4B5563" };
 }
 
 // ─── Mini radar sparkline ──────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ function MiniRadar({ radar }: { radar: Record<string, number> }) {
   const bgPts = angles.map(a => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`).join(" ");
   return (
     <svg viewBox="0 0 48 48" width={40} height={40}>
-      <polygon points={bgPts} fill="none" stroke="#E2E8F0" strokeWidth="0.8" />
+      <polygon points={bgPts} fill="none" stroke="#E5E7EB" strokeWidth="0.8" />
       <polygon points={pts} fill="rgba(245,158,11,0.15)" stroke="#F59E0B" strokeWidth="1.2" />
     </svg>
   );
@@ -82,13 +82,13 @@ function AlertSection() {
   return (
     <div className="flex flex-col gap-3">
       {warnings.length > 0 && (
-        <div className="rounded-xl p-4" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+        <div className="rounded-2xl p-4" style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 16 }}>
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={14} style={{ color: "#DC2626" }} />
-            <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#DC2626" }}>
+            <AlertTriangle size={16} style={{ color: "#DC2626" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#DC2626" }}>
               要注意メンバー
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: "#FEE2E2", color: "#DC2626" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#FEE2E2", color: "#DC2626", marginLeft: "auto" }}>
               {warnings.length}名
             </span>
           </div>
@@ -103,12 +103,12 @@ function AlertSection() {
               return (
                 <Link key={m.id} href={`/kaitai/members/${m.id}`}>
                   <div className="flex items-center gap-3 py-1.5">
-                    <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold" style={{ background: "#FEE2E2", color: "#DC2626" }}>
+                    <div className="flex-shrink-0 flex items-center justify-center rounded-xl" style={{ width: 36, height: 36, background: "#FEE2E2", color: "#DC2626", fontSize: 14, fontWeight: 700 }}>
                       {m.avatar}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: C.text }}>{m.name}</p>
-                      <p className="text-[10px]" style={{ color: "#DC2626" }}>{reasons}</p>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{m.name}</p>
+                      <p style={{ fontSize: 14, color: "#DC2626" }}>{reasons}</p>
                     </div>
                   </div>
                 </Link>
@@ -119,13 +119,13 @@ function AlertSection() {
       )}
 
       {rising.length > 0 && (
-        <div className="rounded-xl p-4" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE" }}>
+        <div className="rounded-2xl p-4" style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 16 }}>
           <div className="flex items-center gap-2 mb-3">
-            <Zap size={14} style={{ color: "#7C3AED" }} />
-            <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#7C3AED" }}>
+            <Zap size={16} style={{ color: "#7C3AED" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#7C3AED" }}>
               パフォーマンス急上昇
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#EDE9FE", color: "#7C3AED", marginLeft: "auto" }}>
               {rising.length}名
             </span>
           </div>
@@ -135,12 +135,12 @@ function AlertSection() {
               return (
                 <Link key={m.id} href={`/kaitai/members/${m.id}`}>
                   <div className="flex items-center gap-3 py-1.5">
-                    <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                    <div className="flex-shrink-0 flex items-center justify-center rounded-xl" style={{ width: 36, height: 36, background: "#EDE9FE", color: "#7C3AED", fontSize: 14, fontWeight: 700 }}>
                       {m.avatar}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: C.text }}>{m.name}</p>
-                      <p className="text-[10px]" style={{ color: "#7C3AED" }}>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{m.name}</p>
+                      <p style={{ fontSize: 14, color: "#7C3AED" }}>
                         効率スコア +{s.efficiencyDelta}% ↑
                       </p>
                     </div>
@@ -164,10 +164,10 @@ function SkillMap() {
   })).filter(s => s.count > 0).sort((a, b) => b.count - a.count);
 
   return (
-    <div className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+    <div className="p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
       <div className="flex items-center gap-2 mb-4">
-        <Shield size={14} style={{ color: C.amber }} />
-        <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: C.amber }}>
+        <Shield size={16} style={{ color: C.amber }} />
+        <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: C.amber }}>
           資格スキルマップ（{MEMBERS.length}名）
         </p>
       </div>
@@ -176,9 +176,9 @@ function SkillMap() {
           const pct = Math.round((count / MEMBERS.length) * 100);
           return (
             <div key={key}>
-              <div className="flex justify-between text-[10px] mb-1">
-                <span style={{ color: C.sub }}>{label}</span>
-                <span style={{ color: C.muted }}>{count}/{MEMBERS.length}名</span>
+              <div className="flex justify-between mb-1">
+                <span style={{ fontSize: 14, color: C.sub }}>{label}</span>
+                <span style={{ fontSize: 14, color: C.muted }}>{count}/{MEMBERS.length}名</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
                 <div
@@ -212,31 +212,33 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
   return (
     <Link href={`/kaitai/members/${m.id}`}>
       <div
-        className="rounded-xl p-4 hover:shadow-md active:scale-[0.99] transition-all"
+        className="p-4 hover:shadow-md active:scale-[0.99] transition-all"
         style={{
           background: C.card,
           border: hasWarning ? "1.5px solid #FECACA" : `1px solid ${C.border}`,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+          borderRadius: 16,
         }}
       >
         <div className="flex items-center gap-3">
           {/* Rank */}
           <div
-            className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center text-[10px] font-bold"
-            style={
-              rank === 0 ? { background: "#FFFBEB", color: "#D97706" }
+            className="flex-shrink-0 flex items-center justify-center rounded-md"
+            style={{
+              width: 28, height: 28, fontSize: 14, fontWeight: 700,
+              ...(rank === 0 ? { background: "#FFFBEB", color: "#D97706" }
               : rank === 1 ? { background: "#F8FAFC", color: "#64748B" }
               : rank === 2 ? { background: "#FFF7ED", color: "#92400E" }
-              : { background: "#F8FAFC", color: "#94A3B8" }
-            }
+              : { background: "#F8FAFC", color: "#94A3B8" })
+            }}
           >
             {rank + 1}
           </div>
 
           {/* Avatar */}
           <div
-            className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-base font-bold"
-            style={{ background: lvl.bg, color: lvl.color }}
+            className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold"
+            style={{ width: 44, height: 44, background: lvl.bg, color: lvl.color, fontSize: 16 }}
           >
             {m.avatar}
           </div>
@@ -244,23 +246,23 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
           {/* Name + meta */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-              <span className="text-sm font-bold" style={{ color: C.text }}>{m.name}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: lvl.bg, color: lvl.color }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>
                 {lvl.label}
               </span>
               {m.type === "外注" && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#EFF6FF", color: "#2563EB" }}>外注</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#EFF6FF", color: "#2563EB" }}>外注</span>
               )}
               {hasWarning && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#FEF2F2", color: "#DC2626" }}>⚠ 要注意</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#FEF2F2", color: "#DC2626" }}>⚠ 要注意</span>
               )}
               {isRising && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#F5F3FF", color: "#7C3AED" }}>⚡ 急成長</span>
+                <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#F5F3FF", color: "#7C3AED" }}>⚡ 急成長</span>
               )}
             </div>
             <div className="flex items-center gap-2">
               <Stars n={lvl.stars} color={lvl.color} />
-              <span className="text-[10px]" style={{ color: C.muted }}>
+              <span style={{ fontSize: 14, color: C.muted }}>
                 {yrs}年・{m.siteCount}現場
               </span>
             </div>
@@ -278,39 +280,39 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
           style={{ borderTop: `1px solid ${C.border}` }}
         >
           <div className="flex items-center gap-1">
-            <Clock size={10} style={{ color: attendColor }} />
-            <span className="text-[10px] font-semibold" style={{ color: attendColor }}>
+            <Clock size={12} style={{ color: attendColor }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: attendColor }}>
               出勤率 {s.attendancePct}%
             </span>
           </div>
 
-          <div style={{ width: 1, height: 10, background: C.border }} />
+          <div style={{ width: 1, height: 12, background: C.border }} />
 
           <div className="flex items-center gap-1">
             {s.efficiencyDelta >= 0
-              ? <TrendingUp size={10} style={{ color: effColor }} />
-              : <TrendingDown size={10} style={{ color: effColor }} />
+              ? <TrendingUp size={12} style={{ color: effColor }} />
+              : <TrendingDown size={12} style={{ color: effColor }} />
             }
-            <span className="text-[10px] font-semibold" style={{ color: effColor }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: effColor }}>
               効率 {s.efficiencyDelta > 0 ? "+" : ""}{s.efficiencyDelta}%
             </span>
           </div>
 
-          <div style={{ width: 1, height: 10, background: C.border }} />
+          <div style={{ width: 1, height: 12, background: C.border }} />
 
           <div className="flex items-center gap-1">
-            <Award size={10} style={{ color: "#D97706" }} />
-            <span className="text-[10px] font-semibold" style={{ color: "#D97706" }}>
+            <Award size={12} style={{ color: "#D97706" }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#D97706" }}>
               資格 {m.licenses.length}
             </span>
           </div>
 
           {s.troubles.length > 0 && (
             <>
-              <div style={{ width: 1, height: 10, background: C.border }} />
+              <div style={{ width: 1, height: 12, background: C.border }} />
               <div className="flex items-center gap-1">
-                <AlertTriangle size={10} style={{ color: C.red }} />
-                <span className="text-[10px] font-semibold" style={{ color: C.red }}>
+                <AlertTriangle size={12} style={{ color: C.red }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: C.red }}>
                   {s.troubles.length}件
                 </span>
               </div>
@@ -320,7 +322,7 @@ function MemberCard({ m, rank }: { m: (typeof MEMBERS)[0]; rank: number }) {
           {s.siteEvals[0]?.tags.slice(0, 1).map(tag => {
             const ts = tagStyle(tag);
             return (
-              <span key={tag} className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: ts.bg, color: ts.color }}>
+              <span key={tag} style={{ marginLeft: "auto", fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: ts.bg, color: ts.color }}>
                 {tag}
               </span>
             );
@@ -367,15 +369,15 @@ export default function MembersPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>メンバー管理</h1>
-          <p className="text-sm mt-1" style={{ color: C.sub }}>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>
             登録 {MEMBERS.length}名（直用 {direct}名・外注 {outside}社）
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 hover:opacity-90 flex-shrink-0"
-          style={{ background: "#F59E0B", boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
+          className="inline-flex items-center gap-2 flex-shrink-0 transition-all active:scale-95 hover:opacity-90"
+          style={{ background: "#F59E0B", color: "#FFFFFF", fontSize: 15, fontWeight: 600, padding: "12px 20px", borderRadius: 12, boxShadow: "0 2px 8px rgba(245,158,11,0.35)" }}
         >
-          <Plus size={14} />
+          <Plus size={16} />
           メンバー追加
         </button>
       </div>
@@ -383,15 +385,15 @@ export default function MembersPage() {
       {/* ── KPI strip ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "総メンバー数",   value: `${MEMBERS.length}名`,  color: "#3B82F6", note: `直用${direct}・外注${outside}` },
-          { label: "当月出勤率",     value: `${avgAtt}%`,           color: avgAtt >= 90 ? C.green : C.amber, note: "月間平均" },
-          { label: "トラブル件数",   value: `${totalTrouble}件`,    color: totalTrouble > 0 ? C.red : C.green, note: "今月累計" },
-          { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}件`, color: "#D97706", note: "全資格数" },
-        ].map(({ label, value, color, note }) => (
-          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <p className="text-xs mb-1" style={{ color: C.sub }}>{label}</p>
-            <p className="text-2xl font-bold font-numeric" style={{ color }}>{value}</p>
-            <p className="text-[10px] mt-1" style={{ color: C.muted }}>{note}</p>
+          { label: "総メンバー数",   value: `${MEMBERS.length}`,  unit: "名", color: "#3B82F6", note: `直用${direct}・外注${outside}` },
+          { label: "当月出勤率",     value: `${avgAtt}`,           unit: "%", color: avgAtt >= 90 ? C.green : C.amber, note: "月間平均" },
+          { label: "トラブル件数",   value: `${totalTrouble}`,    unit: "件", color: totalTrouble > 0 ? C.red : C.green, note: "今月累計" },
+          { label: "保有資格合計",   value: `${MEMBERS.reduce((s, m) => s + m.licenses.length, 0)}`, unit: "件", color: "#D97706", note: "全資格数" },
+        ].map(({ label, value, unit, color, note }) => (
+          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16, padding: "20px" }}>
+            <p style={{ fontSize: 14, color: C.sub, marginBottom: 6 }}>{label}</p>
+            <p style={{ fontSize: 32, fontWeight: 800, color, lineHeight: 1 }}>{value}<span style={{ fontSize: 16, fontWeight: 600 }}>{unit}</span></p>
+            <p style={{ fontSize: 14, marginTop: 4, color: C.muted }}>{note}</p>
           </div>
         ))}
       </div>
@@ -410,15 +412,15 @@ export default function MembersPage() {
 
           {/* Search + type filter */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-              <Search size={15} style={{ color: C.muted }} />
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+              <Search size={16} style={{ color: C.muted }} />
               <input
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="氏名・資格で検索…"
-                className="flex-1 bg-transparent text-sm outline-none"
-                style={{ color: C.text }}
+                className="flex-1 bg-transparent outline-none"
+                style={{ fontSize: 15, color: C.text }}
               />
             </div>
             <div className="flex gap-2">
@@ -426,11 +428,13 @@ export default function MembersPage() {
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                  style={typeFilter === t
-                    ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.3)" }
-                    : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }
-                  }
+                  className="px-4 py-2 rounded-xl transition-all"
+                  style={{
+                    fontSize: 14, fontWeight: 700, borderRadius: 10,
+                    ...(typeFilter === t
+                      ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: "1px solid rgba(245,158,11,0.3)" }
+                      : { background: C.card, color: C.sub, border: `1px solid ${C.border}` })
+                  }}
                 >
                   {t}
                 </button>
@@ -439,16 +443,18 @@ export default function MembersPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-lg" style={{ background: "#F1F5F9" }}>
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#F1F5F9" }}>
             {(["一覧", "勤怠", "資格"] as Tab[]).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="flex-1 py-2 rounded-md text-xs font-bold transition-all"
-                style={tab === t
-                  ? { background: C.card, color: C.amber, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", borderBottom: `2px solid ${C.amber}` }
-                  : { color: "#64748B" }
-                }
+                className="flex-1 py-2 rounded-lg transition-all"
+                style={{
+                  fontSize: 14, fontWeight: 700,
+                  ...(tab === t
+                    ? { background: C.card, color: C.amber, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", borderBottom: `2px solid ${C.amber}` }
+                    : { color: "#4B5563" })
+                }}
               >
                 {t}
               </button>
@@ -467,7 +473,7 @@ export default function MembersPage() {
           {/* ── Tab: 勤怠 ── */}
           {tab === "勤怠" && (
             <div className="flex flex-col gap-3">
-              <p className="text-[11px] font-bold tracking-widest uppercase px-1" style={{ color: C.amber }}>
+              <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0 4px", color: C.amber }}>
                 4月 出勤率ランキング
               </p>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
@@ -477,20 +483,20 @@ export default function MembersPage() {
                   const attColor = s.attendancePct >= 95 ? C.green : s.attendancePct >= 80 ? C.amber : C.red;
                   return (
                     <Link key={m.id} href={`/kaitai/members/${m.id}?tab=勤怠`}>
-                      <div className="rounded-xl px-5 py-4" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                      <div style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16, padding: "20px 20px 16px" }}>
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-sm font-bold" style={{ background: lvl.bg, color: lvl.color }}>
+                          <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 40, height: 40, background: lvl.bg, color: lvl.color, fontSize: 15 }}>
                             {m.avatar}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-bold" style={{ color: C.text }}>{m.name}</p>
-                            <p className="text-[10px]" style={{ color: C.muted }}>
+                            <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
+                            <p style={{ fontSize: 14, color: C.muted }}>
                               出勤 {s.workDays}日・遅刻 {s.lateDays}・欠勤 {s.absentDays}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold font-numeric" style={{ color: attColor }}>{s.attendancePct}%</p>
-                            <p className="text-[9px]" style={{ color: C.muted }}>{s.totalHours}h</p>
+                            <p style={{ fontSize: 28, fontWeight: 800, color: attColor, lineHeight: 1 }}>{s.attendancePct}%</p>
+                            <p style={{ fontSize: 14, color: C.muted }}>{s.totalHours}h</p>
                           </div>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
@@ -528,7 +534,7 @@ export default function MembersPage() {
                 ].map(({ status, color }) => (
                   <div key={status} className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-sm" style={{ background: color, opacity: 0.5 }} />
-                    <span className="text-[10px]" style={{ color: C.muted }}>{status}</span>
+                    <span style={{ fontSize: 14, color: C.muted }}>{status}</span>
                   </div>
                 ))}
               </div>
@@ -542,26 +548,26 @@ export default function MembersPage() {
                 const lvl = experienceLevel(experienceYears(m));
                 return (
                   <Link key={m.id} href={`/kaitai/members/${m.id}`}>
-                    <div className="rounded-xl p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                    <div className="p-4 hover:shadow-md transition-all" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold" style={{ background: lvl.bg, color: lvl.color }}>
+                        <div className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold" style={{ width: 36, height: 36, background: lvl.bg, color: lvl.color, fontSize: 14 }}>
                           {m.avatar}
                         </div>
-                        <p className="text-sm font-bold" style={{ color: C.text }}>{m.name}</p>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{m.name}</p>
+                        <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: lvl.bg, color: lvl.color }}>{lvl.label}</span>
                         <div className="flex items-center gap-1 ml-auto">
-                          <Award size={11} style={{ color: "#D97706" }} />
-                          <span className="text-xs font-bold" style={{ color: "#D97706" }}>{m.licenses.length}</span>
+                          <Award size={14} style={{ color: "#D97706" }} />
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "#D97706" }}>{m.licenses.length}</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {m.licenses.map(lic => (
-                          <span key={lic} className="text-[10px] px-2 py-1 rounded-md font-medium" style={{ background: "#FFFBEB", color: C.sub, border: "1px solid #FEF3C7" }}>
+                          <span key={lic} style={{ fontSize: 14, padding: "4px 12px", borderRadius: 8, fontWeight: 500, background: "#FFFBEB", color: C.sub, border: "1px solid #FEF3C7" }}>
                             {LICENSE_LABELS[lic] ?? lic}
                           </span>
                         ))}
                         {m.licenses.length === 0 && (
-                          <span className="text-[10px]" style={{ color: C.muted }}>資格なし</span>
+                          <span style={{ fontSize: 14, color: C.muted }}>資格なし</span>
                         )}
                       </div>
                     </div>

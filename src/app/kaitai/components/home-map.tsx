@@ -121,7 +121,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
               border: "2px solid #fff",
               boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
             }} />
-            <span style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{s}</span>
+            <span style={{ fontSize: 14, color: "#64748B", fontWeight: 600 }}>{s}</span>
           </div>
         ))}
       </div>

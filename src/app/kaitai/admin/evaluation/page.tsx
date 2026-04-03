@@ -65,7 +65,7 @@ function ScoreBadge({ score }: { score: EvalScore }) {
         borderRadius: 6,
         background: meta.bg,
         color: meta.color,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 700,
         padding: "0 8px",
       }}
@@ -87,7 +87,7 @@ function AvgCell({ avg }: { avg: number }) {
         borderRadius: 6,
         background: scoreBg(avg),
         color: scoreColor(avg),
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 700,
         padding: "0 8px",
       }}
@@ -128,7 +128,7 @@ function exportCSV(data: WorkerEval[]) {
 const TH_STYLE: React.CSSProperties = {
   padding: "10px 14px",
   textAlign: "left",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 700,
   color: C.sub,
   background: "#F8FAFC",
@@ -383,7 +383,7 @@ export default function AdminEvaluationPage() {
               }}
             >
               {kpi.icon}
-              <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>
+              <span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}>
                 {kpi.label}
               </span>
             </div>
@@ -486,7 +486,7 @@ export default function AdminEvaluationPage() {
             </option>
           ))}
         </select>
-        <span style={{ fontSize: 13, color: C.muted, marginLeft: "auto" }}>
+        <span style={{ fontSize: 14, color: C.muted, marginLeft: "auto" }}>
           {filtered.length}件
         </span>
       </div>
@@ -512,7 +512,7 @@ export default function AdminEvaluationPage() {
                 borderRadius: 8,
                 border: `1px solid ${C.border}`,
                 background: C.card,
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
                 color: C.sub,
                 cursor: "pointer",
@@ -751,7 +751,7 @@ export default function AdminEvaluationPage() {
                 >
                   スコア推移
                 </span>
-                <span style={{ fontSize: 13, color: C.sub }}>
+                <span style={{ fontSize: 14, color: C.sub }}>
                   （{trendWorker || workerAgg[0]?.name}・直近8件）
                 </span>
               </div>
@@ -774,7 +774,7 @@ export default function AdminEvaluationPage() {
                     <span
                       style={{
                         width: 36,
-                        fontSize: 12,
+                        fontSize: 14,
                         color: C.muted,
                         flexShrink: 0,
                       }}
@@ -803,7 +803,7 @@ export default function AdminEvaluationPage() {
                     <span
                       style={{
                         width: 36,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: 700,
                         color: scoreColor(d.avg),
                         textAlign: "right",
@@ -903,7 +903,7 @@ export default function AdminEvaluationPage() {
                             borderRadius: 8,
                             background: flagBg,
                             color: flagColor,
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: 700,
                             whiteSpace: "nowrap",
                           }}
@@ -929,10 +929,10 @@ export default function AdminEvaluationPage() {
               flexWrap: "wrap",
             }}
           >
-            <span style={{ fontSize: 12, color: C.muted }}>
+            <span style={{ fontSize: 14, color: C.muted }}>
               ⚠️ 全体平均 &lt; 1.8：厳格傾向フラグ
             </span>
-            <span style={{ fontSize: 12, color: C.muted }}>
+            <span style={{ fontSize: 14, color: C.muted }}>
               ⚠️ 全体平均 &gt; 2.8：甘め傾向フラグ
             </span>
           </div>
@@ -967,7 +967,7 @@ const selectStyle: React.CSSProperties = {
   borderRadius: 8,
   border: `1px solid ${C.border}`,
   background: C.card,
-  fontSize: 13,
+  fontSize: 14,
   color: C.text,
   cursor: "pointer",
   outline: "none",

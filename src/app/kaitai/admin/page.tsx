@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown } fr
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
   green: "#10B981", red: "#EF4444",
 };
@@ -186,7 +186,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
 
   return (
     <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      <line x1={0} y1={H} x2={VW} y2={H} stroke="#E2E8F0" strokeWidth={1} />
+      <line x1={0} y1={H} x2={VW} y2={H} stroke="#E5E7EB" strokeWidth={1} />
       {bars.map((b, i) => {
         const cx = i * groupW + groupW / 2;
         const revH = Math.max((b.revenue / maxVal) * H, 2);
@@ -230,7 +230,7 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl ${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+    <div className={`${className}`} style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
       {children}
     </div>
   );
@@ -238,7 +238,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: C.amber }}>
+    <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: C.amber }}>
       {children}
     </p>
   );
@@ -308,7 +308,7 @@ export default function AdminPage() {
             <button
               key={t.key}
               onClick={() => { setPeriod(t.key); if (t.key !== "thisYear") setCompare(false); }}
-              className="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
+              className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
               style={period === t.key
                 ? { background: C.amber, color: "#FFFFFF" }
                 : { color: C.sub }
@@ -331,7 +331,7 @@ export default function AdminPage() {
             <p className="text-sm font-bold" style={{ color: C.amberDk }}>
               粗利率{ALERT_THRESHOLD}%以下の現場があります
             </p>
-            <p className="text-xs mt-0.5" style={{ color: C.sub }}>
+            <p className="text-sm mt-0.5" style={{ color: C.sub }}>
               {alertSites.map(s => s.name).join("・")}
             </p>
           </div>
@@ -351,7 +351,7 @@ export default function AdminPage() {
               {canCompare && (
                 <button
                   onClick={() => setCompare(c => !c)}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  className="text-sm font-bold px-2.5 py-1 rounded-lg transition-all"
                   style={compare
                     ? { background: C.amber, color: "#FFF" }
                     : { background: "#F1F5F9", color: C.sub, border: `1px solid ${C.border}` }}
@@ -365,21 +365,21 @@ export default function AdminPage() {
               <div className="flex items-center gap-4 mt-3 justify-center">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(16,185,129,0.75)" }} />
-                  <span className="text-[10px]" style={{ color: C.muted }}>{compare ? "今年 売上" : "売上"}</span>
+                  <span className="text-sm" style={{ color: C.muted }}>{compare ? "今年 売上" : "売上"}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(239,68,68,0.75)" }} />
-                  <span className="text-[10px]" style={{ color: C.muted }}>{compare ? "今年 原価" : "原価"}</span>
+                  <span className="text-sm" style={{ color: C.muted }}>{compare ? "今年 原価" : "原価"}</span>
                 </div>
                 {compare && (
                   <>
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(16,185,129,0.2)" }} />
-                      <span className="text-[10px]" style={{ color: C.muted }}>昨年 売上</span>
+                      <span className="text-sm" style={{ color: C.muted }}>昨年 売上</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(239,68,68,0.2)" }} />
-                      <span className="text-[10px]" style={{ color: C.muted }}>昨年 原価</span>
+                      <span className="text-sm" style={{ color: C.muted }}>昨年 原価</span>
                     </div>
                   </>
                 )}
@@ -394,7 +394,7 @@ export default function AdminPage() {
               <button
                 onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
                 <ArrowUpDown size={12} />
                 {sortBy === "profitRate" ? "利益率順" : "利益額順"}
@@ -405,9 +405,9 @@ export default function AdminPage() {
                 className="grid px-5 py-3"
                 style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC" }}
               >
-                <span className="text-[10px] font-bold" style={{ color: C.muted }}>現場名</span>
-                <span className="text-[10px] font-bold text-right" style={{ color: C.muted }}>粗利</span>
-                <span className="text-[10px] font-bold text-right" style={{ color: C.muted }}>粗利率</span>
+                <span className="text-sm font-bold" style={{ color: C.muted }}>現場名</span>
+                <span className="text-sm font-bold text-right" style={{ color: C.muted }}>粗利</span>
+                <span className="text-sm font-bold text-right" style={{ color: C.muted }}>粗利率</span>
               </div>
               {ranked.map((site, rank) => {
                 const siteProfit = site.contract - site.cost;
@@ -429,7 +429,7 @@ export default function AdminPage() {
                       <div className="flex flex-col gap-1 min-w-0 pr-3">
                         <div className="flex items-center gap-2">
                           <span
-                            className="text-[9px] font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                            className="text-sm font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
                             style={{
                               background: rank === 0 ? "#FFFBEB" : "#F8FAFC",
                               color: rank === 0 ? "#D97706" : C.muted,
@@ -439,7 +439,7 @@ export default function AdminPage() {
                           </span>
                           {isAlert && <AlertTriangle size={9} style={{ color: C.amber, flexShrink: 0 }} />}
                           <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            className="text-sm font-bold px-1.5 py-0.5 rounded-full"
                             style={site.status === "完工"
                               ? { background: "#F0FDF4", color: "#16A34A" }
                               : site.status === "解体中"
@@ -483,14 +483,14 @@ export default function AdminPage() {
 
           {/* Hero KPI card */}
           <Card className="p-6">
-            <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ color: C.muted }}>
+            <p className="text-sm uppercase tracking-widest font-bold mb-1" style={{ color: C.muted }}>
               {period === "thisMonth" ? "今月 着地予測粗利" : "期間粗利（実績）"}
             </p>
             <p className="font-bold font-numeric" style={{ fontSize: 40, lineHeight: 1, color: profit >= 0 ? C.green : C.red }}>
               {fmt(period === "thisMonth" && s.forecast ? s.forecast : profit)}
             </p>
             {period === "thisMonth" && s.forecast && (
-              <p className="text-xs mt-1" style={{ color: C.muted }}>
+              <p className="text-sm mt-1" style={{ color: C.muted }}>
                 確定粗利 <span style={{ color: C.sub, fontWeight: 700 }}>{fmt(profit)}</span>
               </p>
             )}
@@ -505,7 +505,7 @@ export default function AdminPage() {
                 {isYoyUp
                   ? <TrendingUp size={12} style={{ color: C.green }} />
                   : <TrendingDown size={12} style={{ color: C.red }} />}
-                <span className="text-xs font-bold" style={{ color: isYoyUp ? C.green : C.red }}>
+                <span className="text-sm font-bold" style={{ color: isYoyUp ? C.green : C.red }}>
                   昨対 {isYoyUp ? "+" : ""}{yoyChange}%
                 </span>
               </div>
@@ -525,8 +525,8 @@ export default function AdminPage() {
                 { label: "粗利率",   value: null,        color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red, strVal: `${profitRate}%` },
               ].map(({ label, value, color, strVal }) => (
                 <div key={label} className="rounded-lg p-3" style={{ background: "#F8FAFC", border: `1px solid ${C.border}` }}>
-                  <p className="text-[10px] mb-1" style={{ color: C.muted }}>{label}</p>
-                  <p className="text-base font-bold font-numeric" style={{ color }}>
+                  <p className="text-sm mb-1" style={{ color: C.muted }}>{label}</p>
+                  <p className="font-bold font-numeric" style={{ fontSize: 18, color }}>
                     {strVal ?? fmt(value!)}
                   </p>
                 </div>
@@ -542,7 +542,7 @@ export default function AdminPage() {
                 <div className="relative">
                   <DonutChart slices={pieSlices} size={160} outerR={70} innerR={44} />
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-[10px]" style={{ color: C.muted }}>原価合計</p>
+                    <p className="text-sm" style={{ color: C.muted }}>原価合計</p>
                     <p className="text-sm font-bold font-numeric" style={{ color: C.text }}>{fmt(totalCost)}</p>
                   </div>
                 </div>
@@ -554,11 +554,11 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
                             <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                            <span className="text-xs font-medium" style={{ color: C.sub }}>{label}</span>
+                            <span className="text-sm font-medium" style={{ color: C.sub }}>{label}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold font-numeric" style={{ color: C.muted }}>{fmt(value)}</span>
-                            <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
+                            <span className="text-sm font-bold font-numeric" style={{ color: C.muted }}>{fmt(value)}</span>
+                            <span className="text-sm font-bold" style={{ color }}>{pct}%</span>
                           </div>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>

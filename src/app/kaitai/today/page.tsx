@@ -156,10 +156,10 @@ function LiveBadge({ time }: { time: string }) {
           animation: "pulse 2s infinite",
         }}
       />
-      <span className="text-xs font-semibold" style={{ color: "#4ADE80" }}>
+      <span style={{ fontSize: 14, fontWeight: 700, color: "#4ADE80" }}>
         LIVE
       </span>
-      <span className="text-xs" style={{ color: "#475569" }}>
+      <span style={{ fontSize: 14, color: "#475569" }}>
         更新 {time}
       </span>
     </div>
@@ -178,7 +178,7 @@ function MemberAvatars({ members }: { members: Member[] }) {
       {lead && (
         <div className="relative flex-shrink-0">
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold"
             style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24", border: "1.5px solid rgba(251,191,36,0.4)" }}
           >
             {lead.avatar}
@@ -194,7 +194,7 @@ function MemberAvatars({ members }: { members: Member[] }) {
       {others.slice(0, maxShow).map((m) => (
         <div
           key={m.id}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
           style={{ background: "#1A2535", color: "#94A3B8", border: "1px solid #2D3E54" }}
         >
           {m.avatar}
@@ -202,13 +202,13 @@ function MemberAvatars({ members }: { members: Member[] }) {
       ))}
       {overflow > 0 && (
         <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
           style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
         >
           +{overflow}
         </div>
       )}
-      <span className="text-xs ml-1" style={{ color: "#64748B" }}>
+      <span style={{ fontSize: 14, marginLeft: 4, color: "#64748B" }}>
         計{members.length}名
       </span>
     </div>
@@ -328,7 +328,7 @@ function MapView({ sites, selected, onSelect }: {
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: STATUS_CONFIG[s].dot }}
             />
-            <span className="text-[9px]" style={{ color: "#64748B" }}>{s}</span>
+            <span style={{ fontSize: 14, color: "#64748B" }}>{s}</span>
           </div>
         ))}
       </div>
@@ -338,7 +338,7 @@ function MapView({ sites, selected, onSelect }: {
         className="absolute top-3 right-3 px-2 py-1 rounded-lg"
         style={{ background: "rgba(15,25,40,0.7)" }}
       >
-        <span className="text-[9px]" style={{ color: "#475569" }}>東京・首都圏</span>
+        <span style={{ fontSize: 14, color: "#475569" }}>東京・首都圏</span>
       </div>
     </div>
   );
@@ -389,8 +389,8 @@ function SiteCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-              style={{ background: cfg.bg, color: cfg.fg }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+              style={{ fontSize: 14, fontWeight: 700, background: cfg.bg, color: cfg.fg }}
             >
               {site.status === "作業中" && (
                 <span
@@ -398,30 +398,30 @@ function SiteCard({
                   style={{ background: cfg.fg }}
                 />
               )}
-              <StatusIcon size={10} />
+              <StatusIcon size={12} />
               {cfg.label}
             </div>
             {site.startTime && (
-              <span className="text-[10px]" style={{ color: "#475569" }}>
+              <span style={{ fontSize: 14, color: "#475569" }}>
                 {site.startTime}〜{site.endTime ?? ""}
               </span>
             )}
           </div>
-          <h3 className="text-sm font-bold truncate" style={{ color: "#F1F5F9" }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F1F5F9" }} className="truncate">
             {site.name}
           </h3>
           <div className="flex items-center gap-1 mt-0.5">
-            <MapPin size={10} style={{ color: "#475569" }} />
-            <span className="text-[10px] truncate" style={{ color: "#475569" }}>{site.address}</span>
+            <MapPin size={12} style={{ color: "#475569" }} />
+            <span style={{ fontSize: 14, color: "#475569" }} className="truncate">{site.address}</span>
           </div>
         </div>
 
         {site.wasteToday > 0 && (
           <div className="text-right flex-shrink-0">
-            <p className="text-sm font-bold" style={{ color: "#F87171" }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#F87171" }}>
               ¥{(site.wasteCost / 10_000).toFixed(1)}万
             </p>
-            <p className="text-[10px]" style={{ color: "#64748B" }}>
+            <p style={{ fontSize: 14, color: "#64748B" }}>
               産廃 {site.wasteToday}㎥
             </p>
           </div>
@@ -431,8 +431,8 @@ function SiteCard({
       {/* Members row */}
       <div className="px-4 pb-3 flex items-center justify-between">
         <MemberAvatars members={site.members} />
-        <div className="flex items-center gap-1 text-[10px]" style={{ color: "#475569" }}>
-          <Clock size={9} />
+        <div className="flex items-center gap-1" style={{ fontSize: 14, color: "#475569" }}>
+          <Clock size={12} />
           <span>{site.lastActivityTime} {site.lastActivity}</span>
         </div>
       </div>
@@ -444,44 +444,46 @@ function SiteCard({
           style={{ borderTop: "1px solid #0F1928" }}
         >
           <div
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
             style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}
           >
             {lead.avatar}
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold" style={{ color: "#F1F5F9" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#F1F5F9" }}>
               {lead.name}
             </span>
-            <span className="text-[10px] ml-1.5" style={{ color: "#64748B" }}>
+            <span style={{ fontSize: 14, marginLeft: 6, color: "#64748B" }}>
               責任者
             </span>
           </div>
           {/* One-tap call */}
           <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()}>
             <button
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all active:scale-95"
               style={{
+                fontSize: 14, fontWeight: 600,
                 background: "rgba(34,197,94,0.12)",
                 border: "1px solid rgba(34,197,94,0.3)",
                 color: "#4ADE80",
               }}
             >
-              <Phone size={12} fill="rgba(74,222,128,0.2)" />
+              <Phone size={14} fill="rgba(74,222,128,0.2)" />
               電話
             </button>
           </a>
           {/* One-tap message */}
           <a href={`sms:${lead.phone}`} onClick={(e) => e.stopPropagation()}>
             <button
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all active:scale-95"
               style={{
+                fontSize: 14, fontWeight: 600,
                 background: "rgba(99,102,241,0.1)",
                 border: "1px solid rgba(99,102,241,0.25)",
                 color: "#818CF8",
               }}
             >
-              <MessageSquare size={12} />
+              <MessageSquare size={14} />
               SMS
             </button>
           </a>
@@ -556,7 +558,7 @@ export default function TodayDashboard() {
 
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-xs mb-0.5" style={{ color: "#64748B" }}>{dateStr}</p>
+            <p style={{ fontSize: 14, marginBottom: 2, color: "#64748B" }}>{dateStr}</p>
             <h1 className="text-xl font-bold" style={{ color: "#F1F5F9" }}>
               本日の稼働状況
             </h1>
@@ -592,11 +594,11 @@ export default function TodayDashboard() {
               className="rounded-2xl p-2.5 text-center"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #2D3E54" }}
             >
-              <p className="text-base font-bold leading-none" style={{ color }}>
+              <p style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, color }}>
                 {value}
-                <span className="text-[10px] font-medium ml-0.5" style={{ color: "#94A3B8" }}>{sub}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: "#94A3B8" }}>{sub}</span>
               </p>
-              <p className="text-[9px] mt-1" style={{ color: "#64748B" }}>{label}</p>
+              <p style={{ fontSize: 14, marginTop: 4, color: "#64748B" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -609,9 +611,9 @@ export default function TodayDashboard() {
           >
             <div className="flex items-center gap-2">
               <Activity size={13} style={{ color: "#F87171" }} />
-              <span className="text-xs" style={{ color: "#94A3B8" }}>
+              <span style={{ fontSize: 14, color: "#94A3B8" }}>
                 本日の産廃計：
-                <span className="font-bold ml-1" style={{ color: "#F1F5F9" }}>{totalWaste} ㎥</span>
+                <span style={{ fontWeight: 700, marginLeft: 4, color: "#F1F5F9" }}>{totalWaste} ㎥</span>
               </span>
             </div>
             <span className="text-sm font-bold" style={{ color: "#F87171" }}>
@@ -631,12 +633,13 @@ export default function TodayDashboard() {
             <button
               key={v}
               onClick={() => setView(v)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl font-semibold text-xs transition-all"
-              style={
-                view === v
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all"
+              style={{
+                fontSize: 15, fontWeight: 600,
+                ...(view === v
                   ? { background: "rgba(249,115,22,0.15)", color: "#F97316" }
-                  : { color: "#64748B" }
-              }
+                  : { color: "#64748B" })
+              }}
             >
               {v === "list" ? <List size={14} /> : <Map size={14} />}
               {v === "list" ? "リスト表示" : "マップ表示"}
@@ -669,7 +672,7 @@ export default function TodayDashboard() {
               })()
             )}
             {!selectedId && (
-              <p className="text-center text-xs" style={{ color: "#475569" }}>
+              <p className="text-center" style={{ fontSize: 14, color: "#475569" }}>
                 マーカーをタップして現場の詳細を確認
               </p>
             )}
@@ -687,7 +690,7 @@ export default function TodayDashboard() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ background: "#4ADE80", boxShadow: "0 0 0 3px rgba(74,222,128,0.2)" }}
                   />
-                  <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#4ADE80" }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#4ADE80" }}>
                     作業中 · {working}現場
                   </p>
                 </div>
@@ -714,7 +717,7 @@ export default function TodayDashboard() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ background: "#818CF8" }}
                   />
-                  <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#818CF8" }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#818CF8" }}>
                     準備中 · {preparing}現場
                   </p>
                 </div>
@@ -741,7 +744,7 @@ export default function TodayDashboard() {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ background: "#475569" }}
                   />
-                  <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "#64748B" }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#64748B" }}>
                     完了 · {done}現場
                   </p>
                 </div>

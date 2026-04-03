@@ -7,8 +7,8 @@ import { useAppContext } from "../lib/app-context";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
 };
 
@@ -54,13 +54,14 @@ function ActionTile({
       style={{
         background: bg,
         border,
-        minHeight: wide ? 80 : 110,
+        borderRadius: 16,
+        minHeight: wide ? 80 : 120,
       }}
     >
       <span style={{ fontSize: wide ? 32 : 40 }}>{emoji}</span>
       <div className={wide ? "text-left flex-1" : "text-center"}>
-        <p className="font-bold" style={{ fontSize: wide ? 18 : 17, color: textColor }}>{label}</p>
-        <p style={{ fontSize: 11, color: textColor, opacity: 0.75, marginTop: 2 }}>{sub}</p>
+        <p style={{ fontSize: wide ? 18 : 18, fontWeight: 700, color: textColor }}>{label}</p>
+        <p style={{ fontSize: 14, color: textColor, opacity: 0.75, marginTop: 3 }}>{sub}</p>
       </div>
     </button>
   );
@@ -111,7 +112,7 @@ export default function ReportPage() {
 
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>作業報告</h1>
-          <p className="text-sm mt-1" style={{ color: C.sub }}>報告する現場を選択してください</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>報告する現場を選択してください</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
@@ -119,34 +120,48 @@ export default function ReportPage() {
             <button
               key={site.id}
               onClick={() => { if (site.active) { setSelectedSite(site); setStep("pin"); } }}
-              className="flex items-center gap-4 rounded-xl text-left active:scale-[0.98] transition-all hover:shadow-md"
+              className="flex items-center gap-4 text-left active:scale-[0.98] transition-all cursor-pointer"
               style={{
                 background: C.card,
                 border: `1.5px solid ${site.active ? `${site.color}40` : C.border}`,
-                boxShadow: site.active ? `0 2px 12px ${site.color}12` : "none",
+                borderRadius: 16,
+                boxShadow: site.active ? `0 2px 12px ${site.color}12` : "0 2px 4px rgba(0,0,0,0.06)",
                 padding: "20px",
                 opacity: site.active ? 1 : 0.55,
+                minHeight: 120,
+              }}
+              onMouseEnter={(e) => {
+                if (site.active) {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#F97316";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-4px)";
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 10px 15px rgba(0,0,0,0.1)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = site.active ? `${site.color}40` : C.border;
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = site.active ? `0 2px 12px ${site.color}12` : "0 2px 4px rgba(0,0,0,0.06)";
               }}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: site.active ? `${site.color}12` : "#F8FAFC" }}
+                className="flex items-center justify-center flex-shrink-0 rounded-xl"
+                style={{ width: 48, height: 48, background: site.active ? `${site.color}12` : "#F8FAFC" }}
               >
-                <MapPin size={20} style={{ color: site.active ? site.color : C.muted }} />
+                <MapPin size={22} style={{ color: site.active ? site.color : C.muted }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-base font-bold" style={{ color: C.text, lineHeight: 1.3 }}>{site.name}</p>
-                <p className="text-xs mt-1" style={{ color: C.muted }}>{site.address}</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{site.name}</p>
+                <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>{site.address}</p>
                 {!site.active && (
-                  <span className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#F8FAFC", color: C.muted, border: `1px solid ${C.border}` }}>
+                  <span style={{ display: "inline-block", marginTop: 8, fontSize: 14, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#F8FAFC", color: C.muted, border: `1px solid ${C.border}` }}>
                     着工前
                   </span>
                 )}
               </div>
               {site.active && (
                 <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: site.color }}
+                  className="rounded-full flex-shrink-0"
+                  style={{ width: 10, height: 10, background: site.color }}
                 />
               )}
             </button>
@@ -167,13 +182,13 @@ export default function ReportPage() {
         <div className="px-5 pt-10 pb-2 flex items-center gap-3">
           <button
             onClick={() => { setStep("site"); setPin(""); setErrorMsg(""); }}
-            className="w-11 h-11 flex items-center justify-center rounded-2xl"
-            style={{ background: "rgba(255,255,255,0.1)" }}
+            className="flex items-center justify-center rounded-2xl"
+            style={{ width: 44, height: 44, background: "rgba(255,255,255,0.1)" }}
           >
             <ChevronLeft size={22} color="#FFFFFF" />
           </button>
           <div>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>報告先</p>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>報告先</p>
             <p style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF" }}>{selectedSite?.name}</p>
           </div>
         </div>
@@ -266,20 +281,20 @@ export default function ReportPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => { setStep("site"); setPin(""); }}
-          className="w-10 h-10 flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-          style={{ background: C.card, border: `1px solid ${C.border}` }}
+          className="flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
+          style={{ width: 44, height: 44, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12 }}
         >
-          <ChevronLeft size={18} style={{ color: C.sub }} />
+          <ChevronLeft size={20} style={{ color: C.sub }} />
         </button>
         <div>
-          <p className="text-xs" style={{ color: C.muted }}>認証済み</p>
-          <p className="text-lg font-bold" style={{ color: C.text }}>{selectedSite?.name}</p>
+          <p style={{ fontSize: 14, color: C.muted }}>認証済み</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{selectedSite?.name}</p>
         </div>
       </div>
 
       <div>
-        <h2 className="text-xl font-bold" style={{ color: C.text }}>何を報告しますか？</h2>
-        <p className="text-sm mt-1" style={{ color: C.sub }}>作業内容を選択してください</p>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>何を報告しますか？</h2>
+        <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>作業内容を選択してください</p>
       </div>
 
       {/* Action grid */}

@@ -59,7 +59,7 @@ function BreakPageInner() {
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
           </button>
-          <span style={{ fontSize: 13, color: "#888" }}>{siteName}</span>
+          <span style={{ fontSize: 14, color: "#888" }}>{siteName}</span>
         </div>
         <p style={{ fontSize: 26, fontWeight: 900, color: "#0D47A1" }}>☕️ 休憩</p>
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>休憩の種類とメンバーを選択</p>
@@ -103,7 +103,7 @@ function BreakPageInner() {
                 </div>
                 <div className="flex-1 text-left">
                   <p style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{m.name}</p>
-                  <p style={{ fontSize: 12, color: "#888" }}>{m.role}</p>
+                  <p style={{ fontSize: 14, color: "#888" }}>{m.role}</p>
                 </div>
                 {on && <CheckCircle size={22} color="#1565C0" />}
               </button>

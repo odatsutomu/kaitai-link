@@ -13,8 +13,8 @@ import { PLAN_LIMITS } from "../lib/app-context";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  text: "#1E293B", sub: "#4B5563", muted: "#6B7280",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
   red: "#EF4444",
 };
@@ -79,33 +79,35 @@ export default function MenuPage() {
         {/* ── Page header ── */}
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>メニュー</h1>
-          <p className="text-sm mt-1" style={{ color: C.sub }}>設定・権限管理</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>設定・権限管理</p>
         </div>
 
         {/* ── Profile card ── */}
         <div
-          className="rounded-xl px-5 py-4 flex items-center gap-4"
-          style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+          className="rounded-2xl px-5 py-5 flex items-center gap-4"
+          style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}
         >
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold flex-shrink-0"
-            style={{ background: "#FFFBEB", color: C.amber }}
+            className="flex items-center justify-center flex-shrink-0 rounded-2xl font-bold"
+            style={{ width: 56, height: 56, background: "#FFFBEB", color: C.amber, fontSize: 22, borderRadius: 14 }}
           >
             {company?.adminName?.charAt(0) ?? "田"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold truncate" style={{ color: C.text }}>{company?.adminName ?? "田中 義雄"}</p>
-            <p className="text-xs mt-0.5" style={{ color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
+            <p className="truncate font-bold" style={{ fontSize: 20, color: C.text }}>{company?.adminName ?? "田中 義雄"}</p>
+            <p style={{ fontSize: 16, marginTop: 2, color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: planStyle.bg, color: planStyle.fg }}>
+            <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
               {planStyle.label}
             </span>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={isAdmin
-                ? { background: "#FEF2F2", color: C.red }
-                : { background: "#F1F5F9", color: C.sub }}
+              style={{
+                fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                ...(isAdmin
+                  ? { background: "#FEF2F2", color: C.red }
+                  : { background: "#F1F5F9", color: C.muted })
+              }}
             >
               {isAdmin ? "管理者モード" : "作業員モード"}
             </span>
@@ -114,19 +116,19 @@ export default function MenuPage() {
 
         {/* ── Plan info strip ── */}
         <div
-          className="rounded-xl px-5 py-3.5 flex items-center justify-between"
-          style={{ background: planStyle.bg, border: `1px solid ${planStyle.fg}30` }}
+          className="rounded-2xl px-5 py-4 flex items-center justify-between"
+          style={{ background: planStyle.bg, border: `1px solid ${planStyle.fg}30`, borderRadius: 16 }}
         >
           <div>
-            <p className="text-sm font-bold" style={{ color: planStyle.fg }}>現在のプラン: {planStyle.label}</p>
-            <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: planStyle.fg }}>現在のプラン: {planStyle.label}</p>
+            <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>
               現場 {limits.sites === Infinity ? "無制限" : `${limits.sites}件`} · メンバー {limits.members === Infinity ? "無制限" : `${limits.members}名`}
             </p>
           </div>
           {isAdmin && (
             <Link href="/kaitai/billing">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: planStyle.fg, color: "#FFFFFF" }}>
-                <CreditCard size={11} />
+              <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl" style={{ fontSize: 14, fontWeight: 700, background: planStyle.fg, color: "#FFFFFF", borderRadius: 12 }}>
+                <CreditCard size={14} />
                 変更
               </div>
             </Link>
@@ -135,20 +137,20 @@ export default function MenuPage() {
 
         {/* ── Quick actions ── */}
         <section>
-          <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 px-1" style={{ color: C.sub }}>
+          <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.sub }}>
             クイックアクション
           </p>
-          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
             <Link href="/kaitai/evaluation">
-              <div className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FFFBEB" }}>
-                  <Star size={16} style={{ color: C.amber }} />
+              <div className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors" style={{ minHeight: 72 }}>
+                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: "#FFFBEB" }}>
+                  <Star size={20} style={{ color: C.amber }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: C.text }}>評価入力</p>
-                  <p className="text-xs mt-0.5" style={{ color: C.muted }}>本日の現場メンバーを評価する</p>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>評価入力</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>本日の現場メンバーを評価する</p>
                 </div>
-                <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
+                <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={18} /></div>
               </div>
             </Link>
           </div>
@@ -156,22 +158,22 @@ export default function MenuPage() {
 
         {/* ── Admin section ── */}
         <section>
-          <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 px-1" style={{ color: C.amber }}>
+          <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.amber }}>
             管理者機能
           </p>
-          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
 
             {/* Toggle row */}
-            <div className="px-5 py-4 flex items-center gap-3">
+            <div className="px-5 flex items-center gap-3" style={{ minHeight: 72 }}>
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: isAdmin ? "#FEF2F2" : "#F1F5F9" }}
+                className="flex items-center justify-center flex-shrink-0 rounded-xl"
+                style={{ width: 44, height: 44, background: isAdmin ? "#FEF2F2" : "#F1F5F9" }}
               >
-                <Shield size={18} style={{ color: isAdmin ? C.red : C.sub }} />
+                <Shield size={22} style={{ color: isAdmin ? C.red : C.muted }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: C.text }}>管理者モード</p>
-                <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+                <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>管理者モード</p>
+                <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>
                   {isAdmin ? "認証済み — 全機能解放中" : "第二パスワードで認証"}
                 </p>
               </div>
@@ -205,20 +207,20 @@ export default function MenuPage() {
                 ].map(({ href, icon: Icon, label, sub }, i) => (
                   <Link key={href} href={href}>
                     <div
-                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                      style={{ borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
+                      className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                      style={{ minHeight: 72, borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
                     >
                       <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: "#FEF2F2" }}
+                        className="flex items-center justify-center flex-shrink-0 rounded-xl"
+                        style={{ width: 44, height: 44, background: "#FEF2F2" }}
                       >
-                        <Icon size={16} style={{ color: C.red }} />
+                        <Icon size={20} style={{ color: C.red }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: C.text }}>{label}</p>
-                        <p className="text-xs mt-0.5" style={{ color: C.muted }}>{sub}</p>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{label}</p>
+                        <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>{sub}</p>
                       </div>
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
+                      <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={18} /></div>
                     </div>
                   </Link>
                 ))}
@@ -229,10 +231,10 @@ export default function MenuPage() {
 
         {/* ── General settings ── */}
         <section>
-          <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 px-1" style={{ color: C.muted }}>
+          <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.muted }}>
             一般設定
           </p>
-          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)", borderRadius: 16 }}>
             {[
               { icon: Bell,    label: "通知設定",     sub: "作業開始・終了のリマインダー" },
               { icon: Lock,    label: "PINコード変更", sub: "現場報告の認証コード" },
@@ -240,17 +242,17 @@ export default function MenuPage() {
             ].map(({ icon: Icon, label, sub }, i) => (
               <button
                 key={label}
-                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                style={{ borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
+                className="w-full px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                style={{ minHeight: 72, borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
               >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#F1F5F9" }}>
-                  <Icon size={16} style={{ color: C.sub }} />
+                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: "#F1F5F9" }}>
+                  <Icon size={22} style={{ color: C.muted }} />
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: C.text }}>{label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: C.muted }}>{sub}</p>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{label}</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>{sub}</p>
                 </div>
-                <div className="flex items-center justify-center w-7 h-7 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}><ChevronRight size={13} /></div>
+                <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={22} /></div>
               </button>
             ))}
           </div>
@@ -259,10 +261,10 @@ export default function MenuPage() {
         {/* ── Logout ── */}
         <button
           onClick={() => { setAuthLevel("worker"); addLog("logout", company?.adminName ?? "—"); router.push("/kaitai/login"); }}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-colors hover:bg-red-50"
-          style={{ background: C.card, border: `1px solid #FECACA`, color: C.red }}
+          className="w-full flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors hover:bg-red-50"
+          style={{ background: C.card, border: `1px solid #FECACA`, color: C.red, fontSize: 15, fontWeight: 600, padding: "14px 20px", borderRadius: 12 }}
         >
-          <LogOut size={16} />
+          <LogOut size={18} />
           ログアウト
         </button>
 
@@ -272,9 +274,9 @@ export default function MenuPage() {
             onPointerDown={startPress}
             onPointerUp={cancelPress}
             onPointerLeave={cancelPress}
-            style={{ fontSize: 11, color: C.border, userSelect: "none" }}
+            style={{ fontSize: 14, color: C.border, userSelect: "none" }}
           >
-            <Info size={10} style={{ display: "inline", marginRight: 4 }} />
+            <Info size={12} style={{ display: "inline", marginRight: 4 }} />
             解体LINK v1.0.0
           </button>
         </div>

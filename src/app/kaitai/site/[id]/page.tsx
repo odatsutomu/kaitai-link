@@ -19,7 +19,7 @@ const C = {
   text:    "#1E293B",
   sub:     "#64748B",
   muted:   "#94A3B8",
-  border:  "#E2E8F0",
+  border:  "#E5E7EB",
   card:    "#FFFFFF",
   amber:   "#F59E0B",
   amberDk: "#D97706",
@@ -137,7 +137,7 @@ function Card({
       style={{
         background: C.card,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
       }}
     >
       {children}
@@ -148,7 +148,7 @@ function Card({
 function SectionLabel({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
   return (
     <p
-      className="text-[11px] font-bold tracking-widest uppercase mb-3"
+      className="text-sm font-bold tracking-widest uppercase mb-3"
       style={{ color: muted ? C.muted : C.amber }}
     >
       {children}
@@ -201,7 +201,7 @@ export default async function SiteDetailPage({
             style={{
               background: C.card,
               border: `1px solid ${C.border}`,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
             }}
           >
             <Link
@@ -216,7 +216,7 @@ export default async function SiteDetailPage({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1.5">
                   <span
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                    className="text-sm font-bold px-2.5 py-1 rounded-full"
                     style={{ background: cfg.bg, color: cfg.fg }}
                   >
                     {cfg.label}
@@ -227,7 +227,7 @@ export default async function SiteDetailPage({
                 </h1>
                 <div className="flex items-center gap-1 mt-1">
                   <MapPin size={12} style={{ color: C.sub }} />
-                  <p className="text-xs" style={{ color: C.sub }}>
+                  <p className="text-sm" style={{ color: C.sub }}>
                     {site.address}
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export default async function SiteDetailPage({
               <Link href={`/kaitai/sites/${id}/edit`} className="flex-shrink-0">
                 <button
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                  style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                  style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                 >
                   <Edit3 size={13} />
                   編集
@@ -244,7 +244,7 @@ export default async function SiteDetailPage({
             </div>
 
             {/* Dates */}
-            <div className="flex items-center gap-3 text-xs mb-5" style={{ color: C.muted }}>
+            <div className="flex items-center gap-3 text-sm mb-5" style={{ color: C.muted }}>
               <div className="flex items-center gap-1">
                 <Calendar size={12} />
                 <span>{site.startDate.replace(/-/g, "/")} 〜 {site.endDate.replace(/-/g, "/")}</span>
@@ -260,7 +260,7 @@ export default async function SiteDetailPage({
             {/* Progress */}
             {site.status !== "着工前" && (
               <div>
-                <div className="flex justify-between text-[11px] mb-1.5" style={{ color: C.sub }}>
+                <div className="flex justify-between text-sm mb-1.5" style={{ color: C.sub }}>
                   <span>工事進捗</span>
                   <span className="font-bold" style={{ color: C.text }}>{site.progressPct}%</span>
                 </div>
@@ -298,10 +298,10 @@ export default async function SiteDetailPage({
                           {h.date}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-1 text-xs" style={{ color: C.sub }}>
+                          <span className="flex items-center gap-1 text-sm" style={{ color: C.sub }}>
                             <Truck size={11} /> {h.wasteM3}㎥
                           </span>
-                          <span className="flex items-center gap-1 text-xs" style={{ color: C.sub }}>
+                          <span className="flex items-center gap-1 text-sm" style={{ color: C.sub }}>
                             <Camera size={11} /> {h.photos}枚
                           </span>
                         </div>
@@ -310,7 +310,7 @@ export default async function SiteDetailPage({
                         {h.items.map((item) => (
                           <span
                             key={item}
-                            className="text-[10px] px-2 py-0.5 rounded-full"
+                            className="text-sm px-2 py-0.5 rounded-full"
                             style={{ background: "rgba(245,158,11,0.10)", color: C.amberDk }}
                           >
                             {item}
@@ -336,7 +336,7 @@ export default async function SiteDetailPage({
               <p className="text-sm font-semibold" style={{ color: C.text }}>
                 産廃マニフェスト
               </p>
-              <p className="text-xs" style={{ color: C.sub }}>
+              <p className="text-sm" style={{ color: C.sub }}>
                 作業票・マニフェストを確認する
               </p>
             </div>
@@ -356,7 +356,7 @@ export default async function SiteDetailPage({
                 <p className="text-sm font-semibold" style={{ color: C.text }}>
                   完工報告を提出
                 </p>
-                <p className="text-xs" style={{ color: C.sub }}>
+                <p className="text-sm" style={{ color: C.sub }}>
                   工事完了時に写真と共に提出
                 </p>
               </div>
@@ -379,7 +379,7 @@ export default async function SiteDetailPage({
               {/* Big profit number */}
               <div className="text-center mb-4">
                 <p
-                  className="text-[11px] font-bold tracking-widest uppercase mb-1"
+                  className="text-sm font-bold tracking-widest uppercase mb-1"
                   style={{ color: C.muted }}
                 >
                   現状利益
@@ -393,7 +393,7 @@ export default async function SiteDetailPage({
                 >
                   {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
                 </p>
-                <p className="text-xs mt-1" style={{ color: C.sub }}>
+                <p className="text-sm mt-1" style={{ color: C.sub }}>
                   粗利率 {profitPct}%
                 </p>
               </div>
@@ -409,7 +409,7 @@ export default async function SiteDetailPage({
                   <div key={label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                      <span className="text-xs" style={{ color: C.muted }}>{label}</span>
+                      <span className="text-sm" style={{ color: C.muted }}>{label}</span>
                     </div>
                     <span
                       className={`text-sm ${bold ? "font-bold" : "font-semibold"}`}
@@ -425,11 +425,11 @@ export default async function SiteDetailPage({
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: C.muted }} />
-                    <span className="text-xs" style={{ color: C.muted }}>原価合計</span>
+                    <span className="text-sm" style={{ color: C.muted }}>原価合計</span>
                   </div>
                   <span className="text-sm font-bold" style={{ color: C.text }}>
                     ¥{totalCost.toLocaleString()}
-                    <span className="text-[10px] font-normal ml-1" style={{ color: C.sub }}>
+                    <span className="text-sm font-normal ml-1" style={{ color: C.sub }}>
                       ({costPct}%)
                     </span>
                   </span>
@@ -438,7 +438,7 @@ export default async function SiteDetailPage({
 
               {/* Cost gauge bar */}
               <div>
-                <div className="flex text-[10px] mb-1 justify-between" style={{ color: C.sub }}>
+                <div className="flex text-sm mb-1 justify-between" style={{ color: C.sub }}>
                   <span>原価消化率</span>
                   <span>{costPct}% / 100%</span>
                 </div>

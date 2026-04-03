@@ -60,7 +60,7 @@ function FinishPageInner() {
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
           </button>
-          <span style={{ fontSize: 13, color: "#888" }}>{siteName}</span>
+          <span style={{ fontSize: 14, color: "#888" }}>{siteName}</span>
         </div>
         <p style={{ fontSize: 26, fontWeight: 900, color: "#212121" }}>🚚 終了報告</p>
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>廃材数量・経費を入力してください</p>
@@ -70,7 +70,7 @@ function FinishPageInner() {
 
         {/* Waste items */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>廃材数量</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>廃材数量</p>
           <div className="flex flex-col gap-2">
             {WASTE_ITEMS.map(w => (
               <div key={w.id} className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "#FFFFFF", border: "1.5px solid #EEEEEE" }}>
@@ -84,7 +84,7 @@ function FinishPageInner() {
                     <Minus size={16} color="#666" />
                   </button>
                   <span style={{ fontSize: 20, fontWeight: 800, color: "#111", minWidth: 48, textAlign: "center" }}>
-                    {waste[w.id]}<span style={{ fontSize: 11, color: "#999", marginLeft: 2 }}>{w.unit}</span>
+                    {waste[w.id]}<span style={{ fontSize: 14, color: "#999", marginLeft: 2 }}>{w.unit}</span>
                   </span>
                   <button
                     onClick={() => changeWaste(w.id, 1)}
@@ -101,7 +101,7 @@ function FinishPageInner() {
 
         {/* Expenses */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>経費（円）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>経費（円）</p>
           <input
             type="number"
             inputMode="numeric"
@@ -115,19 +115,19 @@ function FinishPageInner() {
 
         {/* Photo placeholder */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
           <button
             className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
             style={{ height: 100, background: "#F9FAFB", border: "2px dashed #DDDDDD" }}
           >
             <Camera size={28} color="#BBBBBB" />
-            <span style={{ fontSize: 13, color: "#BBBBBB" }}>タップして写真を追加（実装予定）</span>
+            <span style={{ fontSize: 14, color: "#BBBBBB" }}>タップして写真を追加（実装予定）</span>
           </button>
         </section>
 
         {/* Memo */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>備考</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>備考</p>
           <textarea
             value={memo}
             onChange={e => setMemo(e.target.value)}

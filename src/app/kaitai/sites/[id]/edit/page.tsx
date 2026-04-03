@@ -14,7 +14,7 @@ import type { LatLng } from "../../../lib/geocode";
 
 const MapPicker = dynamic(
   () => import("../../../components/map-picker").then(m => m.MapPicker),
-  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 12, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
 );
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
         <button
           key={i}
           onClick={() => onChange(i)}
-          className="flex-1 py-3 text-xs font-bold transition-all"
+          className="flex-1 py-3 text-sm font-bold transition-all"
           style={{
             color: active === i ? C.amber : C.muted,
             borderBottom: active === i ? `2px solid ${C.amber}` : "2px solid transparent",
@@ -156,7 +156,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[11px] font-bold tracking-widest uppercase mb-3"
+      className="text-sm font-bold tracking-widest uppercase mb-3"
       style={{ color: C.amber }}
     >
       {children}
@@ -166,7 +166,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <p className="text-xs font-bold mb-1.5" style={{ color: C.sub }}>
+    <p className="text-sm font-bold mb-1.5" style={{ color: C.sub }}>
       {children}
       {required && <span className="ml-1" style={{ color: C.red }}>*</span>}
     </p>
@@ -390,13 +390,13 @@ export default function SiteEditPage({
                 style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}
               >
                 <Clock size={12} style={{ color: "#EA580C" }} />
-                <span className="text-xs font-semibold" style={{ color: "#EA580C" }}>
+                <span className="text-sm font-semibold" style={{ color: "#EA580C" }}>
                   {changeLog.length}件の変更が記録されています
                 </span>
               </div>
             )}
             <button
-              className="px-3 py-1.5 rounded-full text-xs font-bold"
+              className="px-3 py-1.5 rounded-full text-sm font-bold"
               style={{
                 background: STATUS_STYLE[status].bg,
                 color: STATUS_STYLE[status].color,
@@ -434,7 +434,7 @@ export default function SiteEditPage({
                         <button
                           key={v}
                           onClick={() => setClientType(v)}
-                          className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                          className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                           style={clientType === v
                             ? { background: "#FFFBEB", color: C.amberDk, border: `1.5px solid #FDE68A` }
                             : { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}` }}
@@ -468,7 +468,7 @@ export default function SiteEditPage({
                       />
                     )}
                     {clientType === "none" && (
-                      <p style={{ fontSize: 11, color: C.muted }}>直接依頼の場合も元請け未設定のままで登録できます</p>
+                      <p style={{ fontSize: 14, color: C.muted }}>直接依頼の場合も元請け未設定のままで登録できます</p>
                     )}
                   </div>
                 </div>
@@ -499,15 +499,15 @@ export default function SiteEditPage({
                     <FieldLabel>工期</FieldLabel>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>着工日</p>
+                        <p className="text-sm mb-1" style={{ color: C.muted }}>着工日</p>
                         <InputField type="date" value={startDate} onChange={setStartDate} />
                       </div>
                       <span className="text-sm font-bold" style={{ color: "#CBD5E1", paddingTop: 18 }}>〜</span>
                       <div className="flex-1">
-                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>
+                        <p className="text-sm mb-1" style={{ color: C.muted }}>
                           完工予定日
                           {extendedEnd && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: "#FFFBEB", color: C.amberDk }}>
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-sm font-bold" style={{ background: "#FFFBEB", color: C.amberDk }}>
                               延長中
                             </span>
                           )}
@@ -524,7 +524,7 @@ export default function SiteEditPage({
                     {!showExtend ? (
                       <button
                         onClick={() => setShowExtend(true)}
-                        className="mt-2 flex items-center gap-1.5 text-xs font-semibold"
+                        className="mt-2 flex items-center gap-1.5 text-sm font-semibold"
                         style={{ color: C.amber }}
                       >
                         <Plus size={12} /> 工期延長を記録する
@@ -535,17 +535,17 @@ export default function SiteEditPage({
                         style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold" style={{ color: C.amberDk }}>工期延長</p>
+                          <p className="text-sm font-bold" style={{ color: C.amberDk }}>工期延長</p>
                           <button onClick={() => { setShowExtend(false); setExtendedEnd(""); setExtendReason(""); }}>
                             <X size={14} style={{ color: C.muted }} />
                           </button>
                         </div>
                         <div>
-                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長後完工予定日</p>
+                          <p className="text-sm mb-1" style={{ color: C.muted }}>延長後完工予定日</p>
                           <InputField type="date" value={extendedEnd} onChange={setExtendedEnd} />
                         </div>
                         <div>
-                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長理由</p>
+                          <p className="text-sm mb-1" style={{ color: C.muted }}>延長理由</p>
                           <InputField value={extendReason} onChange={setExtendReason} placeholder="例：雨天による作業遅延" />
                         </div>
                       </div>
@@ -559,7 +559,7 @@ export default function SiteEditPage({
                         <button
                           key={s}
                           onClick={() => setStatus(s)}
-                          className="px-4 py-2 rounded-full text-xs font-bold transition-all"
+                          className="px-4 py-2 rounded-full text-sm font-bold transition-all"
                           style={
                             status === s
                               ? { background: STATUS_STYLE[s].bg, color: STATUS_STYLE[s].color, border: `2px solid ${STATUS_STYLE[s].color}` }
@@ -599,11 +599,11 @@ export default function SiteEditPage({
                       {contractNum > 0 && (
                         <>
                           <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-                            <span className="text-xs" style={{ color: C.sub }}>消費税（10%）</span>
+                            <span className="text-sm" style={{ color: C.sub }}>消費税（10%）</span>
                             <span className="text-sm font-bold" style={{ color: "#16A34A" }}>＋¥{taxAmount.toLocaleString()}</span>
                           </div>
                           <div className="mt-1.5 flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
-                            <span className="text-xs" style={{ color: C.sub }}>税込金額</span>
+                            <span className="text-sm" style={{ color: C.sub }}>税込金額</span>
                             <span className="text-sm font-bold" style={{ color: C.text }}>¥{(contractNum + taxAmount).toLocaleString()}</span>
                           </div>
                         </>
@@ -624,7 +624,7 @@ export default function SiteEditPage({
                               {icon}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[10px] mb-1" style={{ color: C.muted }}>{label}</p>
+                              <p className="text-sm mb-1" style={{ color: C.muted }}>{label}</p>
                               <AmountInput value={val} onChange={set} placeholder="0" />
                             </div>
                           </div>
@@ -637,13 +637,13 @@ export default function SiteEditPage({
                     <div>
                       <div className="rounded-xl p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-bold" style={{ color: C.sub }}>利益シミュレーション</p>
+                          <p className="text-sm font-bold" style={{ color: C.sub }}>利益シミュレーション</p>
                           <span className="text-lg font-bold" style={{ color: profitColor }}>
                             {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
                           </span>
                         </div>
                         <div className="mb-3">
-                          <div className="flex items-center justify-between text-[10px] mb-1" style={{ color: C.muted }}>
+                          <div className="flex items-center justify-between text-sm mb-1" style={{ color: C.muted }}>
                             <span>利益率</span>
                             <span style={{ color: profitColor, fontWeight: "bold" }}>{profitPct}%</span>
                           </div>
@@ -660,7 +660,7 @@ export default function SiteEditPage({
                               }}
                             />
                           </div>
-                          <div className="flex justify-between text-[9px] mt-1" style={{ color: "#CBD5E1" }}>
+                          <div className="flex justify-between text-sm mt-1" style={{ color: "#CBD5E1" }}>
                             <span>0%</span><span>10%</span><span>25%</span><span>50%+</span>
                           </div>
                         </div>
@@ -675,14 +675,14 @@ export default function SiteEditPage({
                             .filter(({ value }) => value !== 0)
                             .map(({ label, value, color }) => (
                               <div key={label} className="flex items-center justify-between">
-                                <span className="text-[10px]" style={{ color: C.muted }}>{label}</span>
-                                <span className="text-xs font-semibold" style={{ color }}>
+                                <span className="text-sm" style={{ color: C.muted }}>{label}</span>
+                                <span className="text-sm font-semibold" style={{ color }}>
                                   {value > 0 ? "+" : ""}¥{Math.abs(value).toLocaleString()}
                                 </span>
                               </div>
                             ))}
                           <div className="flex items-center justify-between pt-1.5 mt-0.5" style={{ borderTop: `1px solid ${C.border}` }}>
-                            <span className="text-xs font-bold" style={{ color: C.sub }}>利益</span>
+                            <span className="text-sm font-bold" style={{ color: C.sub }}>利益</span>
                             <span className="text-sm font-bold" style={{ color: profitColor }}>
                               {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
                             </span>
@@ -707,11 +707,11 @@ export default function SiteEditPage({
                           style={{ borderBottom: i < changeLog.length - 1 ? `1px solid ${C.border}` : "none" }}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-bold" style={{ color: C.text }}>{entry.field}</span>
-                            <span className="text-[10px]" style={{ color: C.muted }}>{entry.timestamp}</span>
+                            <span className="text-sm font-bold" style={{ color: C.text }}>{entry.field}</span>
+                            <span className="text-sm" style={{ color: C.muted }}>{entry.timestamp}</span>
                           </div>
-                          <p className="text-[10px]" style={{ color: C.sub }}>{entry.before} → {entry.after}</p>
-                          <p className="text-[10px] mt-0.5 font-medium" style={{ color: C.text }}>理由：{entry.reason}</p>
+                          <p className="text-sm" style={{ color: C.sub }}>{entry.before} → {entry.after}</p>
+                          <p className="text-sm mt-0.5 font-medium" style={{ color: C.text }}>理由：{entry.reason}</p>
                         </div>
                       ))}
                     </div>
@@ -762,12 +762,12 @@ export default function SiteEditPage({
                       <FieldLabel>延床面積</FieldLabel>
                       <div className="relative">
                         <InputField value={area} onChange={setArea} placeholder="例：120" type="number" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: C.muted }}>㎡</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: C.muted }}>㎡</span>
                       </div>
                       {estWaste !== null && (
                         <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
                           <Info size={13} style={{ color: "#3B82F6" }} />
-                          <p className="text-xs" style={{ color: "#3B82F6" }}>
+                          <p className="text-sm" style={{ color: "#3B82F6" }}>
                             <span style={{ fontWeight: "bold" }}>{structureType}</span> {area}㎡ の場合、産廃発生量の目安は約 <span style={{ fontWeight: "bold" }}>{estWaste}㎥</span> です
                           </p>
                         </div>
@@ -781,7 +781,7 @@ export default function SiteEditPage({
                           <button
                             key={level}
                             onClick={() => setAsbestos(level)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all"
                             style={
                               asbestos === level
                                 ? { background: `${color}18`, color, border: `2px solid ${color}` }
@@ -796,7 +796,7 @@ export default function SiteEditPage({
                       {asbestos !== "なし" && asbestos !== "調査中" && (
                         <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
                           <AlertTriangle size={13} style={{ color: "#DC2626" }} />
-                          <p className="text-xs" style={{ color: "#DC2626" }}>アスベスト含有材は特別管理産業廃棄物として別途処理が必要です</p>
+                          <p className="text-sm" style={{ color: "#DC2626" }}>アスベスト含有材は特別管理産業廃棄物として別途処理が必要です</p>
                         </div>
                       )}
                     </div>
@@ -836,7 +836,7 @@ export default function SiteEditPage({
                           <button
                             key={util}
                             onClick={() => toggleUtil(util)}
-                            className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all"
+                            className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-sm transition-all"
                             style={
                               utils.has(util)
                                 ? { background: `${color}12`, color, border: `2px solid ${color}` }
@@ -845,7 +845,7 @@ export default function SiteEditPage({
                           >
                             <span style={{ color: utils.has(util) ? color : "#CBD5E1" }}>{icon}</span>
                             {util}
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                            <span className="text-sm px-1.5 py-0.5 rounded-full font-bold"
                               style={utils.has(util) ? { background: `${color}20`, color } : { background: C.bg, color: "#CBD5E1" }}>
                               {utils.has(util) ? "接続中" : "未接続"}
                             </span>
@@ -885,14 +885,14 @@ export default function SiteEditPage({
                       style={{ background: C.bg, border: `1.5px dashed ${C.border}` }}
                     >
                       <Camera size={16} style={{ color: C.muted }} />
-                      <span className="text-[9px]" style={{ color: C.muted }}>写真追加</span>
+                      <span className="text-sm" style={{ color: C.muted }}>写真追加</span>
                     </button>
                     <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
                       onChange={(e) => { const names = Array.from(e.target.files ?? []).map((f) => f.name); setPhotos((prev) => [...prev, ...names]); }} />
                   </div>
                   <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2 px-4 py-3 rounded-xl transition-all" style={{ background: C.bg, border: `1.5px dashed ${C.border}` }}>
                     <Upload size={15} style={{ color: C.muted }} />
-                    <span className="text-xs" style={{ color: C.sub }}>
+                    <span className="text-sm" style={{ color: C.sub }}>
                       {files.length > 0 ? `${files.length}件 のファイルが添付されています` : "見積書・図面（PDF）をアップロード"}
                     </span>
                   </button>
@@ -957,23 +957,23 @@ export default function SiteEditPage({
               </div>
               <div>
                 <p className="font-bold" style={{ color: C.text }}>変更理由を記録</p>
-                <p className="text-xs" style={{ color: C.muted }}>{pendingChange.field}を変更しました</p>
+                <p className="text-sm" style={{ color: C.muted }}>{pendingChange.field}を変更しました</p>
               </div>
             </div>
 
             <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更前</p>
+                <p className="text-sm mb-0.5" style={{ color: C.muted }}>変更前</p>
                 <p className="text-sm font-bold line-through" style={{ color: C.red }}>{pendingChange.before}</p>
               </div>
               <ChevronRight size={16} style={{ color: "#CBD5E1" }} />
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更後</p>
+                <p className="text-sm mb-0.5" style={{ color: C.muted }}>変更後</p>
                 <p className="text-sm font-bold" style={{ color: C.green }}>{pendingChange.after}</p>
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold mb-2" style={{ color: C.sub }}>変更理由</p>
+              <p className="text-sm font-bold mb-2" style={{ color: C.sub }}>変更理由</p>
               <textarea
                 value={changeReason}
                 onChange={(e) => setChangeReason(e.target.value)}

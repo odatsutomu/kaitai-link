@@ -6,7 +6,7 @@ import { Plus, Edit3, X, AlertTriangle, Search } from "lucide-react";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   text: "#1E293B", sub: "#64748B", muted: "#94A3B8",
-  border: "#E2E8F0", card: "#FFFFFF",
+  border: "#E5E7EB", card: "#FFFFFF",
   amber: "#F59E0B", amberDk: "#D97706",
   green: "#10B981", red: "#EF4444", blue: "#3B82F6",
 };
@@ -302,7 +302,7 @@ function EquipmentModal({
 
   const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all";
   const inputStyle = { border: `1.5px solid ${C.border}`, background: "#F8FAFC", color: C.text };
-  const labelCls = "block text-xs font-bold mb-1.5 uppercase tracking-wide";
+  const labelCls = "block text-sm font-bold mb-1.5 uppercase tracking-wide";
 
   return (
     <div
@@ -344,7 +344,7 @@ function EquipmentModal({
               value={form.name}
               onChange={e => set("name", e.target.value)}
             />
-            {errors.name && <p className="text-xs mt-1" style={{ color: C.red }}>{errors.name}</p>}
+            {errors.name && <p className="text-sm mt-1" style={{ color: C.red }}>{errors.name}</p>}
           </div>
 
           {/* 種類 + 区分 (2-col) */}
@@ -448,7 +448,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   return (
     <button
       onClick={onClick}
-      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+      className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
       style={active
         ? { background: "rgba(245,158,11,0.1)", color: C.amberDk, border: `1.5px solid rgba(245,158,11,0.35)` }
         : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }
@@ -577,10 +577,10 @@ export default function EquipmentPage() {
           { label: "修理中",    value: equipment.filter(e => e.status === "修理中").length,        color: C.amber,   note: "要確認" },
           { label: "返却期限近", value: nearDeadlineCount, color: nearDeadlineCount > 0 ? C.red : C.green, note: "14日以内" },
         ].map(({ label, value, color, note }) => (
-          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <p className="text-xs mb-1" style={{ color: C.sub }}>{label}</p>
+          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
+            <p className="text-sm mb-1" style={{ color: C.sub }}>{label}</p>
             <p className="text-3xl font-bold font-numeric" style={{ color }}>{value}</p>
-            <p className="text-[10px] mt-1" style={{ color: C.muted }}>{note}</p>
+            <p className="text-sm mt-1" style={{ color: C.muted }}>{note}</p>
           </div>
         ))}
       </div>
@@ -622,14 +622,14 @@ export default function EquipmentPage() {
         </div>
         {/* Type filters */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium mr-1" style={{ color: C.muted }}>種類:</span>
+          <span className="text-sm font-medium mr-1" style={{ color: C.muted }}>種類:</span>
           {(["全て", ...TYPE_OPTIONS] as const).map(t => (
             <FilterChip key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t as typeof typeFilter)} />
           ))}
         </div>
         {/* Status filters */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium mr-1" style={{ color: C.muted }}>状態:</span>
+          <span className="text-sm font-medium mr-1" style={{ color: C.muted }}>状態:</span>
           {(["全状態", ...STATUS_OPTIONS] as const).map(s => (
             <FilterChip key={s} label={s} active={statusFilter === s} onClick={() => setStatusFilter(s as typeof statusFilter)} />
           ))}
@@ -637,10 +637,10 @@ export default function EquipmentPage() {
       </div>
 
       {/* ── Equipment table ── */}
-      <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
         {/* Table header */}
         <div
-          className="grid items-center px-5 py-3 text-xs font-bold uppercase tracking-wider"
+          className="grid items-center px-5 py-3 text-sm font-bold uppercase tracking-wider"
           style={{
             gridTemplateColumns: "2.5fr 90px 90px 140px 110px 120px 80px",
             borderBottom: `1px solid ${C.border}`,
@@ -688,14 +688,14 @@ export default function EquipmentPage() {
                   <span className="text-sm font-semibold truncate" style={{ color: C.text }}>{e.name}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.color }}>
+                  <span className="text-sm font-bold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.color }}>
                     {e.status}
                   </span>
                   {assignment && (
-                    <span className="text-[10px]" style={{ color: C.amber }}>📍 {assignment.siteName}</span>
+                    <span className="text-sm" style={{ color: C.amber }}>📍 {assignment.siteName}</span>
                   )}
                   {e.notes && (
-                    <span className="text-[10px] truncate max-w-[200px]" style={{ color: C.muted }}>{e.notes}</span>
+                    <span className="text-sm truncate max-w-[200px]" style={{ color: C.muted }}>{e.notes}</span>
                   )}
                 </div>
               </div>
@@ -704,7 +704,7 @@ export default function EquipmentPage() {
               <span className="text-sm" style={{ color: C.sub }}>{e.type}</span>
 
               {/* 区分 */}
-              <span className="text-xs font-bold px-2 py-1 rounded-full w-fit" style={{ background: cc.bg, color: cc.color }}>
+              <span className="text-sm font-bold px-2 py-1 rounded-full w-fit" style={{ background: cc.bg, color: cc.color }}>
                 {e.category}
               </span>
 
@@ -713,7 +713,7 @@ export default function EquipmentPage() {
 
               {/* 日単価 */}
               <span className="text-sm font-bold text-right font-numeric" style={{ color: C.amberDk }}>
-                {fmtPrice(e.unitPrice)}<span className="text-xs font-normal" style={{ color: C.muted }}>/日</span>
+                {fmtPrice(e.unitPrice)}<span className="text-sm font-normal" style={{ color: C.muted }}>/日</span>
               </span>
 
               {/* 返却期限 */}
@@ -724,7 +724,7 @@ export default function EquipmentPage() {
                       {fmtDate(e.returnDeadline)}
                     </p>
                     {(isUrgent || isNear) && (
-                      <p className="text-[10px] font-bold" style={{ color: isUrgent ? C.red : C.amber }}>
+                      <p className="text-sm font-bold" style={{ color: isUrgent ? C.red : C.amber }}>
                         あと {deadline} 日
                       </p>
                     )}
@@ -739,7 +739,7 @@ export default function EquipmentPage() {
                 <button
                   onClick={() => setModalTarget(e)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
-                  style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                  style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", color: "#334155", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                 >
                   <Edit3 size={12} />
                   編集
@@ -753,12 +753,12 @@ export default function EquipmentPage() {
       {/* ── Active assignments ── */}
       {activeAssignments.length > 0 && (
         <section>
-          <h2 className="text-[11px] font-bold tracking-widest uppercase mb-4" style={{ color: C.amber }}>
+          <h2 className="text-sm font-bold tracking-widest uppercase mb-4" style={{ color: C.amber }}>
             現場アサイン状況
           </h2>
-          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: "0 2px 4px rgba(0,0,0,0.06)" }}>
             <div
-              className="grid px-5 py-3 text-xs font-bold uppercase tracking-wider"
+              className="grid px-5 py-3 text-sm font-bold uppercase tracking-wider"
               style={{ gridTemplateColumns: "2fr 2fr 200px", borderBottom: `1px solid ${C.border}`, background: "#F8FAFC", color: C.muted }}
             >
               <span>機材</span>

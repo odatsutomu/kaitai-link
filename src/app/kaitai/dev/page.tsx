@@ -58,13 +58,13 @@ function StatusBadge({ hasStripe }: { hasStripe: boolean }) {
   if (hasStripe) return (
     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.25)" }}>
       <CheckCircle size={10} style={{ color: "#4ADE80" }} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: "#4ADE80" }}>有効</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: "#4ADE80" }}>有効</span>
     </div>
   );
   return (
     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)" }}>
       <XCircle size={10} style={{ color: "#F87171" }} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: "#F87171" }}>未設定</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: "#F87171" }}>未設定</span>
     </div>
   );
 }
@@ -119,10 +119,10 @@ export default function DevPage() {
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
             <AlertTriangle size={10} style={{ color: "#F87171" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#F87171" }}>Internal Only</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#F87171" }}>Internal Only</span>
           </div>
         </div>
-        <p style={{ fontSize: 11, color: "#475569" }}>解体LINK SaaS 運営ダッシュボード</p>
+        <p style={{ fontSize: 14, color: "#475569" }}>解体LINK SaaS 運営ダッシュボード</p>
 
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-2 mt-3">
@@ -133,7 +133,7 @@ export default function DevPage() {
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl p-2 text-center" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
               <p style={{ fontSize: 18, fontWeight: 900, color: "#F1F5F9" }}>{value}</p>
-              <p style={{ fontSize: 9, color: "#475569" }}>{label}</p>
+              <p style={{ fontSize: 14, color: "#475569" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -145,7 +145,7 @@ export default function DevPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="flex-1 py-2 rounded-xl text-[11px] font-bold"
+            className="flex-1 py-2 rounded-xl text-sm font-bold"
             style={tab === t
               ? { background: "#F97316", color: "#FFFFFF" }
               : { background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}
@@ -166,7 +166,7 @@ export default function DevPage() {
                 <span style={{ fontSize: 14, fontWeight: 800, color: "#F1F5F9" }} className="truncate">{c.name}</span>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${PLAN_COLOR[c.plan]}20`, color: PLAN_COLOR[c.plan] }}>
+                <span className="px-2 py-0.5 rounded-full text-sm font-bold" style={{ background: `${PLAN_COLOR[c.plan]}20`, color: PLAN_COLOR[c.plan] }}>
                   {PLAN_LABEL[c.plan]}
                 </span>
                 <StatusBadge hasStripe={!!c.stripeCustomerId} />
@@ -174,23 +174,23 @@ export default function DevPage() {
             </div>
 
             {/* Row 2: contact */}
-            <p style={{ fontSize: 11, color: "#64748B", marginBottom: 2 }}>{c.address}</p>
-            <p style={{ fontSize: 11, color: "#64748B", marginBottom: 6 }}>{c.phone} · {c.adminEmail}</p>
+            <p style={{ fontSize: 14, color: "#64748B", marginBottom: 2 }}>{c.address}</p>
+            <p style={{ fontSize: 14, color: "#64748B", marginBottom: 6 }}>{c.phone} · {c.adminEmail}</p>
 
             {/* Row 3: Stripe ID */}
             <div className="rounded-xl px-3 py-2" style={{ background: "#0F1928" }}>
-              <p style={{ fontSize: 9, color: "#475569", marginBottom: 1 }}>Stripe Customer ID</p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: c.stripeCustomerId ? "#4ADE80" : "#F87171", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 14, color: "#475569", marginBottom: 1 }}>Stripe Customer ID</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: c.stripeCustomerId ? "#4ADE80" : "#F87171", fontFamily: "monospace" }}>
                 {c.stripeCustomerId || "— 未連携 —"}
               </p>
             </div>
 
             {/* Row 4: meta */}
             <div className="flex items-center justify-between mt-2">
-              <p style={{ fontSize: 10, color: "#475569" }}>
+              <p style={{ fontSize: 14, color: "#475569" }}>
                 登録: {new Date(c.createdAt).toLocaleDateString("ja-JP")}
               </p>
-              <p style={{ fontSize: 10, color: "#475569" }}>
+              <p style={{ fontSize: 14, color: "#475569" }}>
                 管理者: {c.adminName}
               </p>
             </div>
@@ -201,27 +201,27 @@ export default function DevPage() {
         {tab === "logs" && (
           <>
             <div className="flex items-center justify-between">
-              <p style={{ fontSize: 11, color: "#64748B" }}>{operationLog.length} 件のログ</p>
-              <button className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}>
+              <p style={{ fontSize: 14, color: "#64748B" }}>{operationLog.length} 件のログ</p>
+              <button className="flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-lg" style={{ background: "#1A2535", color: "#64748B", border: "1px solid #2D3E54" }}>
                 <RefreshCw size={10} /> 更新
               </button>
             </div>
             {operationLog.length === 0 && (
-              <div className="py-8 text-center" style={{ color: "#475569", fontSize: 13 }}>
+              <div className="py-8 text-center" style={{ color: "#475569", fontSize: 14 }}>
                 ログがありません
               </div>
             )}
             {operationLog.map(log => (
               <div key={log.id} className="rounded-xl px-3 py-2.5" style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
                 <div className="flex items-center justify-between mb-0.5">
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#F1F5F9" }}>{log.action}</span>
-                  <span style={{ fontSize: 10, color: "#475569" }}>{new Date(log.timestamp).toLocaleTimeString("ja-JP")}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>{log.action}</span>
+                  <span style={{ fontSize: 14, color: "#475569" }}>{new Date(log.timestamp).toLocaleTimeString("ja-JP")}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 10, color: "#64748B" }}>👤 {log.user}</span>
-                  <span style={{ fontSize: 10, color: "#475569" }}>· {new Date(log.timestamp).toLocaleDateString("ja-JP")}</span>
+                  <span style={{ fontSize: 14, color: "#64748B" }}>👤 {log.user}</span>
+                  <span style={{ fontSize: 14, color: "#475569" }}>· {new Date(log.timestamp).toLocaleDateString("ja-JP")}</span>
                 </div>
-                <p style={{ fontSize: 9, color: "#334155", marginTop: 2 }} className="truncate">{log.device}</p>
+                <p style={{ fontSize: 14, color: "#334155", marginTop: 2 }} className="truncate">{log.device}</p>
               </div>
             ))}
           </>
@@ -231,7 +231,7 @@ export default function DevPage() {
         {tab === "broadcast" && (
           <>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#94A3B8", marginBottom: 12 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "#94A3B8", marginBottom: 12 }}>
                 全 {allCompanies.length} 社への一斉通知を配信します
               </p>
               <textarea
@@ -247,8 +247,8 @@ export default function DevPage() {
               />
             </div>
             <div className="rounded-2xl p-3" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-              <p style={{ fontSize: 11, color: "#F97316", fontWeight: 700, marginBottom: 2 }}>実装予定</p>
-              <p style={{ fontSize: 11, color: "#64748B" }}>
+              <p style={{ fontSize: 14, color: "#F97316", fontWeight: 700, marginBottom: 2 }}>実装予定</p>
+              <p style={{ fontSize: 14, color: "#64748B" }}>
                 本番環境では Firebase Cloud Messaging または SendGrid を使用して、全ログインユーザーへプッシュ通知・メールを一斉配信します。
               </p>
             </div>

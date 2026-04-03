@@ -95,7 +95,7 @@ function ClientModal({
 
           {/* Name (required) */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>
               元請け名 <span style={{ color: C.red }}>*</span>
             </label>
             <input
@@ -110,14 +110,14 @@ function ClientModal({
                 color: C.text,
               }}
             />
-            {errors.name && <p style={{ fontSize: 11, color: C.red, marginTop: 4 }}>{errors.name}</p>}
-            <p style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>会社名・屋号・個人名のどれでも登録できます</p>
+            {errors.name && <p style={{ fontSize: 14, color: C.red, marginTop: 4 }}>{errors.name}</p>}
+            <p style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>会社名・屋号・個人名のどれでも登録できます</p>
           </div>
 
           {/* Contact */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>担当者名</label>
+              <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>担当者名</label>
               <input
                 value={form.contactName}
                 onChange={e => set("contactName", e.target.value)}
@@ -127,7 +127,7 @@ function ClientModal({
               />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>電話番号</label>
+              <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>電話番号</label>
               <input
                 value={form.phone}
                 onChange={e => set("phone", e.target.value)}
@@ -141,7 +141,7 @@ function ClientModal({
 
           {/* Email */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>メールアドレス</label>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>メールアドレス</label>
             <input
               value={form.email}
               onChange={e => set("email", e.target.value)}
@@ -154,7 +154,7 @@ function ClientModal({
 
           {/* Address */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>住所</label>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>住所</label>
             <input
               value={form.address}
               onChange={e => set("address", e.target.value)}
@@ -166,7 +166,7 @@ function ClientModal({
 
           {/* Status */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>ステータス</label>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>ステータス</label>
             <div className="flex gap-2">
               {(["active", "past", "suspended"] as ClientStatus[]).map(s => {
                 const m = STATUS_META[s];
@@ -175,7 +175,7 @@ function ClientModal({
                   <button
                     key={s}
                     onClick={() => set("status", s)}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                    className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                     style={{
                       background: on ? m.bg : C.bg,
                       color: on ? m.color : C.sub,
@@ -191,13 +191,13 @@ function ClientModal({
 
           {/* Memo */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>備考</label>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>備考</label>
             <textarea
               value={form.memo}
               onChange={e => set("memo", e.target.value)}
               placeholder="支払い条件・特記事項など"
               className="w-full rounded-xl px-4 py-3 outline-none resize-none"
-              style={{ minHeight: 80, fontSize: 13, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
+              style={{ minHeight: 80, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
             />
           </div>
 
@@ -282,7 +282,7 @@ export default function ClientsPage() {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text }}>元請け管理</h1>
-            <p style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>発注元・元請け会社の一覧</p>
+            <p style={{ fontSize: 14, color: C.sub, marginTop: 2 }}>発注元・元請け会社の一覧</p>
           </div>
           <button
             onClick={() => setModal({ mode: "add" })}
@@ -306,8 +306,8 @@ export default function ClientsPage() {
               className="rounded-xl p-3 text-center"
               style={{ background: C.card, border: `1px solid ${C.border}` }}
             >
-              <p style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{value}</p>
-              <p style={{ fontSize: 10, color: C.sub, marginTop: 1 }}>{label}</p>
+              <p style={{ fontSize: 28, fontWeight: 900, color: C.text }}>{value}</p>
+              <p style={{ fontSize: 14, color: C.sub, marginTop: 4 }}>{label}</p>
             </div>
           ))}
         </div>
@@ -346,7 +346,7 @@ export default function ClientsPage() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as "name" | "createdAt")}
-              className="bg-transparent outline-none text-xs font-bold"
+              className="bg-transparent outline-none text-sm font-bold"
               style={{ color: C.sub }}
             >
               <option value="createdAt">登録順</option>
@@ -357,7 +357,7 @@ export default function ClientsPage() {
           {/* Archive toggle */}
           <button
             onClick={() => setShowArchived(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold"
             style={showArchived
               ? { background: "#FFFBEB", color: C.amberDk, border: `1px solid ${C.amber}40` }
               : { background: C.card, color: C.sub, border: `1px solid ${C.border}` }}
@@ -371,7 +371,7 @@ export default function ClientsPage() {
       {/* Client list */}
       <div className="flex flex-col gap-3">
         {filtered.length === 0 && (
-          <div className="py-12 text-center" style={{ color: C.sub, fontSize: 13 }}>
+          <div className="py-12 text-center" style={{ color: C.sub, fontSize: 15 }}>
             {search ? "検索結果がありません" : showArchived ? "アーカイブはありません" : "元請けが登録されていません"}
           </div>
         )}
@@ -400,8 +400,8 @@ export default function ClientsPage() {
                   <div className="min-w-0">
                     <p style={{ fontSize: 15, fontWeight: 800, color: C.text }} className="truncate">{c.name}</p>
                     {c.contactName && (
-                      <p style={{ fontSize: 11, color: C.sub }}>
-                        <User size={9} style={{ display: "inline", marginRight: 3 }} />
+                      <p style={{ fontSize: 14, color: C.sub }}>
+                        <User size={12} style={{ display: "inline", marginRight: 3 }} />
                         {c.contactName}
                       </p>
                     )}
@@ -409,8 +409,7 @@ export default function ClientsPage() {
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: sm.bg, color: sm.color }}
+                    style={{ fontSize: 14, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: sm.bg, color: sm.color }}
                   >
                     {sm.label}
                   </span>
@@ -438,19 +437,19 @@ export default function ClientsPage() {
                 {c.phone && (
                   <div className="flex items-center gap-2">
                     <Phone size={11} color={C.muted} />
-                    <span style={{ fontSize: 12, color: C.sub }}>{c.phone}</span>
+                    <span style={{ fontSize: 14, color: C.sub }}>{c.phone}</span>
                   </div>
                 )}
                 {c.email && (
                   <div className="flex items-center gap-2">
                     <Mail size={11} color={C.muted} />
-                    <span style={{ fontSize: 12, color: C.sub }} className="truncate">{c.email}</span>
+                    <span style={{ fontSize: 14, color: C.sub }} className="truncate">{c.email}</span>
                   </div>
                 )}
                 {c.address && (
                   <div className="flex items-center gap-2">
                     <MapPin size={11} color={C.muted} />
-                    <span style={{ fontSize: 12, color: C.sub }} className="truncate">{c.address}</span>
+                    <span style={{ fontSize: 14, color: C.sub }} className="truncate">{c.address}</span>
                   </div>
                 )}
               </div>
@@ -458,12 +457,12 @@ export default function ClientsPage() {
               {/* Memo */}
               {c.memo && (
                 <div className="mt-2 rounded-xl px-3 py-2" style={{ background: C.bg }}>
-                  <p style={{ fontSize: 11, color: C.sub }} className="line-clamp-2">{c.memo}</p>
+                  <p style={{ fontSize: 14, color: C.sub }} className="line-clamp-2">{c.memo}</p>
                 </div>
               )}
 
               {/* Footer */}
-              <p style={{ fontSize: 10, color: C.muted, marginTop: 8 }}>
+              <p style={{ fontSize: 14, color: C.muted, marginTop: 8 }}>
                 登録: {new Date(c.createdAt).toLocaleDateString("ja-JP")}
                 {c.updatedAt !== c.createdAt && ` · 更新: ${new Date(c.updatedAt).toLocaleDateString("ja-JP")}`}
               </p>

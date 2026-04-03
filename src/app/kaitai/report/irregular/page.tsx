@@ -62,7 +62,7 @@ function IrregularPageInner() {
         <CheckCircle size={96} color="#B71C1C" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#B71C1C", marginTop: 24 }}>報告送信完了</p>
         <p style={{ fontSize: 15, color: "#C62828", marginTop: 8 }}>{siteName}</p>
-        <p style={{ fontSize: 13, color: "#888", marginTop: 4 }}>管理者へ通知されました</p>
+        <p style={{ fontSize: 14, color: "#888", marginTop: 4 }}>管理者へ通知されました</p>
       </div>
     );
   }
@@ -74,7 +74,7 @@ function IrregularPageInner() {
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#FEF2F2" }}>
             <ChevronLeft size={20} style={{ color: "#EF4444" }} />
           </button>
-          <span style={{ fontSize: 13, color: "#888" }}>{siteName}</span>
+          <span style={{ fontSize: 14, color: "#888" }}>{siteName}</span>
         </div>
         <div className="flex items-center gap-2">
           <AlertTriangle size={24} color="#B71C1C" />
@@ -87,7 +87,7 @@ function IrregularPageInner() {
 
         {/* Category */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>カテゴリ（必須）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>カテゴリ（必須）</p>
           <div className="grid grid-cols-3 gap-2">
             {CATEGORIES.map(c => {
               const on = category === c.id;
@@ -102,7 +102,7 @@ function IrregularPageInner() {
                   }}
                 >
                   <span style={{ fontSize: 24 }}>{c.emoji}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: on ? "#B71C1C" : "#666" }}>{c.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: on ? "#B71C1C" : "#666" }}>{c.label}</span>
                 </button>
               );
             })}
@@ -111,7 +111,7 @@ function IrregularPageInner() {
 
         {/* Urgency */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>緊急度</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#9CA3AF" }}>緊急度</p>
           <div className="flex gap-2">
             {URGENCY.map(u => {
               const on = urgency === u.id;
@@ -136,7 +136,7 @@ function IrregularPageInner() {
 
         {/* Reporter */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>報告者</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>報告者</p>
           <div className="flex flex-wrap gap-2">
             {MEMBERS.map(m => {
               const on = reporter === m.id;
@@ -161,7 +161,7 @@ function IrregularPageInner() {
 
         {/* Memo */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>状況メモ（必須）</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>状況メモ（必須）</p>
           <textarea
             value={memo}
             onChange={e => setMemo(e.target.value)}
@@ -178,13 +178,13 @@ function IrregularPageInner() {
 
         {/* Photo */}
         <section>
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
+          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: "#9CA3AF" }}>現場写真</p>
           <button
             className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
             style={{ height: 90, background: "#FEF2F2", border: "2px dashed #FECACA" }}
           >
             <Camera size={26} color="#F87171" />
-            <span style={{ fontSize: 13, color: "#F87171", fontWeight: 600 }}>タップして写真を追加（実装予定）</span>
+            <span style={{ fontSize: 14, color: "#F87171", fontWeight: 600 }}>タップして写真を追加（実装予定）</span>
           </button>
         </section>
 

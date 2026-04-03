@@ -15,7 +15,7 @@ import type { LatLng } from "../../lib/geocode";
 
 const MapPicker = dynamic(
   () => import("../../components/map-picker").then(m => m.MapPicker),
-  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 12, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 300, background: "#F1F5F9", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
 );
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
         <button
           key={i}
           onClick={() => onChange(i)}
-          className="flex-1 py-3 text-xs font-bold transition-all"
+          className="flex-1 py-3 text-sm font-bold transition-all"
           style={{
             color: active === i ? C.amber : C.muted,
             borderBottom: active === i ? `2px solid ${C.amber}` : "2px solid transparent",
@@ -112,7 +112,7 @@ function TabBar({ active, onChange }: { active: number; onChange: (i: number) =>
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[11px] font-bold tracking-widest uppercase mb-3"
+      className="text-sm font-bold tracking-widest uppercase mb-3"
       style={{ color: C.amber }}
     >
       {children}
@@ -122,7 +122,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <p className="text-xs font-bold mb-1.5" style={{ color: C.sub }}>
+    <p className="text-sm font-bold mb-1.5" style={{ color: C.sub }}>
       {children}
       {required && <span className="ml-1" style={{ color: C.red }}>*</span>}
     </p>
@@ -344,13 +344,13 @@ export default function SiteNewPage() {
             <h1 className="text-xl font-bold" style={{ color: C.text }}>
               現場登録
             </h1>
-            <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+            <p className="text-sm mt-0.5" style={{ color: C.muted }}>
               ※ 必須項目（*）以外は後から入力できます
             </p>
           </div>
           {/* Status chip */}
           <button
-            className="px-3 py-1.5 rounded-full text-xs font-bold"
+            className="px-3 py-1.5 rounded-full text-sm font-bold"
             style={{
               background: STATUS_STYLE[status].bg,
               color: STATUS_STYLE[status].color,
@@ -394,7 +394,7 @@ export default function SiteNewPage() {
                       highlight={!name.trim() && saved}
                     />
                     {!name.trim() && saved && (
-                      <p className="text-xs mt-1" style={{ color: C.red }}>現場名は必須です</p>
+                      <p className="text-sm mt-1" style={{ color: C.red }}>現場名は必須です</p>
                     )}
                   </div>
 
@@ -429,7 +429,7 @@ export default function SiteNewPage() {
                         <button
                           key={v}
                           onClick={() => setClientType(v)}
-                          className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                          className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                           style={clientType === v
                             ? { background: "#FFFBEB", color: C.amberDk, border: `1.5px solid #FDE68A` }
                             : { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}` }}
@@ -463,7 +463,7 @@ export default function SiteNewPage() {
                       />
                     )}
                     {clientType === "none" && (
-                      <p style={{ fontSize: 11, color: C.muted }}>直接依頼の場合も元請け未設定のままで登録できます</p>
+                      <p style={{ fontSize: 14, color: C.muted }}>直接依頼の場合も元請け未設定のままで登録できます</p>
                     )}
                   </div>
                 </div>
@@ -478,7 +478,7 @@ export default function SiteNewPage() {
                     <FieldLabel>工期</FieldLabel>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>着工日</p>
+                        <p className="text-sm mb-1" style={{ color: C.muted }}>着工日</p>
                         <InputField
                           type="date"
                           value={startDate}
@@ -487,10 +487,10 @@ export default function SiteNewPage() {
                       </div>
                       <span className="text-sm font-bold" style={{ color: C.border, paddingTop: 18 }}>〜</span>
                       <div className="flex-1">
-                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>
+                        <p className="text-sm mb-1" style={{ color: C.muted }}>
                           完工予定日
                           {extendedEnd && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700">
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-sm font-bold bg-amber-100 text-amber-700">
                               延長中
                             </span>
                           )}
@@ -508,7 +508,7 @@ export default function SiteNewPage() {
                     {!showExtend ? (
                       <button
                         onClick={() => setShowExtend(true)}
-                        className="mt-2 flex items-center gap-1.5 text-xs font-semibold"
+                        className="mt-2 flex items-center gap-1.5 text-sm font-semibold"
                         style={{ color: C.amber }}
                       >
                         <Plus size={12} /> 工期延長を記録する
@@ -519,7 +519,7 @@ export default function SiteNewPage() {
                         style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold" style={{ color: C.amberDk }}>
+                          <p className="text-sm font-bold" style={{ color: C.amberDk }}>
                             工期延長
                           </p>
                           <button onClick={() => { setShowExtend(false); setExtendedEnd(""); setExtendReason(""); }}>
@@ -527,7 +527,7 @@ export default function SiteNewPage() {
                           </button>
                         </div>
                         <div>
-                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長後完工予定日</p>
+                          <p className="text-sm mb-1" style={{ color: C.muted }}>延長後完工予定日</p>
                           <InputField
                             type="date"
                             value={extendedEnd}
@@ -535,7 +535,7 @@ export default function SiteNewPage() {
                           />
                         </div>
                         <div>
-                          <p className="text-[10px] mb-1" style={{ color: C.muted }}>延長理由</p>
+                          <p className="text-sm mb-1" style={{ color: C.muted }}>延長理由</p>
                           <InputField
                             value={extendReason}
                             onChange={setExtendReason}
@@ -554,7 +554,7 @@ export default function SiteNewPage() {
                         <button
                           key={s}
                           onClick={() => setStatus(s)}
-                          className="px-4 py-2 rounded-full text-xs font-bold transition-all"
+                          className="px-4 py-2 rounded-full text-sm font-bold transition-all"
                           style={
                             status === s
                               ? {
@@ -594,19 +594,19 @@ export default function SiteNewPage() {
                 <SectionLabel>登録サマリー</SectionLabel>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>現場名</p>
+                    <p className="text-sm mb-0.5" style={{ color: C.muted }}>現場名</p>
                     <p className="text-sm font-semibold" style={{ color: name ? C.text : C.muted }}>
                       {name || "未入力"}
                     </p>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>住所</p>
+                    <p className="text-sm mb-0.5" style={{ color: C.muted }}>住所</p>
                     <p className="text-sm" style={{ color: address ? C.text : C.muted }}>
                       {address || "未入力"}
                     </p>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>工期</p>
+                    <p className="text-sm mb-0.5" style={{ color: C.muted }}>工期</p>
                     <p className="text-sm" style={{ color: startDate || endDate ? C.text : C.muted }}>
                       {startDate || endDate
                         ? `${startDate || "—"} 〜 ${extendedEnd || endDate || "—"}`
@@ -614,9 +614,9 @@ export default function SiteNewPage() {
                     </p>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>ステータス</p>
+                    <p className="text-sm mb-1" style={{ color: C.muted }}>ステータス</p>
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-bold"
+                      className="px-3 py-1 rounded-full text-sm font-bold"
                       style={{
                         background: STATUS_STYLE[status].bg,
                         color: STATUS_STYLE[status].color,
@@ -656,7 +656,7 @@ export default function SiteNewPage() {
                           className="flex items-center justify-between px-3 py-2 rounded-xl"
                           style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
                         >
-                          <span className="text-xs" style={{ color: C.sub }}>消費税（10%）</span>
+                          <span className="text-sm" style={{ color: C.sub }}>消費税（10%）</span>
                           <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
                             ＋¥{taxAmount.toLocaleString()}
                           </span>
@@ -665,7 +665,7 @@ export default function SiteNewPage() {
                           className="flex items-center justify-between px-3 py-2 rounded-xl"
                           style={{ background: C.bg, border: `1px solid ${C.border}` }}
                         >
-                          <span className="text-xs" style={{ color: C.sub }}>税込金額</span>
+                          <span className="text-sm" style={{ color: C.sub }}>税込金額</span>
                           <span className="text-sm font-bold" style={{ color: C.text }}>
                             ¥{(contractNum + taxAmount).toLocaleString()}
                           </span>
@@ -693,7 +693,7 @@ export default function SiteNewPage() {
                         {icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] mb-1" style={{ color: C.muted }}>{label}</p>
+                        <p className="text-sm mb-1" style={{ color: C.muted }}>{label}</p>
                         <AmountInput value={val} onChange={set} placeholder="0" />
                       </div>
                     </div>
@@ -713,13 +713,13 @@ export default function SiteNewPage() {
                         style={{ background: "#FFFBEB", border: `1px solid #FDE68A` }}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold" style={{ color: C.amberDk }}>{entry.field}</span>
-                          <span className="text-[10px]" style={{ color: C.muted }}>{entry.timestamp}</span>
+                          <span className="text-sm font-bold" style={{ color: C.amberDk }}>{entry.field}</span>
+                          <span className="text-sm" style={{ color: C.muted }}>{entry.timestamp}</span>
                         </div>
-                        <p className="text-[10px]" style={{ color: C.sub }}>
+                        <p className="text-sm" style={{ color: C.sub }}>
                           {entry.before} → {entry.after}
                         </p>
-                        <p className="text-[10px] mt-0.5 font-medium" style={{ color: C.text }}>
+                        <p className="text-sm mt-0.5 font-medium" style={{ color: C.text }}>
                           理由：{entry.reason}
                         </p>
                       </div>
@@ -755,7 +755,7 @@ export default function SiteNewPage() {
 
                   {/* Profit % gauge */}
                   <div className="mb-4">
-                    <div className="flex items-center justify-between text-[10px] mb-1" style={{ color: C.muted }}>
+                    <div className="flex items-center justify-between text-sm mb-1" style={{ color: C.muted }}>
                       <span>利益率</span>
                       <span style={{ color: profitColor, fontWeight: "bold" }}>{profitPct}%</span>
                     </div>
@@ -774,7 +774,7 @@ export default function SiteNewPage() {
                       />
                     </div>
                     <div
-                      className="flex justify-between text-[9px] mt-1"
+                      className="flex justify-between text-sm mt-1"
                       style={{ color: C.muted }}
                     >
                       <span>0%</span>
@@ -796,8 +796,8 @@ export default function SiteNewPage() {
                       .filter(({ value }) => value !== 0)
                       .map(({ label, value, color }) => (
                         <div key={label} className="flex items-center justify-between">
-                          <span className="text-[10px]" style={{ color: C.muted }}>{label}</span>
-                          <span className="text-xs font-semibold" style={{ color }}>
+                          <span className="text-sm" style={{ color: C.muted }}>{label}</span>
+                          <span className="text-sm font-semibold" style={{ color }}>
                             {value > 0 ? "+" : ""}¥{Math.abs(value).toLocaleString()}
                           </span>
                         </div>
@@ -806,7 +806,7 @@ export default function SiteNewPage() {
                       className="flex items-center justify-between pt-1.5 mt-0.5"
                       style={{ borderTop: `1px solid ${C.border}` }}
                     >
-                      <span className="text-xs font-bold" style={{ color: C.sub }}>利益</span>
+                      <span className="text-sm font-bold" style={{ color: C.sub }}>利益</span>
                       <span className="text-sm font-bold" style={{ color: profitColor }}>
                         {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
                       </span>
@@ -816,7 +816,7 @@ export default function SiteNewPage() {
               ) : (
                 <Card>
                   <SectionLabel>利益シミュレーション</SectionLabel>
-                  <p className="text-xs text-center py-6" style={{ color: C.muted }}>
+                  <p className="text-sm text-center py-6" style={{ color: C.muted }}>
                     契約金額を入力すると利益シミュレーションが表示されます
                   </p>
                 </Card>
@@ -878,7 +878,7 @@ export default function SiteNewPage() {
                           type="number"
                         />
                         <span
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm"
                           style={{ color: C.muted }}
                         >㎡</span>
                       </div>
@@ -889,7 +889,7 @@ export default function SiteNewPage() {
                         style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
                       >
                         <Info size={13} style={{ color: "#3B82F6" }} />
-                        <p className="text-xs" style={{ color: "#3B82F6" }}>
+                        <p className="text-sm" style={{ color: "#3B82F6" }}>
                           <span style={{ fontWeight: "bold" }}>{structureType}</span> {area}㎡ の場合、
                           産廃発生量の目安は約 <span style={{ fontWeight: "bold" }}>{estWaste}㎥</span> です
                         </p>
@@ -910,7 +910,7 @@ export default function SiteNewPage() {
                         <button
                           key={level}
                           onClick={() => setAsbestos(level)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all"
                           style={
                             asbestos === level
                               ? {
@@ -938,7 +938,7 @@ export default function SiteNewPage() {
                         style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
                       >
                         <AlertTriangle size={13} style={{ color: "#DC2626" }} />
-                        <p className="text-xs" style={{ color: "#DC2626" }}>
+                        <p className="text-sm" style={{ color: "#DC2626" }}>
                           アスベスト含有材は特別管理産業廃棄物として別途処理が必要です
                         </p>
                       </div>
@@ -993,7 +993,7 @@ export default function SiteNewPage() {
                       <button
                         key={util}
                         onClick={() => toggleUtil(util)}
-                        className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all"
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl font-semibold text-sm transition-all"
                         style={
                           utils.has(util)
                             ? {
@@ -1011,7 +1011,7 @@ export default function SiteNewPage() {
                         <span style={{ color: utils.has(util) ? color : "#CBD5E1" }}>{icon}</span>
                         {util}
                         <span
-                          className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                          className="text-sm px-1.5 py-0.5 rounded-full font-bold"
                           style={
                             utils.has(util)
                               ? { background: `${color}20`, color }
@@ -1072,7 +1072,7 @@ export default function SiteNewPage() {
                     style={{ background: C.bg, border: `2px dashed ${C.border}` }}
                   >
                     <Camera size={16} style={{ color: C.muted }} />
-                    <span className="text-[9px]" style={{ color: C.muted }}>写真追加</span>
+                    <span className="text-sm" style={{ color: C.muted }}>写真追加</span>
                   </button>
                   <input
                     ref={photoInputRef}
@@ -1094,7 +1094,7 @@ export default function SiteNewPage() {
                   style={{ background: C.bg, border: `2px dashed ${C.border}` }}
                 >
                   <Upload size={15} style={{ color: C.muted }} />
-                  <span className="text-xs" style={{ color: C.sub }}>
+                  <span className="text-sm" style={{ color: C.sub }}>
                     {files.length > 0
                       ? `${files.length}件 のファイルが添付されています`
                       : "見積書・図面（PDF）をアップロード"}
@@ -1120,7 +1120,7 @@ export default function SiteNewPage() {
                         style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
                       >
                         <FileText size={12} style={{ color: "#3B82F6" }} />
-                        <span className="flex-1 text-xs truncate" style={{ color: C.text }}>{f}</span>
+                        <span className="flex-1 text-sm truncate" style={{ color: C.text }}>{f}</span>
                         <button onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}>
                           <X size={12} style={{ color: C.muted }} />
                         </button>
@@ -1137,7 +1137,7 @@ export default function SiteNewPage() {
                 <SectionLabel>現場リスクサマリー</SectionLabel>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>構造種別</p>
+                    <p className="text-sm mb-0.5" style={{ color: C.muted }}>構造種別</p>
                     <p className="text-sm font-semibold" style={{ color: structureType ? C.text : C.muted }}>
                       {structureType
                         ? `${STRUCTURE_TYPES.find(s => s.type === structureType)?.icon} ${structureType}`
@@ -1145,20 +1145,20 @@ export default function SiteNewPage() {
                     </p>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>延床面積</p>
+                    <p className="text-sm mb-0.5" style={{ color: C.muted }}>延床面積</p>
                     <p className="text-sm font-semibold" style={{ color: area ? C.text : C.muted }}>
                       {area ? `${area} ㎡` : "未入力"}
                     </p>
                     {estWaste !== null && (
-                      <p className="text-xs mt-0.5" style={{ color: C.sub }}>
+                      <p className="text-sm mt-0.5" style={{ color: C.sub }}>
                         産廃目安：約 {estWaste}㎥
                       </p>
                     )}
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>アスベスト</p>
+                    <p className="text-sm mb-1" style={{ color: C.muted }}>アスベスト</p>
                     <span
-                      className="px-2.5 py-1 rounded-full text-xs font-bold"
+                      className="px-2.5 py-1 rounded-full text-sm font-bold"
                       style={{
                         background: `${ASBESTOS_LEVELS.find(a => a.level === asbestos)?.color ?? C.muted}18`,
                         color: ASBESTOS_LEVELS.find(a => a.level === asbestos)?.color ?? C.muted,
@@ -1169,15 +1169,15 @@ export default function SiteNewPage() {
                     </span>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-                    <p className="text-[10px] mb-1" style={{ color: C.muted }}>接続中の設備</p>
+                    <p className="text-sm mb-1" style={{ color: C.muted }}>接続中の設備</p>
                     <div className="flex gap-1 flex-wrap">
                       {utils.size === 0 ? (
-                        <span className="text-xs" style={{ color: C.muted }}>なし</span>
+                        <span className="text-sm" style={{ color: C.muted }}>なし</span>
                       ) : (
                         Array.from(utils).map(u => (
                           <span
                             key={u}
-                            className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                            className="px-2 py-0.5 rounded-full text-sm font-semibold"
                             style={{ background: C.bg, border: `1px solid ${C.border}`, color: C.sub }}
                           >
                             {u}
@@ -1220,7 +1220,7 @@ export default function SiteNewPage() {
                     <button
                       key={preset.name}
                       onClick={() => setItems(prev => [...prev, { ...preset }])}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
                       style={{ background: "#FFFBEB", color: C.amberDk, border: `1px solid #FDE68A` }}
                     >
                       <Plus size={10} /> {preset.name}
@@ -1233,7 +1233,7 @@ export default function SiteNewPage() {
               {items.length === 0 && (
                 <div className="py-10 flex flex-col items-center gap-2" style={{ color: C.muted }}>
                   <FileText size={32} style={{ color: C.border }} />
-                  <p className="text-xs">上のボタンか「行を追加」で明細を入力してください</p>
+                  <p className="text-sm">上のボタンか「行を追加」で明細を入力してください</p>
                 </div>
               )}
 
@@ -1248,7 +1248,7 @@ export default function SiteNewPage() {
                     {/* 項目名 + 削除 */}
                     <div className="flex gap-2 items-center">
                       <div
-                        className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
+                        className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-bold"
                         style={{ background: C.amber, color: "#fff" }}
                       >
                         {i + 1}
@@ -1269,7 +1269,7 @@ export default function SiteNewPage() {
                       value={item.spec}
                       onChange={e => updateItem(i, "spec", e.target.value)}
                       placeholder="仕様・内容（例：木造2階建 148㎡）"
-                      className="w-full px-3 py-2 rounded-xl text-xs outline-none"
+                      className="w-full px-3 py-2 rounded-xl text-sm outline-none"
                       style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.sub, fontFamily: "inherit" }}
                     />
                     {/* 数量 × 単位 × 単価 = 金額 */}
@@ -1289,9 +1289,9 @@ export default function SiteNewPage() {
                         className="py-2 rounded-xl text-sm text-center outline-none"
                         style={{ width: 48, background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
                       />
-                      <span className="text-xs" style={{ color: C.muted }}>×</span>
+                      <span className="text-sm" style={{ color: C.muted }}>×</span>
                       <div className="relative flex-1">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: C.muted }}>¥</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: C.muted }}>¥</span>
                         <input
                           type="number"
                           value={item.unitPrice || ""}
@@ -1301,7 +1301,7 @@ export default function SiteNewPage() {
                           style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
                         />
                       </div>
-                      <span className="text-xs font-bold flex-shrink-0" style={{ color: C.amberDk, minWidth: 68, textAlign: "right" }}>
+                      <span className="text-sm font-bold flex-shrink-0" style={{ color: C.amberDk, minWidth: 68, textAlign: "right" }}>
                         ={" "}{item.qty * item.unitPrice > 0
                           ? `¥${(item.qty * item.unitPrice).toLocaleString()}`
                           : "—"}
@@ -1328,11 +1328,11 @@ export default function SiteNewPage() {
                   <SectionLabel>明細合計</SectionLabel>
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs" style={{ color: C.muted }}>小計（税抜）</span>
+                      <span className="text-sm" style={{ color: C.muted }}>小計（税抜）</span>
                       <span className="text-sm font-bold" style={{ color: C.text }}>¥{itemsTotal.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs" style={{ color: C.muted }}>消費税（10%）</span>
+                      <span className="text-sm" style={{ color: C.muted }}>消費税（10%）</span>
                       <span className="text-sm" style={{ color: C.sub }}>¥{itemsTax.toLocaleString()}</span>
                     </div>
                     <div
@@ -1344,7 +1344,7 @@ export default function SiteNewPage() {
                     </div>
                     {contractNum > 0 && itemsTotal > 0 && (
                       <div
-                        className="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl text-xs"
+                        className="flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl text-sm"
                         style={{
                           background: Math.abs(itemsDiff) < contractNum * 0.01 ? "#F0FDF4" : itemsDiff >= 0 ? "#FFFBEB" : "#FEF2F2",
                           color: Math.abs(itemsDiff) < contractNum * 0.01 ? "#16A34A" : itemsDiff >= 0 ? C.amberDk : "#DC2626",
@@ -1366,7 +1366,7 @@ export default function SiteNewPage() {
               ) : (
                 <Card>
                   <SectionLabel>明細合計</SectionLabel>
-                  <p className="text-xs text-center py-6" style={{ color: C.muted }}>
+                  <p className="text-sm text-center py-6" style={{ color: C.muted }}>
                     明細を追加すると合計が表示されます
                   </p>
                 </Card>
@@ -1435,7 +1435,7 @@ export default function SiteNewPage() {
               </div>
               <div>
                 <p className="font-bold" style={{ color: C.text }}>変更理由を記録</p>
-                <p className="text-xs" style={{ color: C.muted }}>
+                <p className="text-sm" style={{ color: C.muted }}>
                   {pendingChange.field}を変更しました
                 </p>
               </div>
@@ -1446,14 +1446,14 @@ export default function SiteNewPage() {
               style={{ background: C.bg, border: `1px solid ${C.border}` }}
             >
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更前</p>
+                <p className="text-sm mb-0.5" style={{ color: C.muted }}>変更前</p>
                 <p className="text-sm font-bold line-through" style={{ color: C.red }}>
                   {pendingChange.before}
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: C.border }} />
               <div className="flex-1 text-center">
-                <p className="text-[10px] mb-0.5" style={{ color: C.muted }}>変更後</p>
+                <p className="text-sm mb-0.5" style={{ color: C.muted }}>変更後</p>
                 <p className="text-sm font-bold" style={{ color: "#16A34A" }}>
                   {pendingChange.after}
                 </p>
@@ -1461,7 +1461,7 @@ export default function SiteNewPage() {
             </div>
 
             <div>
-              <p className="text-xs font-bold mb-2" style={{ color: C.sub }}>変更理由</p>
+              <p className="text-sm font-bold mb-2" style={{ color: C.sub }}>変更理由</p>
               <textarea
                 value={changeReason}
                 onChange={(e) => setChangeReason(e.target.value)}

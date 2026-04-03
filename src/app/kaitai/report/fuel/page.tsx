@@ -67,7 +67,7 @@ function FuelContent() {
         <p className="text-sm" style={{ color: "#94A3B8" }}>
           {selectedEq?.name} / {litersNum}L / ¥{totalCost.toLocaleString()}
         </p>
-        <p className="text-xs" style={{ color: "#475569" }}>現場トップに戻ります…</p>
+        <p className="text-sm" style={{ color: "#475569" }}>現場トップに戻ります…</p>
       </div>
     );
   }
@@ -93,7 +93,7 @@ function FuelContent() {
           </div>
           <div>
             <h1 className="text-xl font-bold" style={{ color: "#111827" }}>給油報告</h1>
-            <p className="text-xs" style={{ color: "#9CA3AF" }}>{siteName}</p>
+            <p className="text-sm" style={{ color: "#9CA3AF" }}>{siteName}</p>
           </div>
         </div>
       </header>
@@ -102,7 +102,7 @@ function FuelContent() {
 
         {/* 機材選択 */}
         <div>
-          <p className="text-xs font-bold mb-2" style={{ color: "#475569" }}>給油した機材・車両</p>
+          <p className="text-sm font-bold mb-2" style={{ color: "#475569" }}>給油した機材・車両</p>
           <div className="flex flex-col gap-2">
             {siteEquipment.length === 0 ? (
               <p className="text-sm py-4 text-center rounded-2xl" style={{ background: "#F3F4F6", color: "#9CA3AF" }}>
@@ -125,7 +125,7 @@ function FuelContent() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{eq.name}</p>
-                    <p className="text-xs" style={{ color: "#9CA3AF" }}>{eq.supplier}</p>
+                    <p className="text-sm" style={{ color: "#9CA3AF" }}>{eq.supplier}</p>
                   </div>
                   {selectedEqId === eq.id && (
                     <div
@@ -143,7 +143,7 @@ function FuelContent() {
 
         {/* 給油量 */}
         <div>
-          <p className="text-xs font-bold mb-2" style={{ color: "#475569" }}>給油量（リットル）</p>
+          <p className="text-sm font-bold mb-2" style={{ color: "#475569" }}>給油量（リットル）</p>
           <div className="relative">
             <input
               type="number"
@@ -164,7 +164,7 @@ function FuelContent() {
 
         {/* 単価 */}
         <div>
-          <p className="text-xs font-bold mb-2" style={{ color: "#475569" }}>燃料単価（円/L）</p>
+          <p className="text-sm font-bold mb-2" style={{ color: "#475569" }}>燃料単価（円/L）</p>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: "#9CA3AF" }}>¥</span>
             <input
@@ -192,7 +192,7 @@ function FuelContent() {
 
         {/* メモ */}
         <div>
-          <p className="text-xs font-bold mb-2" style={{ color: "#475569" }}>メモ（任意）</p>
+          <p className="text-sm font-bold mb-2" style={{ color: "#475569" }}>メモ（任意）</p>
           <textarea
             value={memo}
             onChange={e => setMemo(e.target.value)}

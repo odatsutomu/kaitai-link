@@ -176,12 +176,12 @@ export function MapPicker({ address, value, onChange }: Props) {
           地図で住所を確認
         </button>
         {geocoded && (
-          <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "#10B981" }}>
+          <span className="flex items-center gap-1 text-sm font-medium" style={{ color: "#10B981" }}>
             <CheckCircle2 size={13} /> 位置を取得しました
           </span>
         )}
         {error && (
-          <span className="text-xs font-medium" style={{ color: "#EF4444" }}>{error}</span>
+          <span className="text-sm font-medium" style={{ color: "#EF4444" }}>{error}</span>
         )}
       </div>
 
@@ -198,12 +198,12 @@ export function MapPicker({ address, value, onChange }: Props) {
       {/* 座標表示 + ヒント */}
       <div className="flex items-center justify-between">
         {value ? (
-          <p className="text-xs font-mono" style={{ color: "#64748B" }}>
+          <p className="text-sm font-mono" style={{ color: "#64748B" }}>
             <MapPin size={11} style={{ display: "inline", marginRight: 3, color: "#F59E0B" }} />
             {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
           </p>
         ) : (
-          <p className="text-xs" style={{ color: "#94A3B8" }}>
+          <p className="text-sm" style={{ color: "#94A3B8" }}>
             地図をクリック、またはピンをドラッグして位置を確定
           </p>
         )}
@@ -211,7 +211,7 @@ export function MapPicker({ address, value, onChange }: Props) {
           <button
             type="button"
             onClick={() => { onChange(null); markerRef.current?.remove(); markerRef.current = null; }}
-            className="text-xs underline"
+            className="text-sm underline"
             style={{ color: "#94A3B8" }}
           >
             リセット

@@ -210,7 +210,7 @@ export default function AttendancePage({
         </div>
         <h2 className="text-2xl font-bold mb-2" style={{ color: "#F1F5F9" }}>報告が完了しました</h2>
         <p className="text-sm mb-1" style={{ color: "#94A3B8" }}>{siteName}</p>
-        <p className="text-xs mb-8" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-8" style={{ color: "#64748B" }}>
           産廃 ¥{totalWasteCost.toLocaleString()} · 経費 ¥{totalExpense.toLocaleString()}
         </p>
         <Link href="/kaitai">
@@ -240,7 +240,7 @@ export default function AttendancePage({
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
             style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.2)" }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#4ADE80" }} />
-            <span className="text-xs font-semibold" style={{ color: "#4ADE80" }}>LIVE</span>
+            <span className="text-sm font-semibold" style={{ color: "#4ADE80" }}>LIVE</span>
           </div>
         </div>
 
@@ -254,7 +254,7 @@ export default function AttendancePage({
             <div key={label} className="rounded-2xl py-2.5 text-center"
               style={{ background: "#1A2535", border: "1px solid #2D3E54" }}>
               <p className="text-xl font-bold" style={{ color }}>{value}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "#64748B" }}>{label}</p>
+              <p className="text-sm mt-0.5" style={{ color: "#64748B" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -264,7 +264,7 @@ export default function AttendancePage({
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl"
             style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
             <Crown size={12} fill="#FBBF24" style={{ color: "#FBBF24" }} />
-            <p className="text-xs" style={{ color: "#94A3B8" }}>
+            <p className="text-sm" style={{ color: "#94A3B8" }}>
               <span style={{ color: "#FBBF24", fontWeight: 700 }}>{lead.name}</span> の退勤で終了報告が開始されます
             </p>
           </div>
@@ -313,13 +313,13 @@ export default function AttendancePage({
                         {member.name}
                       </span>
                       {member.isLead && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
+                        <span className="text-sm px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
                           style={{ background: "rgba(251,191,36,0.12)", color: "#FBBF24" }}>
                           責任者
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px]" style={{ color: "#475569" }}>
+                    <div className="flex items-center gap-2 text-sm" style={{ color: "#475569" }}>
                       <Clock size={9} />
                       <span>IN {member.clockIn}</span>
                       {member.clockOut && <span>→ OUT {member.clockOut}</span>}
@@ -328,7 +328,7 @@ export default function AttendancePage({
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full font-bold"
+                    <span className="text-sm px-2.5 py-1 rounded-full font-bold"
                       style={{ background: cfg.bg, color: cfg.fg }}>
                       {cfg.label}
                     </span>
@@ -348,11 +348,11 @@ export default function AttendancePage({
 
                   {/* Phone shortcut */}
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs" style={{ color: "#94A3B8" }}>
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>
                       アクションを選択してください
                     </p>
                     <a href={`tel:${member.phone}`}>
-                      <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold"
+                      <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-sm font-semibold"
                         style={{ background: "rgba(34,197,94,0.1)", color: "#4ADE80", border: "1px solid rgba(34,197,94,0.2)" }}>
                         <Phone size={11} />
                         電話
@@ -415,7 +415,7 @@ export default function AttendancePage({
 
                   {/* Lead hint */}
                   {member.isLead && member.status === "勤務中" && (
-                    <p className="text-[10px] text-center" style={{ color: "#64748B" }}>
+                    <p className="text-sm text-center" style={{ color: "#64748B" }}>
                       ⚠️ 退勤すると【最終報告画面】が開始されます
                     </p>
                   )}
@@ -434,7 +434,7 @@ export default function AttendancePage({
           <div className="px-5 pt-12 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #2D3E54" }}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-xs" style={{ color: "#64748B" }}>最終報告 — {siteName}</p>
+                <p className="text-sm" style={{ color: "#64748B" }}>最終報告 — {siteName}</p>
                 <h2 className="text-lg font-bold" style={{ color: "#F1F5F9" }}>
                   {REPORT_STEPS[reportStep]}
                 </h2>
@@ -518,11 +518,11 @@ export default function AttendancePage({
                     style={{ background: "#1A2535", border: "1.5px dashed #2D3E54" }}
                   >
                     <Camera size={20} style={{ color: "#64748B" }} />
-                    <span className="text-[10px]" style={{ color: "#64748B" }}>追加</span>
+                    <span className="text-sm" style={{ color: "#64748B" }}>追加</span>
                   </button>
                 </div>
                 {reportPhotos === 0 && (
-                  <p className="text-center text-xs" style={{ color: "#475569" }}>写真なしでもスキップできます</p>
+                  <p className="text-center text-sm" style={{ color: "#475569" }}>写真なしでもスキップできます</p>
                 )}
               </div>
             )}
@@ -556,7 +556,7 @@ export default function AttendancePage({
                           <span className="text-base font-bold" style={{ color: active ? "#F97316" : "#475569" }}>
                             {qty}
                           </span>
-                          <span className="text-[10px] ml-0.5" style={{ color: "#64748B" }}>{item.unit}</span>
+                          <span className="text-sm ml-0.5" style={{ color: "#64748B" }}>{item.unit}</span>
                         </div>
                         <button
                           onClick={() => adjustWaste(item.id, item.step)}
@@ -567,7 +567,7 @@ export default function AttendancePage({
                         </button>
                       </div>
                       {active && (
-                        <span className="text-xs font-bold flex-shrink-0" style={{ color: "#F87171" }}>
+                        <span className="text-sm font-bold flex-shrink-0" style={{ color: "#F87171" }}>
                           ¥{(qty * item.unitPrice).toLocaleString()}
                         </span>
                       )}
@@ -577,7 +577,7 @@ export default function AttendancePage({
                 {totalWasteCost > 0 && (
                   <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
                     style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)" }}>
-                    <span className="text-xs" style={{ color: "#94A3B8" }}>産廃処分費（概算）</span>
+                    <span className="text-sm" style={{ color: "#94A3B8" }}>産廃処分費（概算）</span>
                     <span className="text-base font-bold" style={{ color: "#F87171" }}>
                       ¥{totalWasteCost.toLocaleString()}
                     </span>
@@ -593,13 +593,13 @@ export default function AttendancePage({
 
                 {/* Type selector */}
                 <div>
-                  <p className="text-xs mb-2" style={{ color: "#64748B" }}>経費種別</p>
+                  <p className="text-sm mb-2" style={{ color: "#64748B" }}>経費種別</p>
                   <div className="flex flex-wrap gap-2">
                     {EXPENSE_TYPES.map((t) => (
                       <button
                         key={t}
                         onClick={() => setExpenseType(t)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                        className="px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
                         style={
                           expenseType === t
                             ? { background: "rgba(249,115,22,0.15)", color: "#F97316", border: "1px solid rgba(249,115,22,0.4)" }
@@ -660,7 +660,7 @@ export default function AttendancePage({
                     ))}
                     <div className="flex items-center justify-between px-4 py-2"
                       style={{ borderTop: "1px solid #2D3E54" }}>
-                      <span className="text-xs" style={{ color: "#64748B" }}>経費合計</span>
+                      <span className="text-sm" style={{ color: "#64748B" }}>経費合計</span>
                       <span className="text-sm font-bold" style={{ color: "#FBBF24" }}>
                         ¥{totalExpense.toLocaleString()}
                       </span>
@@ -672,7 +672,7 @@ export default function AttendancePage({
                 <button className="flex items-center gap-2 px-4 py-3 rounded-2xl"
                   style={{ background: "#1A2535", border: "1.5px dashed #2D3E54" }}>
                   <Camera size={15} style={{ color: "#64748B" }} />
-                  <span className="text-xs" style={{ color: "#64748B" }}>レシートを撮影・添付</span>
+                  <span className="text-sm" style={{ color: "#64748B" }}>レシートを撮影・添付</span>
                 </button>
               </div>
             )}
@@ -697,7 +697,7 @@ export default function AttendancePage({
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold" style={{ color: "#F1F5F9" }}>{member.name}</p>
-                        <p className="text-[10px]" style={{ color: "#64748B" }}>
+                        <p className="text-sm" style={{ color: "#64748B" }}>
                           {STATUS_CONFIG[member.status].label}
                         </p>
                       </div>
@@ -706,14 +706,14 @@ export default function AttendancePage({
                       <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
                         style={{ background: "#0F1928", border: "1px solid #2D3E54" }}>
                         <Clock size={12} style={{ color: "#475569" }} />
-                        <span className="text-xs" style={{ color: "#64748B" }}>出勤</span>
+                        <span className="text-sm" style={{ color: "#64748B" }}>出勤</span>
                         <span className="text-sm font-bold" style={{ color: "#94A3B8" }}>{member.clockIn}</span>
                       </div>
                       <span style={{ color: "#2D3E54" }}>→</span>
                       <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
                         style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)" }}>
                         <Clock size={12} style={{ color: "#F97316" }} />
-                        <span className="text-xs" style={{ color: "#64748B" }}>退勤</span>
+                        <span className="text-sm" style={{ color: "#64748B" }}>退勤</span>
                         <input
                           type="time"
                           value={clockOutTimes[member.id] ?? nowTime()}

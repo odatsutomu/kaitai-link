@@ -159,7 +159,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {error && <p style={{ fontSize: 13, color: "#EF4444", marginBottom: 8 }}>{error}</p>}
+          {error && <p style={{ fontSize: 14, color: "#EF4444", marginBottom: 8 }}>{error}</p>}
 
           {/* Login button */}
           <button
@@ -177,7 +177,7 @@ export default function LoginPage() {
 
           {/* Demo hint */}
           <div className="mt-4 rounded-2xl p-4" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-            <p style={{ fontSize: 11, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント（タップで切り替え）</p>
+            <p style={{ fontSize: 14, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント（タップで切り替え）</p>
             <div className="flex flex-col gap-1">
               {[
                 { id: "kaitai-demo", pw: "kaitai2026", company: "解体工業株式会社" },
@@ -190,8 +190,8 @@ export default function LoginPage() {
                   className="text-left rounded-xl px-3 py-2 transition-colors hover:bg-orange-100"
                   style={{ background: "rgba(255,255,255,0.6)" }}
                 >
-                  <p style={{ fontSize: 12, color: "#92400E", fontWeight: 700 }}>{d.company}</p>
-                  <p style={{ fontSize: 11, color: "#B45309" }}>
+                  <p style={{ fontSize: 14, color: "#92400E", fontWeight: 700 }}>{d.company}</p>
+                  <p style={{ fontSize: 14, color: "#B45309" }}>
                     ID: <strong>{d.id}</strong>  PW: <strong>{d.pw}</strong>
                   </p>
                 </button>
@@ -211,7 +211,7 @@ export default function LoginPage() {
             解体LINKについて →
           </div>
         </Link>
-        <p style={{ fontSize: 13, color: "#888888" }}>
+        <p style={{ fontSize: 14, color: "#888888" }}>
           アカウントをお持ちでない方は{" "}
           <Link href="/kaitai/signup" style={{ color: "#F59E0B", fontWeight: 700 }}>
             新規会社登録

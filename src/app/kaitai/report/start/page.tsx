@@ -55,7 +55,7 @@ function StartPageInner() {
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-2xl" style={{ background: "#F5F5F5" }}>
             <ChevronLeft size={20} style={{ color: "#444" }} />
           </button>
-          <span style={{ fontSize: 13, color: "#888" }}>{siteName}</span>
+          <span style={{ fontSize: 14, color: "#888" }}>{siteName}</span>
         </div>
         <p style={{ fontSize: 26, fontWeight: 900, color: "#1B5E20" }}>🏁 勤務開始</p>
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>本日出勤するメンバーを選択してください</p>
@@ -81,7 +81,7 @@ function StartPageInner() {
               </div>
               <div className="flex-1 text-left">
                 <p style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{m.name}</p>
-                <p style={{ fontSize: 12, color: "#888" }}>{m.role}</p>
+                <p style={{ fontSize: 14, color: "#888" }}>{m.role}</p>
               </div>
               {on && <CheckCircle size={22} color="#43A047" />}
             </button>

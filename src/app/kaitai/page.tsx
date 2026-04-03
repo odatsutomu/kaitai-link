@@ -11,7 +11,7 @@ import { KaitaiLogo } from "./components/kaitai-logo";
 
 const HomeMap = dynamic(
   () => import("./components/home-map").then(m => m.HomeMap),
-  { ssr: false, loading: () => <div style={{ height: 200, background: "#F1F5F9", borderRadius: "0 0 12px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 12, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ height: 200, background: "#F1F5F9", borderRadius: "0 0 12px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: "#94A3B8" }}>地図を読み込み中...</span></div> }
 );
 
 // ─── デザイントークン ─────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ function KpiCard({
       style={{ border: `1px solid ${C.border}`, boxShadow: shadow }}
     >
       <div className="flex items-center justify-between">
-        <span style={{ fontSize: 12, fontWeight: 500, color: C.sub }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: C.sub }}>{label}</span>
         <div className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{ background: color + "18" }}>
           <Icon size={14} style={{ color }} strokeWidth={2} />
@@ -128,7 +128,7 @@ function KpiCard({
         </span>
         {unit && <span style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{unit}</span>}
       </div>
-      {sub && <div style={{ fontSize: 11, color: C.muted }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 14, color: C.muted }}>{sub}</div>}
       {wide && (
         <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "#F1F5F9" }}>
           <div className="h-full rounded-full" style={{ width: `${value}%`, background: C.amber }} />
@@ -168,18 +168,18 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
           {/* ヘッダー行 */}
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-1.5 py-0.5 rounded text-xs font-medium"
+              <span className="px-1.5 py-0.5 rounded text-sm font-medium"
                 style={{ background: typeColor + "18", color: typeColor }}>
                 {site.type}
               </span>
-              <span style={{ fontSize: 11, color: C.muted }}>{site.code}</span>
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+              <span style={{ fontSize: 14, color: C.muted }}>{site.code}</span>
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-medium"
                 style={{ background: st.bg, color: st.text }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
                 {site.status}
               </span>
               {site.hasWorkToday && (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-medium"
                   style={{ background: "#F0FDF4", color: C.green }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.green }} />
                   本日稼働
@@ -188,11 +188,11 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
             </div>
             {/* 進捗 */}
             <div className="flex-shrink-0 text-right">
-              <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>施工進捗</div>
+              <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>施工進捗</div>
               <span className="font-numeric" style={{ fontSize: 26, fontWeight: 800, color: C.amber, lineHeight: 1 }}>
                 {site.progressPct}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: C.amberDk }}>%</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.amberDk }}>%</span>
             </div>
           </div>
 
@@ -202,14 +202,14 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
           </h3>
           <div className="flex items-center gap-1 mb-3">
             <MapPin size={11} style={{ color: C.muted }} />
-            <span style={{ fontSize: 12, color: C.muted }}>{site.address}</span>
+            <span style={{ fontSize: 14, color: C.muted }}>{site.address}</span>
           </div>
 
           {/* コスト内訳バー */}
           {total > 0 && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span style={{ fontSize: 11, color: C.sub }}>コスト内訳（原価比率）</span>
+                <span style={{ fontSize: 14, color: C.sub }}>コスト内訳（原価比率）</span>
               </div>
               <div className="flex h-1.5 rounded-full overflow-hidden gap-px">
                 <div style={{ width: `${Math.round((site.breakdown.waste / site.contract) * 100)}%`, background: "#EF4444" }} />
@@ -225,7 +225,7 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
                 ].map(({ color, label }) => (
                   <div key={label} className="flex items-center gap-1">
                     <div style={{ width: 6, height: 6, borderRadius: 2, background: color }} />
-                    <span style={{ fontSize: 10, color: C.muted }}>{label}</span>
+                    <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -240,14 +240,14 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
               { label: "予測粗利", value: profit ? fmt(profit) : "—",       color: profit ? C.green : C.muted },
             ].map(({ label, value, color }) => (
               <div key={label}>
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>{label}</div>
                 <div className="font-numeric" style={{ fontSize: 14, fontWeight: 700, color }}>{value}</div>
               </div>
             ))}
             {profitPct !== null && (
               <div className="ml-auto">
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>粗利率</div>
-                <span className="font-numeric px-2 py-0.5 rounded text-xs font-semibold"
+                <div style={{ fontSize: 14, color: C.muted, marginBottom: 2 }}>粗利率</div>
+                <span className="font-numeric px-2 py-0.5 rounded text-sm font-semibold"
                   style={{
                     background: profitPct >= 25 ? "#F0FDF4" : profitPct >= 10 ? "#FFFBEB" : "#FEF2F2",
                     color: profitPct >= 25 ? C.green : profitPct >= 10 ? C.amberDk : C.red,
@@ -267,7 +267,7 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
             <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ background: "#FFF8E6", color: "#F59E0B" }}>
               <ChevronRight size={14} />
             </div>
-            <span style={{ fontSize: 9, writingMode: "vertical-rl", color: C.amber }}>詳細</span>
+            <span style={{ fontSize: 14, writingMode: "vertical-rl", color: C.amber }}>詳細</span>
           </Link>
         </div>
       </div>
@@ -277,12 +277,12 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
         style={{ background: "#F8FAFC", borderTop: `1.5px solid ${C.border}` }}>
         <div className="flex items-center gap-1.5">
           <Users size={12} style={{ color: C.sub }} />
-          <span className="font-numeric" style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+          <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
             {site.workers}名
           </span>
-          <span style={{ fontSize: 11, color: C.muted }}>本日</span>
+          <span style={{ fontSize: 14, color: C.muted }}>本日</span>
         </div>
-        <span style={{ fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: 14, color: C.muted }}>
           完工予定 {site.endDate.replace(/-/g, "/")}
         </span>
       </div>
@@ -297,13 +297,13 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
   return (
     <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
       <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>ステータス管理</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>ステータス管理</h3>
       </div>
       <div className="px-4 py-4 flex flex-col gap-2.5">
         {/* 着工前 */}
         <div className="flex items-center gap-2 mb-0.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.blue }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.blue }}>
             着工前 ({upcoming.length})
           </span>
         </div>
@@ -312,8 +312,8 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
             <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-blue-50"
               style={{ background: "#EFF6FF", border: `1.5px solid #BFDBFE` }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>{s.name}</p>
-                <p style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{s.endDate.replace(/-/g, "/")} 着工予定</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{s.name}</p>
+                <p style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>{s.endDate.replace(/-/g, "/")} 着工予定</p>
               </div>
               <ChevronRight size={15} style={{ color: C.blue }} />
             </div>
@@ -323,8 +323,8 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
         {/* 完工済 */}
         <div className="flex items-center gap-2 mt-3 mb-0.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.green }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>完工済 ({done.length})</span>
-          <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-bold"
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.green }}>完工済 ({done.length})</span>
+          <span className="ml-auto px-2 py-0.5 rounded text-sm font-bold"
             style={{ background: "#F0FDF4", color: C.green, border: "1px solid #BBF7D0" }}>今月</span>
         </div>
         {done.map(s => {
@@ -334,8 +334,8 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
               <div className="flex items-center justify-between px-3 py-3 rounded-lg transition-colors hover:bg-green-50"
                 style={{ background: "#F0FDF4", border: `1.5px solid #BBF7D0` }}>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>{s.name}</p>
-                  <p style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{s.name}</p>
+                  <p style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>
                     {s.endDate.replace(/-/g, "/")} 引渡済 · 粗利 {pct}%
                   </p>
                 </div>
@@ -357,7 +357,7 @@ function MapPanel() {
   return (
     <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
       <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>現場マップ</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>現場マップ</h3>
         <ArrowUpRight size={14} style={{ color: C.muted }} />
       </div>
       <HomeMap sites={mapSites} height={200} />
@@ -376,7 +376,7 @@ function WeatherPanel() {
   return (
     <div className="bg-white rounded-xl" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
       <div className="px-4 py-3.5" style={{ borderBottom: `1.5px solid ${C.border}` }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>本日の天気（世田谷区）</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>本日の天気（世田谷区）</h3>
       </div>
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center gap-3 mb-3">
@@ -388,15 +388,15 @@ function WeatherPanel() {
         </div>
         <div className="flex items-center gap-1 mb-3">
           <Wind size={11} style={{ color: C.muted }} />
-          <span style={{ fontSize: 11, color: C.muted }}>南西の風 3m/s · 湿度 62%</span>
+          <span style={{ fontSize: 14, color: C.muted }}>南西の風 3m/s · 湿度 62%</span>
         </div>
         <div className="grid grid-cols-4 gap-1 pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
           {forecast.map(({ label, icon: Icon, hi, lo }) => (
             <div key={label} className="flex flex-col items-center gap-1 py-1">
-              <span style={{ fontSize: 10, color: C.muted }}>{label}</span>
+              <span style={{ fontSize: 14, color: C.muted }}>{label}</span>
               <Icon size={14} style={{ color: C.sub }} />
-              <span className="font-numeric" style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{hi}°</span>
-              <span className="font-numeric" style={{ fontSize: 10, color: C.muted }}>{lo}°</span>
+              <span className="font-numeric" style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{hi}°</span>
+              <span className="font-numeric" style={{ fontSize: 14, color: C.muted }}>{lo}°</span>
             </div>
           ))}
         </div>
@@ -427,11 +427,11 @@ function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites })
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 600, color: "#F1F5F9" }}>月次収支サマリー</h3>
-            <p style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>2026年4月度 予測・実績ベース</p>
+            <p style={{ fontSize: 14, color: "#64748B", marginTop: 2 }}>2026年4月度 予測・実績ベース</p>
           </div>
           <div className="px-3 py-1.5 rounded-lg" style={{ background: C.amber }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.navy }}>総合粗利率 </span>
-            <span className="font-numeric" style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>{margin}.0%</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>総合粗利率 </span>
+            <span className="font-numeric" style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{margin}.0%</span>
           </div>
         </div>
 
@@ -444,7 +444,7 @@ function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites })
               { label: "粗利合計", value: profit, color: C.amber },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex flex-col" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
-                <span style={{ fontSize: 11, color: "#475569", marginBottom: 2 }}>{label}</span>
+                <span style={{ fontSize: 14, color: "#475569", marginBottom: 2 }}>{label}</span>
                 <span className="font-numeric" style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1.1 }}>
                   {new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY", maximumFractionDigits: 0 }).format(value)}
                 </span>
@@ -466,7 +466,7 @@ function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites })
                     }}
                   />
                 </div>
-                <span style={{ fontSize: 9, color: "#64748B" }}>{label}</span>
+                <span style={{ fontSize: 14, color: "#64748B" }}>{label}</span>
               </div>
             ))}
           </div>
@@ -474,7 +474,7 @@ function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites })
       </div>
 
       <div className="px-6 py-3 flex items-center justify-end" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <Link href="/kaitai/admin" className="flex items-center gap-1 text-xs font-medium" style={{ color: C.amber }}>
+        <Link href="/kaitai/admin" className="flex items-center gap-1 text-sm font-medium" style={{ color: C.amber }}>
           詳細な分析を見る <ArrowUpRight size={12} />
         </Link>
       </div>
@@ -512,7 +512,7 @@ export default function KaitaiHome() {
       <header className="md:hidden px-4 pt-8 pb-3 flex items-center justify-between bg-white"
         style={{ borderBottom: `1px solid ${C.border}` }}>
         <KaitaiLogo iconSize={28} textSize={18} />
-        <span style={{ fontSize: 11, color: C.muted }}>{dateStr}</span>
+        <span style={{ fontSize: 14, color: C.muted }}>{dateStr}</span>
       </header>
 
       {/* ── KPI行 ────────────────────────── */}
@@ -532,11 +532,11 @@ export default function KaitaiHome() {
             <h2 className="flex items-center gap-2" style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>
               <span className="w-1 h-4 rounded-full" style={{ background: C.amber }} />
               稼働中の現場
-              <span className="px-1.5 py-0.5 rounded text-xs font-medium"
+              <span className="px-1.5 py-0.5 rounded text-sm font-medium"
                 style={{ background: "#FFFBEB", color: C.amberDk }}>{active.length}件</span>
             </h2>
             <Link href="/kaitai/sites/new"
-              className="flex items-center gap-1 text-xs font-medium" style={{ color: C.amber }}>
+              className="flex items-center gap-1 text-sm font-medium" style={{ color: C.amber }}>
               全現場を表示 <ArrowUpRight size={11} />
             </Link>
           </div>

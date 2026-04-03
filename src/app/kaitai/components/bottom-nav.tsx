@@ -47,7 +47,7 @@ export function KaitaiBottomNav() {
               />
             </div>
             <span
-              className="text-[9px] font-bold tracking-wide"
+              className="text-sm font-bold tracking-wide"
               style={{ color: active ? "#F97316" : "#64748B" }}
             >
               {label}

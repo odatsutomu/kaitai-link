@@ -53,7 +53,7 @@ export default function KaitaiLayout({
           */}
           <div
             className="px-4 md:px-8 lg:px-10 box-border"
-            style={{ maxWidth: 1280, marginLeft: "auto", marginRight: "auto" }}
+            style={{ maxWidth: 1200, marginLeft: "auto", marginRight: "auto" }}
           >
             {children}
           </div>

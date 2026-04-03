@@ -188,7 +188,7 @@ function ExpenseContent() {
           <p className="text-2xl font-black" style={{ color: "#15803D" }}>
             ¥{displayAmount.toLocaleString()}
           </p>
-          <p className="text-xs" style={{ color: "#9CA3AF" }}>{siteName}</p>
+          <p className="text-sm" style={{ color: "#9CA3AF" }}>{siteName}</p>
         </div>
         <p className="text-sm" style={{ color: "#86EFAC" }}>現場トップに戻ります…</p>
       </div>
@@ -231,7 +231,7 @@ function ExpenseContent() {
 
         {/* ── Step 1: Category selection ── */}
         <div>
-          <p className="text-xs font-bold mb-3 px-1" style={{ color: "#475569" }}>
+          <p className="text-sm font-bold mb-3 px-1" style={{ color: "#475569" }}>
             経費の種類を選択
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -252,7 +252,7 @@ function ExpenseContent() {
                 <p className="font-black" style={{ fontSize: 15, color: category === c.key ? c.color : "#374151" }}>
                   {c.label}
                 </p>
-                <p style={{ fontSize: 10, color: category === c.key ? c.color : "#9CA3AF" }}>
+                <p style={{ fontSize: 14, color: category === c.key ? c.color : "#9CA3AF" }}>
                   {c.hint}
                 </p>
               </button>
@@ -266,7 +266,7 @@ function ExpenseContent() {
             {/* 燃料費: 機材 + リッター数 */}
             {category === "燃料費" && (
               <div className="flex flex-col gap-3">
-                <p className="text-xs font-bold px-1" style={{ color: "#475569" }}>給油した機材・車両</p>
+                <p className="text-sm font-bold px-1" style={{ color: "#475569" }}>給油した機材・車両</p>
                 {siteEquipment.length === 0 ? (
                   <div
                     className="py-4 rounded-2xl text-center text-sm"
@@ -292,7 +292,7 @@ function ExpenseContent() {
                         </span>
                         <div className="flex-1 text-left">
                           <p className="text-sm font-bold" style={{ color: "#111827" }}>{eq.name}</p>
-                          <p className="text-xs" style={{ color: "#9CA3AF" }}>{eq.supplier}</p>
+                          <p className="text-sm" style={{ color: "#9CA3AF" }}>{eq.supplier}</p>
                         </div>
                         {selectedEqId === eq.id && (
                           <CheckCircle size={18} style={{ color: "#EA580C" }} />
@@ -305,7 +305,7 @@ function ExpenseContent() {
                 {/* リッター数 + 単価 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-xs font-bold mb-1.5 px-1" style={{ color: "#475569" }}>給油量</p>
+                    <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>給油量</p>
                     <div className="relative">
                       <input
                         type="number"
@@ -322,7 +322,7 @@ function ExpenseContent() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold mb-1.5 px-1" style={{ color: "#475569" }}>単価（円/L）</p>
+                    <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>単価（円/L）</p>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: "#9CA3AF" }}>¥</span>
                       <input
@@ -356,7 +356,7 @@ function ExpenseContent() {
               <div className="flex flex-col gap-3">
                 {/* 金額 */}
                 <div>
-                  <p className="text-xs font-bold mb-1.5 px-1" style={{ color: "#475569" }}>金額</p>
+                  <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>金額</p>
                   <div
                     className="relative rounded-3xl overflow-hidden"
                     style={{ background: "#FFFFFF", border: `2px solid ${cat?.border ?? "#E5E7EB"}` }}
@@ -382,7 +382,7 @@ function ExpenseContent() {
 
                 {/* 内容 */}
                 <div>
-                  <p className="text-xs font-bold mb-1.5 px-1" style={{ color: "#475569" }}>内容・品名</p>
+                  <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>内容・品名</p>
                   <input
                     value={desc}
                     onChange={e => setDesc(e.target.value)}
@@ -407,7 +407,7 @@ function ExpenseContent() {
 
             {/* メモ */}
             <div>
-              <p className="text-xs font-bold mb-1.5 px-1" style={{ color: "#475569" }}>メモ（任意）</p>
+              <p className="text-sm font-bold mb-1.5 px-1" style={{ color: "#475569" }}>メモ（任意）</p>
               <textarea
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
@@ -443,7 +443,7 @@ function ExpenseContent() {
                 <p className="text-sm font-bold" style={{ color: hasPhoto ? "#15803D" : "#374151" }}>
                   {hasPhoto ? "レシート添付済み ✓" : "レシート・領収書を撮影"}
                 </p>
-                <p className="text-xs" style={{ color: "#9CA3AF" }}>
+                <p className="text-sm" style={{ color: "#9CA3AF" }}>
                   {hasPhoto ? "タップで取り直し" : "任意 — 後で精算に使用"}
                 </p>
               </div>

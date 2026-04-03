@@ -108,7 +108,7 @@ export function KaitaiPCHeader() {
                 padding: "0 16px",
                 background: "#F59E0B",
                 color: "#FFFFFF",
-                fontSize: 13,
+                fontSize: 14,
                 boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
               }}
             >
@@ -128,7 +128,7 @@ export function KaitaiPCHeader() {
                 background: "#FEF2F2",
                 color: "#DC2626",
                 border: "1px solid #FECACA",
-                fontSize: 12,
+                fontSize: 14,
               }}
             >
               <X size={12} />
@@ -142,7 +142,7 @@ export function KaitaiPCHeader() {
                 padding: "0 10px",
                 background: "#F1F5F9",
                 color: "#64748B",
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: 600,
                 border: "1px solid #E2E8F0",
               }}
@@ -163,7 +163,7 @@ export function KaitaiPCHeader() {
             }}
           >
             <CreditCard size={12} style={{ color: "#F59E0B" }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706" }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#D97706" }}>
               {planLabel}
             </span>
           </Link>
@@ -182,7 +182,7 @@ export function KaitaiPCHeader() {
               <Building2 size={13} style={{ color: "#94A3B8" }} />
               <span
                 className="max-w-[160px] truncate"
-                style={{ fontSize: 13, fontWeight: 500, color: "#334155" }}
+                style={{ fontSize: 14, fontWeight: 500, color: "#334155" }}
               >
                 {company.name}
               </span>
@@ -223,11 +223,11 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
       >
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          <span style={{ color: "#F87171", fontSize: 11, fontWeight: 700 }}>管理者モード</span>
+          <span style={{ color: "#F87171", fontSize: 14, fontWeight: 700 }}>管理者モード</span>
         </div>
         <button
           onClick={() => setAdminMode(false)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold"
           style={{ background: "rgba(239,68,68,0.18)", color: "#F87171" }}
         >
           <X size={10} />終了
@@ -243,7 +243,7 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
               className="flex-1 flex flex-col items-center justify-center gap-1 py-3"
             >
               <Icon size={20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>
+              <span style={{ fontSize: 14, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>
                 {label}
               </span>
             </Link>
@@ -294,7 +294,7 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
               >
                 <Icon size={22} color="#FFF" strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B", lineHeight: 1, marginTop: 2 }}>
                 {label}
               </span>
             </>
@@ -306,7 +306,7 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
               >
                 <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#94A3B8" }} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>
+              <span style={{ fontSize: 14, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#94A3B8", lineHeight: 1 }}>
                 {label}
               </span>
             </>

@@ -118,7 +118,7 @@ export default function WorkEndPage({
             </span>
           </p>
         </div>
-        <p className="text-xs mb-8" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-8" style={{ color: "#64748B" }}>
           産廃 {activeWaste.length}品目 · 写真 {Object.values(photos).reduce((a, b) => a + b, 0)}枚
         </p>
         <Link href="/kaitai">
@@ -167,7 +167,7 @@ export default function WorkEndPage({
             className="rounded-2xl px-4 py-2.5 flex items-center justify-between"
             style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.2)" }}
           >
-            <span className="text-xs" style={{ color: "#94A3B8" }}>産廃処分費（概算）</span>
+            <span className="text-sm" style={{ color: "#94A3B8" }}>産廃処分費（概算）</span>
             <span className="text-lg font-bold" style={{ color: "#F87171" }}>
               ¥{totalWasteCost.toLocaleString()}
             </span>
@@ -181,7 +181,7 @@ export default function WorkEndPage({
             作業実績チェック
         ══════════════════════════════════════════════ */}
         <section>
-          <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
             本日の作業実績
           </p>
           <div className="flex flex-col gap-2">
@@ -215,7 +215,7 @@ export default function WorkEndPage({
             産廃排出記録（最重要）
         ══════════════════════════════════════════════ */}
         <section>
-          <p className="text-[11px] font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
+          <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: "#F97316" }}>
             産廃排出記録（品目・数量・搬出先・写真）
           </p>
 
@@ -255,7 +255,7 @@ export default function WorkEndPage({
                         <span className="text-base font-bold" style={{ color: active ? "#F97316" : "#475569" }}>
                           {qty}
                         </span>
-                        <span className="text-[10px] ml-0.5" style={{ color: "#64748B" }}>
+                        <span className="text-sm ml-0.5" style={{ color: "#64748B" }}>
                           {item.unit}
                         </span>
                       </div>
@@ -274,7 +274,7 @@ export default function WorkEndPage({
                     <div className="px-4 pb-3 flex flex-col gap-2">
                       {/* Cost chip */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px]" style={{ color: "#64748B" }}>
+                        <span className="text-sm" style={{ color: "#64748B" }}>
                           概算費：¥{item.unitPrice.toLocaleString()}/{item.unit}
                         </span>
                         <span className="text-sm font-bold" style={{ color: "#F87171" }}>
@@ -284,13 +284,13 @@ export default function WorkEndPage({
 
                       {/* Destination selector */}
                       <div>
-                        <p className="text-[10px] mb-1" style={{ color: "#64748B" }}>搬出先</p>
+                        <p className="text-sm mb-1" style={{ color: "#64748B" }}>搬出先</p>
                         <div className="flex flex-wrap gap-1.5">
                           {destinations.map((d) => (
                             <button
                               key={d}
                               onClick={() => setDestinations((prev) => ({ ...prev, [item.id]: d }))}
-                              className="text-xs px-2.5 py-1 rounded-xl font-medium transition-all"
+                              className="text-sm px-2.5 py-1 rounded-xl font-medium transition-all"
                               style={
                                 dest === d
                                   ? { background: "rgba(249,115,22,0.2)", color: "#F97316", border: "1px solid rgba(249,115,22,0.4)" }
@@ -314,7 +314,7 @@ export default function WorkEndPage({
                         }}
                       >
                         <Camera size={14} style={{ color: ph > 0 ? "#F97316" : "#475569" }} />
-                        <span className="text-xs font-medium" style={{ color: ph > 0 ? "#F97316" : "#64748B" }}>
+                        <span className="text-sm font-medium" style={{ color: ph > 0 ? "#F97316" : "#64748B" }}>
                           {ph > 0 ? `${ph}枚 添付済み` : "積載写真を添付"}
                         </span>
                       </button>
@@ -347,7 +347,7 @@ export default function WorkEndPage({
         </button>
 
         {!canSubmit && (
-          <p className="text-center text-xs -mt-3" style={{ color: "#64748B" }}>
+          <p className="text-center text-sm -mt-3" style={{ color: "#64748B" }}>
             作業実績または産廃記録を入力してください
           </p>
         )}

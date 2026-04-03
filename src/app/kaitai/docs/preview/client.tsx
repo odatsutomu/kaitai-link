@@ -52,7 +52,7 @@ export default function PreviewClient({ type, siteId }: Props) {
           onClick={() => router.back()}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            color: "#94A3B8", fontSize: 13, fontWeight: 600,
+            color: "#94A3B8", fontSize: 14, fontWeight: 600,
             background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
             borderRadius: 8,
           }}
@@ -62,10 +62,10 @@ export default function PreviewClient({ type, siteId }: Props) {
         </button>
 
         <div style={{ flex: 1, textAlign: "center" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#F1F5F9" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#F1F5F9" }}>
             {meta.emoji} {meta.label}
           </span>
-          <span style={{ fontSize: 11, color: "#64748B", marginLeft: 12 }}>
+          <span style={{ fontSize: 14, color: "#64748B", marginLeft: 12 }}>
             {site.name}
           </span>
         </div>
@@ -77,7 +77,7 @@ export default function PreviewClient({ type, siteId }: Props) {
               display: "flex", alignItems: "center", gap: 6,
               background: "#F97316", color: "#fff",
               border: "none", borderRadius: 8, padding: "8px 16px",
-              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontSize: 14, fontWeight: 700, cursor: "pointer",
             }}
           >
             <Printer size={15} />
