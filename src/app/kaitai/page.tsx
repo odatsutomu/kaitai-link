@@ -37,56 +37,14 @@ const shadow = "0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)";
 // ─── モックデータ ─────────────────────────────────────────────────────────────
 type SiteStatus = "着工前" | "解体中" | "完工";
 
-const sites = [
-  {
-    id: "s1", code: "#2026-008",
-    name: "田辺邸解体工事",   type: "木造解体",
-    address: "岡山市北区鹿田町1-1-1",
-    status: "解体中" as SiteStatus,
-    endDate: "2026-04-10",
-    progressPct: 68, workers: 4, hasWorkToday: true,
-    contract: 8_500_000, cost: 4_120_000,
-    breakdown: { waste: 1_200_000, labor: 2_100_000, other: 820_000 },
-    imgHue: "220",
-    lat: 34.6617, lng: 133.9175,
-  },
-  {
-    id: "s2", code: "#2026-012",
-    name: "旧山陽倉庫解体",   type: "RC解体",
-    address: "岡山市北区奉還町2-3-5",
-    status: "解体中" as SiteStatus,
-    endDate: "2026-04-20",
-    progressPct: 42, workers: 6, hasWorkToday: false,
-    contract: 11_500_000, cost: 5_920_000,
-    breakdown: { waste: 2_100_000, labor: 2_800_000, other: 1_020_000 },
-    imgHue: "160",
-    lat: 34.6572, lng: 133.9143,
-  },
-  {
-    id: "s3", code: "#2026-015",
-    name: "森本アパート解体", type: "木造解体",
-    address: "岡山市中区円山560",
-    status: "着工前" as SiteStatus,
-    endDate: "2026-04-30",
-    progressPct: 0, workers: 0, hasWorkToday: false,
-    contract: 2_800_000, cost: 0,
-    breakdown: { waste: 0, labor: 0, other: 0 },
-    imgHue: "280",
-    lat: 34.6480, lng: 133.9520,
-  },
-  {
-    id: "s4", code: "#2026-003",
-    name: "旧備前工場棟解体（第1期）", type: "鉄骨解体",
-    address: "岡山市南区大福900",
-    status: "完工" as SiteStatus,
-    endDate: "2026-03-28",
-    progressPct: 100, workers: 0, hasWorkToday: false,
-    contract: 8_400_000, cost: 6_100_000,
-    breakdown: { waste: 1_920_000, labor: 2_850_000, other: 1_330_000 },
-    imgHue: "30",
-    lat: 34.6221, lng: 133.9126,
-  },
-];
+const sites: {
+  id: string; code: string; name: string; type: string;
+  address: string; status: SiteStatus; endDate: string;
+  progressPct: number; workers: number; hasWorkToday: boolean;
+  contract: number; cost: number;
+  breakdown: { waste: number; labor: number; other: number };
+  imgHue: string; lat: number; lng: number;
+}[] = [];
 
 const STATUS_STYLE: Record<SiteStatus, { dot: string; bg: string; text: string }> = {
   着工前: { dot: C.blue,  bg: "#EFF6FF", text: "#1D4ED8" },
@@ -101,10 +59,7 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 // ─── メンバー名前引き ─────────────────────────────────────────────────────────
-const MEMBER_NAMES: Record<string, string> = {
-  m1: "田中 義雄", m2: "鈴木 健太", m3: "山本 大輔",
-  m4: "佐藤 翔",   m5: "渡辺 誠",   m6: "伊藤 拓也",
-};
+const MEMBER_NAMES: Record<string, string> = {};
 
 // 勤怠ステータス表示設定
 const ATTENDANCE_STYLE: Record<AttendanceStatus, { icon: string; label: string; bg: string; color: string }> = {

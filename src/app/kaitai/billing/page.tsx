@@ -95,12 +95,7 @@ const PLANS: {
 
 // ─── Mock invoice data ────────────────────────────────────────────────────────
 
-const MOCK_INVOICES = [
-  { id: "in_1Abc", date: "2026-03-01", amount: 9800,  status: "paid",   period: "2026年3月分" },
-  { id: "in_1Bcd", date: "2026-02-01", amount: 9800,  status: "paid",   period: "2026年2月分" },
-  { id: "in_1Cde", date: "2026-01-01", amount: 9800,  status: "paid",   period: "2026年1月分" },
-  { id: "in_1Def", date: "2025-12-01", amount: 9800,  status: "paid",   period: "2025年12月分" },
-];
+const MOCK_INVOICES: { id: string; date: string; amount: number; status: string; period: string }[] = [];
 
 // ─── Stripe mock state ────────────────────────────────────────────────────────
 

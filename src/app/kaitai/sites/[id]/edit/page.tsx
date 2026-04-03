@@ -45,49 +45,7 @@ type ChangeLogEntry = {
 
 // ─── Mock existing site data ──────────────────────────────────────────────────
 
-const MOCK_SITES: Record<string, {
-  name: string; address: string; startDate: string; endDate: string;
-  status: Status; contract: string; wasteB: string; laborB: string; subB: string; otherB: string;
-  structureType: StructureType; area: string; asbestos: AsbestosLevel;
-  vehicles: VehicleLimit[]; utilities: Utility[]; memo: string;
-}> = {
-  s1: {
-    name: "山田邸解体工事",
-    address: "東京都世田谷区豪徳寺2-14-5",
-    startDate: "2026-03-18",
-    endDate: "2026-04-10",
-    status: "施工中",
-    contract: "3200000",
-    wasteB: "840000",
-    laborB: "760000",
-    subB: "0",
-    otherB: "240000",
-    structureType: "木造",
-    area: "148",
-    asbestos: "調査中",
-    vehicles: ["4t"],
-    utilities: ["電気", "水道"],
-    memo: "隣家との距離が狭いため養生に注意。搬出は北側より。",
-  },
-  s2: {
-    name: "旧田中倉庫解体",
-    address: "神奈川県川崎市幸区堀川町580",
-    startDate: "2026-03-25",
-    endDate: "2026-04-20",
-    status: "施工中",
-    contract: "5600000",
-    wasteB: "1400000",
-    laborB: "1200000",
-    subB: "300000",
-    otherB: "400000",
-    structureType: "鉄骨",
-    area: "320",
-    asbestos: "あり(L2)",
-    vehicles: ["4t", "10t"],
-    utilities: ["電気", "ガス", "水道"],
-    memo: "重機は15t以下。敷地内転回可。",
-  },
-};
+const MOCK_SITES: Record<string, any> = {};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

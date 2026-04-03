@@ -43,74 +43,7 @@ type SiteReport = {
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-const MOCK_REPORTS: SiteReport[] = [
-  {
-    id: "s1",
-    name: "山田邸解体工事",
-    address: "世田谷区豪徳寺2-14-5",
-    status: "完了",
-    startTime: "08:15",
-    endTime: "17:23",
-    members: [
-      { id: "m1", name: "田中 義雄", avatar: "田", isLead: true,  phone: "090-1234-5678" },
-      { id: "m2", name: "鈴木 誠",   avatar: "鈴", isLead: false, phone: "090-2345-6789" },
-      { id: "m3", name: "佐藤 隆",   avatar: "佐", isLead: false, phone: "090-3456-7890" },
-      { id: "m4", name: "渡辺 健",   avatar: "渡", isLead: false, phone: "090-4567-8901" },
-    ],
-    wasteToday: 4.2,
-    wasteCost: 67_200,
-    lastActivity: "作業終了報告",
-    lastActivityTime: "17:23",
-    hasPhoto: true,
-    photoEmoji: "🏚",
-    mapX: 32,
-    mapY: 56,
-  },
-  {
-    id: "s2",
-    name: "旧田中倉庫解体",
-    address: "川崎市幸区堀川町580",
-    status: "作業中",
-    startTime: "07:50",
-    endTime: null,
-    members: [
-      { id: "m5", name: "山本 浩二", avatar: "山", isLead: true,  phone: "090-5678-9012" },
-      { id: "m6", name: "中村 博",   avatar: "中", isLead: false, phone: "090-6789-0123" },
-      { id: "m7", name: "小林 清",   avatar: "小", isLead: false, phone: "090-7890-1234" },
-      { id: "m8", name: "加藤 哲",   avatar: "加", isLead: false, phone: "090-8901-2345" },
-      { id: "m9", name: "松田 修",   avatar: "松", isLead: false, phone: "090-9012-3456" },
-      { id: "m10",name: "伊藤 勝",  avatar: "伊", isLead: false, phone: "090-0123-4567" },
-    ],
-    wasteToday: 8.6,
-    wasteCost: 154_800,
-    lastActivity: "産廃搬出・積載写真",
-    lastActivityTime: "15:47",
-    hasPhoto: true,
-    photoEmoji: "🏭",
-    mapX: 41,
-    mapY: 72,
-  },
-  {
-    id: "s3",
-    name: "松本アパート解体",
-    address: "さいたま市浦和区常盤6-4-21",
-    status: "準備中",
-    startTime: null,
-    endTime: null,
-    members: [
-      { id: "m2", name: "鈴木 誠",   avatar: "鈴", isLead: true,  phone: "090-2345-6789" },
-      { id: "m11",name: "木村 仁",   avatar: "木", isLead: false, phone: "090-1111-2222" },
-    ],
-    wasteToday: 0,
-    wasteCost: 0,
-    lastActivity: "着工前確認",
-    lastActivityTime: "09:05",
-    hasPhoto: false,
-    photoEmoji: "🏠",
-    mapX: 47,
-    mapY: 22,
-  },
-];
+const MOCK_REPORTS: SiteReport[] = [];
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 

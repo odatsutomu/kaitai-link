@@ -13,46 +13,22 @@ const C = {
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
-const mockSites = [
-  {
-    id: "s1",
-    name: "山田邸解体工事",
-    address: "東京都世田谷区豪徳寺2-14-5",
-    contractAmount: 3_200_000,
-    startDate: "2026-03-18",
-    endDate: "2026-04-10",
-    status: "解体中",
-  },
-  {
-    id: "s2",
-    name: "旧田中倉庫解体",
-    address: "神奈川県川崎市幸区堀川町580",
-    contractAmount: 5_600_000,
-    startDate: "2026-03-25",
-    endDate: "2026-04-20",
-    status: "解体中",
-  },
-  {
-    id: "s3",
-    name: "松本アパート解体",
-    address: "埼玉県さいたま市浦和区常盤6-4-21",
-    contractAmount: 2_800_000,
-    startDate: "2026-04-07",
-    endDate: "2026-04-30",
-    status: "着工前",
-  },
-];
+const mockSites: {
+  id: string;
+  name: string;
+  address: string;
+  contractAmount: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+}[] = [];
 
-const mockWastePrices = [
-  { id: "concrete", label: "コンクリートガラ",  unit: "㎥",  price: 8_000 },
-  { id: "wood",     label: "木くず",            unit: "㎥",  price: 12_000 },
-  { id: "metal",    label: "金属くず",           unit: "kg",  price: 15 },
-  { id: "plastic",  label: "廃プラスチック",     unit: "kg",  price: 25 },
-  { id: "gypsum",   label: "廃石膏ボード",       unit: "枚",  price: 200 },
-  { id: "tile",     label: "瓦",                unit: "ton", price: 6_000 },
-  { id: "mixed",    label: "混合廃棄物",         unit: "㎥",  price: 18_000 },
-  { id: "asbestos", label: "アスベスト含有廃材", unit: "㎡",  price: 45_000 },
-];
+const mockWastePrices: {
+  id: string;
+  label: string;
+  unit: string;
+  price: number;
+}[] = [];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

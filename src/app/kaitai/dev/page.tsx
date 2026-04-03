@@ -8,40 +8,7 @@ import { T } from "../lib/design-tokens";
 
 // ─── Mock companies (seeded data) ─────────────────────────────────────────────
 
-const SEED_COMPANIES: Company[] = [
-  {
-    id: "c001",
-    name: "東京解体工業株式会社",
-    address: "東京都大田区蒲田3-1-1",
-    phone: "03-5555-1001",
-    adminName: "佐藤 健一",
-    adminEmail: "sato@tokyokaitai.jp",
-    plan: "business",
-    stripeCustomerId: "cus_mock_TKY001BIZ",
-    createdAt: "2025-10-01T00:00:00.000Z",
-  },
-  {
-    id: "c002",
-    name: "関西解体サービス",
-    address: "大阪府大阪市西淀川区2-5-8",
-    phone: "06-6666-2002",
-    adminName: "山田 太郎",
-    adminEmail: "yamada@kansai-ks.jp",
-    plan: "standard",
-    stripeCustomerId: "cus_mock_OSK002STD",
-    createdAt: "2025-11-15T00:00:00.000Z",
-  },
-  {
-    id: "c003",
-    name: "北海道解体工務店",
-    address: "北海道札幌市北区北21条西4-1-1",
-    phone: "011-777-3003",
-    adminName: "鈴木 一郎",
-    adminEmail: "suzuki@hokkaido-k.jp",
-    plan: "free",
-    createdAt: "2026-01-10T00:00:00.000Z",
-  },
-];
+const SEED_COMPANIES: Company[] = [];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

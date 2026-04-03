@@ -253,82 +253,7 @@ function loadCompany(): Company | null {
   }
 }
 
-// ─── Seed clients ─────────────────────────────────────────────────────────────
-
-const SEED_CLIENTS: Client[] = [
-  {
-    id: "cl001",
-    name: "株式会社大和建設",
-    contactName: "前田 健二",
-    phone: "03-3456-7890",
-    email: "maeda@yamato-const.jp",
-    address: "東京都品川区西品川1-1-1",
-    memo: "大手ゼネコン。年間10件以上の紹介実績あり。",
-    status: "active",
-    archived: false,
-    createdAt: "2025-06-01T00:00:00.000Z",
-    updatedAt: "2026-01-15T00:00:00.000Z",
-  },
-  {
-    id: "cl002",
-    name: "三和不動産株式会社",
-    contactName: "高橋 美咲",
-    phone: "03-2345-6789",
-    email: "takahashi@sanwa-re.jp",
-    address: "東京都渋谷区恵比寿4-20-3",
-    memo: "マンション解体案件多い。支払い条件：翌月末。",
-    status: "active",
-    archived: false,
-    createdAt: "2025-09-10T00:00:00.000Z",
-    updatedAt: "2025-12-01T00:00:00.000Z",
-  },
-  {
-    id: "cl003",
-    name: "田村工務店",
-    contactName: "田村 浩",
-    phone: "044-567-8901",
-    email: "",
-    address: "神奈川県川崎市中原区小杉町2-5",
-    memo: "個人工務店。紹介ベース。",
-    status: "active",
-    archived: false,
-    createdAt: "2025-11-20T00:00:00.000Z",
-    updatedAt: "2025-11-20T00:00:00.000Z",
-  },
-];
-
-// ─── Seed equipment ───────────────────────────────────────────────────────────
-
-const SEED_EQUIPMENT: Equipment[] = [
-  { id: "eq001", name: "0.7バックホー", category: "自社保有", type: "重機", supplier: "自社（本社倉庫）", unitPrice: 25_000, status: "稼働中", notes: "コマツ PC78US-10", createdAt: "2025-01-01T00:00:00.000Z" },
-  { id: "eq002", name: "解体用アタッチメント", category: "自社保有", type: "アタッチメント", supplier: "自社（本社倉庫）", unitPrice: 8_000, status: "稼働中", notes: "クラッシャー・ブレーカー兼用", createdAt: "2025-01-01T00:00:00.000Z" },
-  { id: "eq003", name: "2tダンプ", category: "自社保有", type: "車両", supplier: "自社（本社倉庫）", unitPrice: 12_000, status: "稼働中", notes: "日野 デュトロ", createdAt: "2025-01-01T00:00:00.000Z" },
-  { id: "eq004", name: "10tダンプ", category: "リース", type: "車両", supplier: "東洋リース株式会社", unitPrice: 30_000, status: "稼働中", returnDeadline: "2026-04-30", notes: "いすゞ ギガ。月額リース契約。", createdAt: "2025-12-01T00:00:00.000Z" },
-  { id: "eq005", name: "散水車", category: "レンタル", type: "車両", supplier: "レントオール東京", unitPrice: 18_000, status: "待機中", returnDeadline: "2026-04-10", notes: "防塵用。粉塵が多い現場で使用。", createdAt: "2026-03-01T00:00:00.000Z" },
-  { id: "eq006", name: "1.4バックホー", category: "リース", type: "重機", supplier: "カナモト", unitPrice: 35_000, status: "修理中", returnDeadline: "2026-05-15", notes: "コマツ PC128US。油圧シリンダー修理中。", createdAt: "2026-02-01T00:00:00.000Z" },
-];
-
-const SEED_ASSIGNMENTS: EquipmentAssignment[] = [
-  { id: "asgn001", equipmentId: "eq001", siteId: "s1", siteName: "山田邸解体工事", startDate: "2026-03-18", endDate: "2026-04-10" },
-  { id: "asgn002", equipmentId: "eq003", siteId: "s1", siteName: "山田邸解体工事", startDate: "2026-03-18", endDate: "2026-04-10" },
-  { id: "asgn003", equipmentId: "eq004", siteId: "s2", siteName: "旧田中倉庫解体", startDate: "2026-03-25", endDate: "2026-04-20" },
-  { id: "asgn004", equipmentId: "eq002", siteId: "s2", siteName: "旧田中倉庫解体", startDate: "2026-03-25", endDate: "2026-04-20" },
-];
-
-const SEED_FUEL_LOGS: FuelLog[] = [
-  { id: "fuel001", equipmentId: "eq001", equipmentName: "0.7バックホー", siteId: "s1", date: "2026-03-20", liters: 45, pricePerLiter: 155, reporter: "田中", memo: "" },
-  { id: "fuel002", equipmentId: "eq003", equipmentName: "2tダンプ", siteId: "s1", date: "2026-03-22", liters: 30, pricePerLiter: 145, reporter: "鈴木", memo: "" },
-];
-
-// ─── Seed attendance (2026-04-03) ─────────────────────────────────────────────
-
-const SEED_ATTENDANCE: AttendanceLog[] = [
-  { id: "att001", userId: "m1", siteId: "s1", status: "clock_in",  timestamp: "2026-04-03T07:55:00.000Z" },
-  { id: "att002", userId: "m2", siteId: "s1", status: "clock_in",  timestamp: "2026-04-03T08:03:00.000Z" },
-  { id: "att003", userId: "m3", siteId: "s1", status: "break_in",  timestamp: "2026-04-03T12:00:00.000Z" },
-  { id: "att004", userId: "m4", siteId: "s2", status: "clock_in",  timestamp: "2026-04-03T08:15:00.000Z" },
-  { id: "att005", userId: "m5", siteId: "s2", status: "clock_out", timestamp: "2026-04-03T16:30:00.000Z" },
-];
+// ─── Empty initial state (no demo data for new companies) ────────────────────
 
 // ─── Context + provider ───────────────────────────────────────────────────────
 
@@ -342,22 +267,22 @@ const AppContext = createContext<AppContextType>({
   sessionReady: false,
   plan: "free" as PlanId,
   operationLog: [],   addLog: () => {},
-  clients: SEED_CLIENTS,
-  addClient: () => SEED_CLIENTS[0],
+  clients: [],
+  addClient: () => ({ id: "", name: "", status: "active" as ClientStatus, archived: false, createdAt: "", updatedAt: "" }),
   updateClient: () => {},
-  equipment: SEED_EQUIPMENT,
-  addEquipment: () => SEED_EQUIPMENT[0],
+  equipment: [],
+  addEquipment: () => ({ id: "", name: "", category: "自社保有" as EquipmentCategory, type: "重機" as EquipmentType, supplier: "", unitPrice: 0, status: "待機中" as EquipmentStatus, createdAt: "" }),
   updateEquipment: () => {},
-  assignments: SEED_ASSIGNMENTS,
+  assignments: [],
   addAssignment: () => {},
   removeAssignment: () => {},
-  fuelLogs: SEED_FUEL_LOGS,
+  fuelLogs: [],
   addFuelLog: () => {},
   expenseLogs: [],
   addExpenseLog: () => {},
   evaluations: [],
   addEvaluation: () => {},
-  attendanceLogs: SEED_ATTENDANCE,
+  attendanceLogs: [],
   addAttendanceLogs: () => {},
   viewerMemberId: null,
   setViewerMemberId: () => {},
@@ -376,13 +301,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [company,      setCompanyRaw]   = useState<Company | null>(loadCompany);
   const [sessionReady, setSessionReady] = useState(false);
   const [operationLog, setOperationLog] = useState<OperationLog[]>([]);
-  const [clients,      setClients]      = useState<Client[]>(SEED_CLIENTS);
-  const [equipment,    setEquipment]    = useState<Equipment[]>(SEED_EQUIPMENT);
-  const [assignments,  setAssignments]  = useState<EquipmentAssignment[]>(SEED_ASSIGNMENTS);
-  const [fuelLogs,     setFuelLogs]     = useState<FuelLog[]>(SEED_FUEL_LOGS);
+  const [clients,      setClients]      = useState<Client[]>([]);
+  const [equipment,    setEquipment]    = useState<Equipment[]>([]);
+  const [assignments,  setAssignments]  = useState<EquipmentAssignment[]>([]);
+  const [fuelLogs,     setFuelLogs]     = useState<FuelLog[]>([]);
   const [expenseLogs,    setExpenseLogs]    = useState<ExpenseLog[]>([]);
   const [evaluations,    setEvaluations]    = useState<WorkerEval[]>([]);
-  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(SEED_ATTENDANCE);
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
   const [viewerMemberId, setViewerMemberId] = useState<string | null>(null);
   const [handoverMemos,  setHandoverMemos]  = useState<HandoverMemo[]>([]);
 
