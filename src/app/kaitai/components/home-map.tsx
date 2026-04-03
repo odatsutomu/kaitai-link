@@ -1,9 +1,10 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { LatLng } from "../lib/geocode";
 import { T } from "../lib/design-tokens";
+import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface MapSite {
   id: string;
@@ -87,12 +88,44 @@ interface Props {
 export function HomeMap({ sites, center, height = 200 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
+  const markersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
+
+  // Per-site visibility: default all visible
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const toggleSite = useCallback((id: string) => {
+    setHiddenIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const showAll = useCallback(() => setHiddenIds(new Set()), []);
+  const hideAll = useCallback(() => setHiddenIds(new Set(sites.map(s => s.id))), [sites]);
+
+  // Sync marker visibility with hiddenIds
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach((marker, id) => {
+      if (hiddenIds.has(id)) {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      } else {
+        if (!map.hasLayer(marker)) marker.addTo(map);
+      }
+    });
+  }, [hiddenIds]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     import("leaflet").then((L) => {
       if (!containerRef.current || mapRef.current) return;
+      leafletRef.current = L;
 
       // Leaflet のデフォルトポップアップスタイルを上書き
       if (!document.getElementById("kaitai-popup-css")) {
@@ -155,6 +188,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
       }).addTo(map);
 
       // ティアドロップ型ピン + 現場カードポップアップ
+      const newMarkers = new Map<string, import("leaflet").Marker>();
       sites.forEach((site) => {
         const color = STATUS_COLOR[site.status];
         const icon = L.divIcon({
@@ -165,7 +199,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
           className: "",
         });
 
-        L.marker([site.lat, site.lng], { icon })
+        const marker = L.marker([site.lat, site.lng], { icon })
           .addTo(map)
           .bindPopup(buildPopupHtml(site), {
             className: "kaitai-info-popup",
@@ -174,7 +208,9 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
             closeButton: true,
             autoClose: true,
           });
+        newMarkers.set(site.id, marker);
       });
+      markersRef.current = newMarkers;
 
       // 全ピンが収まるように自動フィット
       if (sites.length >= 2) {
@@ -186,13 +222,111 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
+      markersRef.current.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const visibleCount = sites.length - hiddenIds.size;
+
   return (
     <div style={{ position: "relative" }}>
       <div ref={containerRef} style={{ height, width: "100%", borderRadius: "0 0 12px 12px" }} />
+
+      {/* ピン表示切替パネル */}
+      <div style={{
+        position: "absolute", top: 8, right: 8, zIndex: 1000,
+      }}>
+        <button
+          onClick={() => setPanelOpen(v => !v)}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: "rgba(255,255,255,0.95)",
+            border: "1px solid #E2E8F0",
+            borderRadius: 8,
+            padding: "6px 12px",
+            fontSize: 13, fontWeight: 600, color: T.text,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <Eye size={14} style={{ color: T.primary }} />
+          表示 {visibleCount}/{sites.length}
+          {panelOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+
+        {panelOpen && (
+          <div style={{
+            marginTop: 4,
+            background: "rgba(255,255,255,0.97)",
+            border: "1px solid #E2E8F0",
+            borderRadius: 10,
+            padding: "8px 0",
+            maxHeight: 240,
+            overflowY: "auto",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            minWidth: 200,
+          }}>
+            {/* 一括操作 */}
+            <div style={{ display: "flex", gap: 6, padding: "2px 10px 8px", borderBottom: "1px solid #F1F5F9" }}>
+              <button
+                onClick={showAll}
+                style={{
+                  flex: 1, fontSize: 12, fontWeight: 600, color: T.primary,
+                  background: T.primaryLt, border: "none", borderRadius: 6, padding: "5px 0", cursor: "pointer",
+                }}
+              >
+                すべて表示
+              </button>
+              <button
+                onClick={hideAll}
+                style={{
+                  flex: 1, fontSize: 12, fontWeight: 600, color: T.sub,
+                  background: "#F1F5F9", border: "none", borderRadius: 6, padding: "5px 0", cursor: "pointer",
+                }}
+              >
+                すべて非表示
+              </button>
+            </div>
+
+            {/* 個別ピン切替 */}
+            {sites.map(site => {
+              const hidden = hiddenIds.has(site.id);
+              const color = STATUS_COLOR[site.status];
+              return (
+                <button
+                  key={site.id}
+                  onClick={() => toggleSite(site.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    width: "100%", padding: "8px 12px",
+                    background: hidden ? "#FAFAFA" : "transparent",
+                    border: "none", cursor: "pointer",
+                    opacity: hidden ? 0.5 : 1,
+                    transition: "opacity 0.15s, background 0.15s",
+                  }}
+                >
+                  {hidden
+                    ? <EyeOff size={15} style={{ color: T.muted, flexShrink: 0 }} />
+                    : <Eye size={15} style={{ color: T.primary, flexShrink: 0 }} />
+                  }
+                  <svg width="10" height="15" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                    <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill={color}/>
+                    <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.9"/>
+                  </svg>
+                  <span style={{
+                    fontSize: 13, fontWeight: 600, color: hidden ? T.muted : T.text,
+                    textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {site.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* 凡例 */}
       <div style={{
         position: "absolute", bottom: 8, left: 8, zIndex: 1000,
