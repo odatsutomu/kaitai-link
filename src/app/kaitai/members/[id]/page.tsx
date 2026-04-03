@@ -6,13 +6,14 @@ import {
   ArrowLeft, Star, Award, Phone, MapPin, Calendar,
   Briefcase, TrendingUp, TrendingDown, AlertTriangle,
   CheckCircle, XCircle, MinusCircle, Download, MessageSquare,
-  Shield, Clock, ChevronDown, ChevronUp,
+  Shield, Clock, ChevronDown, ChevronUp, Lock,
 } from "lucide-react";
 import {
   MEMBERS, MEMBER_STATS, LICENSE_LABELS,
   experienceYears, experienceLevel,
   type License, type TroubleRecord,
 } from "../../lib/members";
+import { useAppContext } from "../../lib/app-context";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -390,6 +391,28 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const attColor = s.attendancePct >= 95 ? "#4ADE80" : s.attendancePct >= 80 ? "#FBBF24" : "#F87171";
   const effColor = s.efficiencyDelta >= 0 ? "#4ADE80" : "#F87171";
 
+  // ─── Access control ─────────────────────────────────────────────────────────
+  const { adminMode, viewerMemberId, attendanceLogs } = useAppContext();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Foreman exception: viewer is 職長 AND shares an active site with this member today
+  const viewerMember = viewerMemberId ? MEMBERS.find(m => m.id === viewerMemberId) : null;
+  const isForeman = !!viewerMember && viewerMember.role === "職長";
+  const canSeeEmergency = adminMode || (() => {
+    if (!isForeman || !viewerMemberId) return false;
+    const viewerActiveSites = new Set(
+      attendanceLogs
+        .filter(l => l.userId === viewerMemberId && l.timestamp.startsWith(today))
+        .map(l => l.siteId)
+    );
+    return attendanceLogs.some(l =>
+      l.userId === member.id &&
+      l.timestamp.startsWith(today) &&
+      viewerActiveSites.has(l.siteId) &&
+      (l.status === "clock_in" || l.status === "break_in" || l.status === "break_out")
+    );
+  })();
+
   const handleTroubleScore = (troubleId: string, score: 1 | 2 | 3, memo: string) => {
     setStatsState(prev => ({
       ...prev,
@@ -426,22 +449,24 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               {member.type === "外注" && (
                 <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(99,102,241,0.1)", color: "#818CF8" }}>外注</span>
               )}
-              {s.troubles.length > 0 && (
+              {adminMode && s.troubles.length > 0 && (
                 <span style={{ fontSize: 14, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(239,68,68,0.1)", color: "#F87171" }}>⚠ 要注意</span>
               )}
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#F1F5F9" }}>{member.name}</h1>
             <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{member.kana}</p>
           </div>
-          {/* CSV export */}
-          <button
-            onClick={() => exportCSV(member.name, s)}
-            className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl active:scale-95 transition-transform"
-            style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}
-          >
-            <Download size={16} style={{ color: "#F97316" }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>CSV</span>
-          </button>
+          {/* CSV export (admin only) */}
+          {adminMode && (
+            <button
+              onClick={() => exportCSV(member.name, s)}
+              className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl active:scale-95 transition-transform"
+              style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}
+            >
+              <Download size={16} style={{ color: "#F97316" }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#F97316" }}>CSV</span>
+            </button>
+          )}
         </div>
 
         {/* Stars + experience */}
@@ -468,10 +493,13 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       {/* ── Tabs ── */}
       <div className="py-1">
         <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#1A2535" }}>
-          {(["基本情報", "勤怠", "パフォーマンス", "評価"] as Tab[]).map(t => (
+          {(adminMode
+            ? ["基本情報", "勤怠", "パフォーマンス", "評価"]
+            : ["基本情報", "勤怠"] as Tab[]
+          ).map(t => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => setTab(t as Tab)}
               className="flex-1 py-2 rounded-xl transition-all"
               style={{
                 fontSize: 14, fontWeight: 700,
@@ -513,11 +541,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <section>
               <SectionLabel>基本情報</SectionLabel>
               <Card>
+                {/* 職種・入社日: always visible */}
                 {[
-                  { icon: Briefcase, label: "職種",       value: member.role },
-                  { icon: Calendar,  label: "入社日",     value: hiredStr },
-                  { icon: MapPin,    label: "住所",       value: member.address },
-                  { icon: Phone,     label: "緊急連絡先", value: member.emergency },
+                  { icon: Briefcase, label: "職種",   value: member.role },
+                  { icon: Calendar,  label: "入社日", value: hiredStr },
                 ].map(({ icon: Icon, label, value }, i) => (
                   <div key={label} className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: i > 0 ? "1px solid #0F1928" : undefined }}>
                     <Icon size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
@@ -527,22 +554,71 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                   </div>
                 ))}
+
+                {/* 住所: admin only 🔒 */}
+                <div className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: "1px solid #0F1928" }}>
+                  <MapPin size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p style={{ fontSize: 14, color: "#64748B" }}>住所</p>
+                      <Lock size={11} style={{ color: "#F97316" }} />
+                      {adminMode && <span style={{ fontSize: 12, color: "#64748B", fontStyle: "italic" }}>この情報はあなたにしか見えていません</span>}
+                    </div>
+                    {adminMode
+                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{member.address}</p>
+                      : <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者のみ閲覧可</p>
+                    }
+                  </div>
+                </div>
+
+                {/* 緊急連絡先: admin + foreman exception 🔒 */}
+                <div className="flex items-start gap-3 px-4" style={{ paddingTop: 16, paddingBottom: 16, minHeight: 64, borderTop: "1px solid #0F1928" }}>
+                  <Phone size={16} style={{ color: "#475569" }} className="flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p style={{ fontSize: 14, color: "#64748B" }}>緊急連絡先</p>
+                      <Lock size={11} style={{ color: "#F97316" }} />
+                      {canSeeEmergency && !adminMode && (
+                        <span style={{ fontSize: 12, color: "#D97706", fontStyle: "italic" }}>職長権限で表示中</span>
+                      )}
+                      {adminMode && (
+                        <span style={{ fontSize: 12, color: "#64748B", fontStyle: "italic" }}>この情報はあなたにしか見えていません</span>
+                      )}
+                    </div>
+                    {canSeeEmergency
+                      ? <p style={{ fontSize: 15, fontWeight: 500, marginTop: 2, color: "#F1F5F9" }}>{member.emergency}</p>
+                      : <p style={{ fontSize: 14, marginTop: 2, color: "#475569" }}>管理者または現場担当職長のみ閲覧可</p>
+                    }
+                  </div>
+                </div>
               </Card>
             </section>
 
             {/* Stats */}
             <section>
               <div className="grid grid-cols-3 gap-2">
-                {[
-                  { label: "累計現場数",    value: `${member.siteCount}現場`, color: "#F97316" },
-                  { label: "累計経験年数",  value: `${yrs}年`,               color: lvl.color },
-                  { label: "日当",          value: `¥${member.dayRate.toLocaleString()}`, color: "#4ADE80" },
-                ].map(({ label, value, color }) => (
-                  <Card key={label} className="p-4 text-center">
-                    <p style={{ fontSize: 18, fontWeight: 700, color }}>{value}</p>
-                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>{label}</p>
+                <Card className="p-4 text-center">
+                  <p style={{ fontSize: 18, fontWeight: 700, color: "#F97316" }}>{member.siteCount}現場</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>累計現場数</p>
+                </Card>
+                <Card className="p-4 text-center">
+                  <p style={{ fontSize: 18, fontWeight: 700, color: lvl.color }}>{yrs}年</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>累計経験年数</p>
+                </Card>
+                {adminMode ? (
+                  <Card className="p-4 text-center" style={{ position: "relative" }}>
+                    <div className="flex items-center justify-center gap-1 mb-0.5">
+                      <Lock size={11} style={{ color: "#F97316" }} />
+                    </div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: "#4ADE80" }}>¥{member.dayRate.toLocaleString()}</p>
+                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
                   </Card>
-                ))}
+                ) : (
+                  <Card className="p-4 text-center" style={{ opacity: 0.6 }}>
+                    <Lock size={18} style={{ color: "#64748B", marginLeft: "auto", marginRight: "auto" }} />
+                    <p style={{ fontSize: 14, marginTop: 2, color: "#64748B" }}>日当</p>
+                  </Card>
+                )}
               </div>
             </section>
 
@@ -849,21 +925,23 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </>
         )}
 
-        {/* ── CSV / PDF export footer ── */}
-        <div className="flex gap-2 pb-2">
-          <button
-            onClick={() => exportCSV(member.name, s)}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm active:scale-[0.98] transition-transform"
-            style={{
-              background: "rgba(249,115,22,0.1)",
-              border: "1px solid rgba(249,115,22,0.2)",
-              color: "#F97316",
-            }}
-          >
-            <Download size={15} />
-            CSV出力（査定・給与計算用）
-          </button>
-        </div>
+        {/* ── CSV export footer (admin only) ── */}
+        {adminMode && (
+          <div className="flex gap-2 pb-2">
+            <button
+              onClick={() => exportCSV(member.name, s)}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm active:scale-[0.98] transition-transform"
+              style={{
+                background: "rgba(249,115,22,0.1)",
+                border: "1px solid rgba(249,115,22,0.2)",
+                color: "#F97316",
+              }}
+            >
+              <Download size={15} />
+              CSV出力（査定・給与計算用）
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

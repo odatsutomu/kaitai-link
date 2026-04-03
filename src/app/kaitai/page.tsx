@@ -8,6 +8,7 @@ import {
   Sun, Cloud, CloudRain, Wind,
 } from "lucide-react";
 import { KaitaiLogo } from "./components/kaitai-logo";
+import { useAppContext, getSiteStatusMap, type AttendanceStatus } from "./lib/app-context";
 
 const HomeMap = dynamic(
   () => import("./components/home-map").then(m => m.HomeMap),
@@ -37,51 +38,51 @@ type SiteStatus = "着工前" | "解体中" | "完工";
 const sites = [
   {
     id: "s1", code: "#2026-008",
-    name: "山田邸解体工事",   type: "木造解体",
-    address: "東京都世田谷区",
+    name: "田辺邸解体工事",   type: "木造解体",
+    address: "岡山市北区鹿田町1-1-1",
     status: "解体中" as SiteStatus,
     endDate: "2026-04-10",
     progressPct: 68, workers: 4, hasWorkToday: true,
     contract: 8_500_000, cost: 4_120_000,
     breakdown: { waste: 1_200_000, labor: 2_100_000, other: 820_000 },
     imgHue: "220",
-    lat: 35.6454, lng: 139.6530,
+    lat: 34.6617, lng: 133.9175,
   },
   {
     id: "s2", code: "#2026-012",
-    name: "旧田中倉庫解体",   type: "RC解体",
-    address: "神奈川県川崎市",
+    name: "旧山陽倉庫解体",   type: "RC解体",
+    address: "岡山市北区奉還町2-3-5",
     status: "解体中" as SiteStatus,
     endDate: "2026-04-20",
     progressPct: 42, workers: 6, hasWorkToday: false,
     contract: 11_500_000, cost: 5_920_000,
     breakdown: { waste: 2_100_000, labor: 2_800_000, other: 1_020_000 },
     imgHue: "160",
-    lat: 35.5309, lng: 139.7025,
+    lat: 34.6572, lng: 133.9143,
   },
   {
     id: "s3", code: "#2026-015",
-    name: "松本アパート解体", type: "木造解体",
-    address: "埼玉県さいたま市",
+    name: "森本アパート解体", type: "木造解体",
+    address: "岡山市中区円山560",
     status: "着工前" as SiteStatus,
     endDate: "2026-04-30",
     progressPct: 0, workers: 0, hasWorkToday: false,
     contract: 2_800_000, cost: 0,
     breakdown: { waste: 0, labor: 0, other: 0 },
     imgHue: "280",
-    lat: 35.8617, lng: 139.6455,
+    lat: 34.6480, lng: 133.9520,
   },
   {
     id: "s4", code: "#2026-003",
-    name: "旧工場棟解体（第1期）", type: "鉄骨解体",
-    address: "千葉県船橋市",
+    name: "旧備前工場棟解体（第1期）", type: "鉄骨解体",
+    address: "岡山市南区大福900",
     status: "完工" as SiteStatus,
     endDate: "2026-03-28",
     progressPct: 100, workers: 0, hasWorkToday: false,
     contract: 8_400_000, cost: 6_100_000,
     breakdown: { waste: 1_920_000, labor: 2_850_000, other: 1_330_000 },
     imgHue: "30",
-    lat: 35.6939, lng: 139.9847,
+    lat: 34.6221, lng: 133.9126,
   },
 ];
 
@@ -97,11 +98,27 @@ const TYPE_COLOR: Record<string, string> = {
   "鉄骨解体": "#F97316",
 };
 
+// ─── メンバー名前引き ─────────────────────────────────────────────────────────
+const MEMBER_NAMES: Record<string, string> = {
+  m1: "田中 義雄", m2: "鈴木 健太", m3: "山本 大輔",
+  m4: "佐藤 翔",   m5: "渡辺 誠",   m6: "伊藤 拓也",
+};
+
+// 勤怠ステータス表示設定
+const ATTENDANCE_STYLE: Record<AttendanceStatus, { icon: string; label: string; bg: string; color: string }> = {
+  clock_in:  { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
+  break_in:  { icon: "☕",  label: "休憩中",  bg: "#FFF7ED", color: "#92400E" },
+  break_out: { icon: "🟢", label: "出勤中",  bg: "#F0FDF4", color: "#166534" },
+  clock_out: { icon: "🚪", label: "退勤済",  bg: "#F8FAFC", color: "#94A3B8" },
+};
+
+function fmtTime(iso: string): string {
+  const m = iso.match(/T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : "";
+}
+
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  n >= 1_000_000
-    ? `¥${(n / 1_000_000).toFixed(1)}M`
-    : `¥${Math.round(n / 10_000)}万`;
+const fmt = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
 
 // ─── KPIカード ────────────────────────────────────────────────────────────────
 function KpiCard({
@@ -139,7 +156,13 @@ function KpiCard({
 }
 
 // ─── 現場カード（横長） ────────────────────────────────────────────────────────
-function SiteCard({ site }: { site: typeof sites[0] }) {
+interface SiteAttendance {
+  userId: string;
+  status: AttendanceStatus;
+  latestTimestamp: string;
+}
+
+function SiteCard({ site, attendance }: { site: typeof sites[0]; attendance: SiteAttendance[] }) {
   const st = STATUS_STYLE[site.status];
   const profit = site.cost > 0 ? site.contract - site.cost : null;
   const profitPct = profit ? Math.round((profit / site.contract) * 100) : null;
@@ -286,6 +309,29 @@ function SiteCard({ site }: { site: typeof sites[0] }) {
           完工予定 {site.endDate.replace(/-/g, "/")}
         </span>
       </div>
+
+      {/* 勤怠アクティビティ */}
+      {attendance.length > 0 && (
+        <div className="px-4 py-3 flex flex-wrap gap-2"
+          style={{ background: "#F1F5F9", borderTop: `1px dashed ${C.border}` }}>
+          {attendance.map(a => {
+            const style = ATTENDANCE_STYLE[a.status];
+            const name = MEMBER_NAMES[a.userId] ?? a.userId;
+            return (
+              <span
+                key={a.userId}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                style={{ background: style.bg, color: style.color, fontSize: 13, fontWeight: 600, border: `1px solid ${style.color}22` }}
+              >
+                <span style={{ fontSize: 12 }}>{style.icon}</span>
+                {name}
+                <span style={{ fontSize: 12, opacity: 0.75 }}>{fmtTime(a.latestTimestamp)}</span>
+                <span style={{ fontSize: 12 }}>{style.label}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -486,9 +532,11 @@ function MonthlySummary({ sites }: { sites: typeof import("./page").mockSites })
 export { sites as mockSites };
 
 export default function KaitaiHome() {
+  const { attendanceLogs } = useAppContext();
   const now = new Date();
   const wd = ["日", "月", "火", "水", "木", "金", "土"][now.getDay()];
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日（${wd}）`;
+  const today = now.toISOString().slice(0, 10);
 
   const active   = sites.filter(s => s.status === "解体中");
   const upcoming = sites.filter(s => s.status === "着工前");
@@ -543,7 +591,17 @@ export default function KaitaiHome() {
 
           {/* 現場カード一覧 */}
           <div className="flex flex-col gap-5">
-            {active.map(site => <SiteCard key={site.id} site={site} />)}
+            {active.map(site => {
+              const statusMap = getSiteStatusMap(attendanceLogs, site.id, today);
+              // Build per-user attendance with latest timestamp
+              const siteAttendance: SiteAttendance[] = Array.from(statusMap.entries()).map(([userId, status]) => {
+                const latestLog = attendanceLogs
+                  .filter(l => l.siteId === site.id && l.userId === userId && l.timestamp.startsWith(today))
+                  .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+                return { userId, status, latestTimestamp: latestLog?.timestamp ?? "" };
+              });
+              return <SiteCard key={site.id} site={site} attendance={siteAttendance} />;
+            })}
           </div>
 
           {/* 月次収支サマリー */}

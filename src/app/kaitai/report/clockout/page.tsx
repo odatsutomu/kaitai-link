@@ -3,9 +3,9 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle } from "lucide-react";
-import { useAppContext } from "../../lib/app-context";
+import { useAppContext, getLatestStatus } from "../../lib/app-context";
 
-const MEMBERS = [
+const ALL_MEMBERS = [
   { id: "m1", name: "田中 義雄", role: "職長" },
   { id: "m2", name: "鈴木 健太", role: "作業員" },
   { id: "m3", name: "山本 大輔", role: "作業員" },
@@ -17,8 +17,16 @@ const MEMBERS = [
 function ClockOutPageInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const siteId   = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
-  const { addLog, company } = useAppContext();
+  const { addLog, company, attendanceLogs, addAttendanceLogs } = useAppContext();
+
+  const today = new Date().toISOString().slice(0, 10);
+  // Only show members currently at site (clock_in, break_in, or break_out)
+  const MEMBERS = ALL_MEMBERS.filter(m => {
+    const s = getLatestStatus(attendanceLogs, siteId, m.id, today);
+    return s === "clock_in" || s === "break_in" || s === "break_out";
+  });
 
   const [selected, setSelected] = useState<string[]>([]);
   const [done, setDone] = useState(false);
@@ -31,8 +39,10 @@ function ClockOutPageInner() {
 
   function confirm() {
     if (selected.length === 0) return;
-    const names = selected.map(id => MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
+    const names = selected.map(id => ALL_MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
     addLog(`clockout: ${siteName} / ${names} [${company?.stripeCustomerId ?? "—"}]`, names);
+    const ts = new Date().toISOString();
+    addAttendanceLogs(selected.map(userId => ({ userId, siteId, status: "clock_out" as const, timestamp: ts })));
     setDone(true);
     setTimeout(() => router.push("/kaitai"), 1800);
   }
@@ -59,6 +69,13 @@ function ClockOutPageInner() {
         <p style={{ fontSize: 26, fontWeight: 900, color: "#E65100" }}>🚪 退勤</p>
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>退勤するメンバーを選択してください</p>
       </header>
+
+      {MEMBERS.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-10 rounded-2xl" style={{ background: "#F1F5F9" }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#64748B" }}>退勤可能なメンバーがいません</p>
+          <p style={{ fontSize: 14, color: "#94A3B8", marginTop: 6 }}>全員退勤済みか、まだ出勤していません</p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {MEMBERS.map(m => {

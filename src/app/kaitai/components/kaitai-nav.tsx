@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Users, MoreHorizontal, HardHat, TrendingUp, Settings,
-  Calendar, ClipboardList, X, CreditCard, Plus, LogOut,
-  Building2,
+  Home, Users, MoreHorizontal,
+  Calendar, ClipboardList, Plus, LogOut,
+  Building2, CreditCard, Shield,
 } from "lucide-react";
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
@@ -15,15 +15,8 @@ const SUPPRESS_ROUTES = [
   "/kaitai/login", "/kaitai/signup", "/kaitai/dev",
   "/kaitai/clients", "/kaitai/billing", "/kaitai/docs",
   "/kaitai/equipment", "/kaitai/lp", "/kaitai/demo",
+  "/kaitai/admin",
 ];
-
-const ADMIN_TABS = [
-  { href: "/kaitai",         label: "現場状況",   icon: HardHat },
-  { href: "/kaitai/members", label: "メンバー",   icon: Users },
-  { href: "/kaitai/work",    label: "作業報告",   icon: ClipboardList },
-  { href: "/kaitai/admin",   label: "収支管理",   icon: TrendingUp },
-  { href: "/kaitai/master",  label: "設定",       icon: Settings },
-] as const;
 
 const WORKER_TABS = [
   { href: "/kaitai",          label: "現場状況",  icon: Home },
@@ -40,10 +33,9 @@ function isActive(href: string, p: string) {
 // ─── PC ヘッダー (≥1024px) ──────────────────────────────────────────────────
 export function KaitaiPCHeader() {
   const pathname = usePathname();
-  const { adminMode, setAdminMode, company, plan } = useAppContext();
+  const { company, plan } = useAppContext();
   if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
 
-  const tabs = adminMode ? ADMIN_TABS : WORKER_TABS;
   const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Free";
 
   return (
@@ -75,7 +67,7 @@ export function KaitaiPCHeader() {
 
         {/* ── 中央：メインナビタブ ── */}
         <nav className="flex items-center flex-1" style={{ gap: 32 }}>
-          {tabs.map(({ href, label }) => {
+          {WORKER_TABS.map(({ href, label }) => {
             const active = isActive(href, pathname);
             return (
               <Link
@@ -117,39 +109,22 @@ export function KaitaiPCHeader() {
             </div>
           </Link>
 
-          {/* 管理者モードバッジ／終了 */}
-          {adminMode ? (
-            <button
-              onClick={() => setAdminMode(false)}
-              className="flex items-center gap-1.5 rounded-xl font-medium"
-              style={{
-                height: 36,
-                padding: "0 14px",
-                background: "#FEF2F2",
-                color: "#DC2626",
-                border: "1px solid #FECACA",
-                fontSize: 14,
-              }}
-            >
-              <X size={12} />
-              管理者モード終了
-            </button>
-          ) : (
-            <span
-              className="flex items-center rounded-lg"
-              style={{
-                height: 32,
-                padding: "0 10px",
-                background: "#F1F5F9",
-                color: "#64748B",
-                fontSize: 14,
-                fontWeight: 600,
-                border: "1px solid #E2E8F0",
-              }}
-            >
-              現場スタッフ
-            </span>
-          )}
+          {/* 管理者リンク */}
+          <Link
+            href="/kaitai/admin"
+            className="flex items-center gap-1.5 rounded-xl font-medium"
+            style={{
+              height: 36,
+              padding: "0 14px",
+              background: "rgba(245,158,11,0.08)",
+              color: "#D97706",
+              border: "1px solid rgba(245,158,11,0.2)",
+              fontSize: 14,
+            }}
+          >
+            <Shield size={13} />
+            管理者
+          </Link>
 
           {/* プランバッジ */}
           <Link
@@ -205,54 +180,6 @@ export function KaitaiPCHeader() {
 }
 
 // ─── モバイルナビ (<1024px) ───────────────────────────────────────────────────
-function AdminMobileNav({ pathname }: { pathname: string }) {
-  const { setAdminMode } = useAppContext();
-  return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 flex flex-col z-40 w-full"
-      style={{
-        background: "#1E293B",
-        borderTop: "2px solid rgba(255,255,255,0.12)",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.25)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-1.5"
-        style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.2)" }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          <span style={{ color: "#F87171", fontSize: 14, fontWeight: 700 }}>管理者モード</span>
-        </div>
-        <button
-          onClick={() => setAdminMode(false)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold"
-          style={{ background: "rgba(239,68,68,0.18)", color: "#F87171" }}
-        >
-          <X size={10} />終了
-        </button>
-      </div>
-      <div className="flex">
-        {ADMIN_TABS.map(({ href, label, icon: Icon }) => {
-          const active = isActive(href, pathname);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-3"
-            >
-              <Icon size={20} strokeWidth={active ? 2.5 : 2} style={{ color: active ? "#F59E0B" : "#64748B" }} />
-              <span style={{ fontSize: 14, fontWeight: active ? 700 : 400, color: active ? "#F59E0B" : "#64748B" }}>
-                {label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
 
 const NAV_H = 76;
 function WorkerMobileNav({ pathname }: { pathname: string }) {
@@ -319,11 +246,10 @@ function WorkerMobileNav({ pathname }: { pathname: string }) {
 
 export function KaitaiMobileNav() {
   const pathname = usePathname();
-  const { adminMode } = useAppContext();
   if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
   return (
     <div className="lg:hidden">
-      {adminMode ? <AdminMobileNav pathname={pathname} /> : <WorkerMobileNav pathname={pathname} />}
+      <WorkerMobileNav pathname={pathname} />
     </div>
   );
 }

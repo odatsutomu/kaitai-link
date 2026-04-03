@@ -3,9 +3,9 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle } from "lucide-react";
-import { useAppContext } from "../../lib/app-context";
+import { useAppContext, getLatestStatus } from "../../lib/app-context";
 
-const MEMBERS = [
+const ALL_MEMBERS = [
   { id: "m1", name: "田中 義雄", role: "職長" },
   { id: "m2", name: "鈴木 健太", role: "作業員" },
   { id: "m3", name: "山本 大輔", role: "作業員" },
@@ -19,11 +19,25 @@ function BreakPageInner() {
   const params = useSearchParams();
   const siteId   = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
-  const { addLog, company } = useAppContext();
+  const { addLog, company, attendanceLogs, addAttendanceLogs } = useAppContext();
 
   const [breakType, setBreakType] = useState<"in" | "back">("in");
   const [selected, setSelected] = useState<string[]>([]);
   const [done, setDone] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Filter members based on breakType
+  const MEMBERS = ALL_MEMBERS.filter(m => {
+    const s = getLatestStatus(attendanceLogs, siteId, m.id, today);
+    if (breakType === "in") {
+      // 休憩入り: only clock_in or break_out (actively working)
+      return s === "clock_in" || s === "break_out";
+    } else {
+      // 休憩戻り: only break_in
+      return s === "break_in";
+    }
+  });
 
   function toggle(id: string) {
     setSelected(prev =>
@@ -33,9 +47,11 @@ function BreakPageInner() {
 
   function confirm() {
     if (selected.length === 0) return;
-    const names = selected.map(id => MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
-    const label = breakType === "in" ? "休憩入り" : "休憩戻り";
+    const names = selected.map(id => ALL_MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
     addLog(`break_${breakType}: ${siteName} / ${names} [${company?.stripeCustomerId ?? "—"}]`, names);
+    const ts = new Date().toISOString();
+    const status = breakType === "in" ? "break_in" as const : "break_out" as const;
+    addAttendanceLogs(selected.map(userId => ({ userId, siteId, status, timestamp: ts })));
     setDone(true);
     setTimeout(() => router.push("/kaitai"), 1800);
   }
@@ -71,7 +87,7 @@ function BreakPageInner() {
           {(["in", "back"] as const).map(t => (
             <button
               key={t}
-              onClick={() => setBreakType(t)}
+              onClick={() => { setBreakType(t); setSelected([]); }}
               className="rounded-xl py-3 font-bold text-base transition-all"
               style={breakType === t
                 ? { background: "#1565C0", color: "#FFF" }
@@ -83,6 +99,13 @@ function BreakPageInner() {
         </div>
 
         {/* Members */}
+        {MEMBERS.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 rounded-2xl" style={{ background: "#F1F5F9" }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B" }}>
+              {breakType === "in" ? "出勤中のメンバーがいません" : "休憩中のメンバーがいません"}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           {MEMBERS.map(m => {
             const on = selected.includes(m.id);

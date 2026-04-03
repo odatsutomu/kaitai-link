@@ -128,7 +128,7 @@ export default function MasterPage() {
                       {site.name}
                     </p>
                     <p className="text-sm mt-0.5" style={{ color: C.muted }}>
-                      ¥{(site.contractAmount / 10_000).toFixed(0)}万 ·{" "}
+                      ¥{Math.round(site.contractAmount).toLocaleString("ja-JP")} ·{" "}
                       {site.startDate.replace(/-/g, "/")}〜{site.endDate.replace(/-/g, "/")}
                     </p>
                   </div>

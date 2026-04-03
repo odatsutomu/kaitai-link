@@ -49,5 +49,5 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
   return null;
 }
 
-/** 日本の中心あたりのデフォルト座標（フォールバック用） */
-export const DEFAULT_CENTER: LatLng = { lat: 35.6762, lng: 139.6503 };
+/** 岡山市中心部のデフォルト座標 */
+export const DEFAULT_CENTER: LatLng = { lat: 34.6617, lng: 133.9345 };

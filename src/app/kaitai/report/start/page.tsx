@@ -3,9 +3,9 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle } from "lucide-react";
-import { useAppContext } from "../../lib/app-context";
+import { useAppContext, getLatestStatus } from "../../lib/app-context";
 
-const MEMBERS = [
+const ALL_MEMBERS = [
   { id: "m1", name: "田中 義雄", role: "職長" },
   { id: "m2", name: "鈴木 健太", role: "作業員" },
   { id: "m3", name: "山本 大輔", role: "作業員" },
@@ -19,7 +19,14 @@ function StartPageInner() {
   const params = useSearchParams();
   const siteId   = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
-  const { addLog, company } = useAppContext();
+  const { addLog, company, attendanceLogs, addAttendanceLogs } = useAppContext();
+
+  const today = new Date().toISOString().slice(0, 10);
+  // Only show members not yet started (no log, or last status = clock_out)
+  const MEMBERS = ALL_MEMBERS.filter(m => {
+    const s = getLatestStatus(attendanceLogs, siteId, m.id, today);
+    return s === null || s === "clock_out";
+  });
 
   const [selected, setSelected] = useState<string[]>([]);
   const [done, setDone] = useState(false);
@@ -32,8 +39,10 @@ function StartPageInner() {
 
   function confirm() {
     if (selected.length === 0) return;
-    const names = selected.map(id => MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
+    const names = selected.map(id => ALL_MEMBERS.find(m => m.id === id)?.name ?? id).join("、");
     addLog(`start: ${siteName} / ${names} [${company?.stripeCustomerId ?? "—"}]`, names);
+    const ts = new Date().toISOString();
+    addAttendanceLogs(selected.map(userId => ({ userId, siteId, status: "clock_in" as const, timestamp: ts })));
     setDone(true);
     setTimeout(() => router.push("/kaitai"), 1800);
   }
@@ -60,6 +69,13 @@ function StartPageInner() {
         <p style={{ fontSize: 26, fontWeight: 900, color: "#1B5E20" }}>🏁 勤務開始</p>
         <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>本日出勤するメンバーを選択してください</p>
       </header>
+
+      {MEMBERS.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-10 rounded-2xl" style={{ background: "#F1F5F9" }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#64748B" }}>全員すでに出勤中です</p>
+          <p style={{ fontSize: 14, color: "#94A3B8", marginTop: 6 }}>本日の出勤予定者は全員記録済みです</p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {MEMBERS.map(m => {

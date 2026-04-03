@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Delete, MapPin } from "lucide-react";
-import { useAppContext } from "../lib/app-context";
+import { useAppContext, countActiveStaff } from "../lib/app-context";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -29,39 +29,32 @@ const PAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
 // ─── Action tile ──────────────────────────────────────────────────────────────
 
 function ActionTile({
-  emoji,
-  label,
-  sub,
-  bg,
-  border,
-  textColor,
-  onClick,
-  wide = false,
+  emoji, label, sub, bg, border, textColor, onClick, wide = false, disabled = false, onDisabledTap,
 }: {
-  emoji: string;
-  label: string;
-  sub: string;
-  bg: string;
-  border: string;
-  textColor: string;
-  onClick: () => void;
-  wide?: boolean;
+  emoji: string; label: string; sub: string; bg: string; border: string; textColor: string;
+  onClick: () => void; wide?: boolean; disabled?: boolean; onDisabledTap?: () => void;
 }) {
+  const handleClick = () => {
+    if (disabled) { onDisabledTap?.(); return; }
+    onClick();
+  };
   return (
     <button
-      onClick={onClick}
-      className={`${wide ? "col-span-2" : ""} flex ${wide ? "flex-row items-center gap-5 px-6" : "flex-col items-center justify-center gap-2 py-6"} rounded-2xl active:scale-[0.97] transition-transform`}
+      onClick={handleClick}
+      className={`${wide ? "col-span-2" : ""} flex ${wide ? "flex-row items-center gap-5 px-6" : "flex-col items-center justify-center gap-2 py-6"} rounded-2xl transition-transform`}
       style={{
-        background: bg,
-        border,
+        background: disabled ? "#F1F5F9" : bg,
+        border: disabled ? "1.5px solid #E2E8F0" : border,
         borderRadius: 16,
         minHeight: wide ? 80 : 120,
+        opacity: disabled ? 0.6 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
-      <span style={{ fontSize: wide ? 32 : 40 }}>{emoji}</span>
+      <span style={{ fontSize: wide ? 32 : 40, filter: disabled ? "grayscale(1)" : "none" }}>{emoji}</span>
       <div className={wide ? "text-left flex-1" : "text-center"}>
-        <p style={{ fontSize: wide ? 18 : 18, fontWeight: 700, color: textColor }}>{label}</p>
-        <p style={{ fontSize: 14, color: textColor, opacity: 0.75, marginTop: 3 }}>{sub}</p>
+        <p style={{ fontSize: 18, fontWeight: 700, color: disabled ? "#94A3B8" : textColor }}>{label}</p>
+        <p style={{ fontSize: 14, color: disabled ? "#94A3B8" : textColor, opacity: 0.75, marginTop: 3 }}>{sub}</p>
       </div>
     </button>
   );
@@ -71,13 +64,24 @@ function ActionTile({
 
 export default function ReportPage() {
   const router = useRouter();
-  const { setAuthSiteId } = useAppContext();
+  const { setAuthSiteId, attendanceLogs } = useAppContext();
 
   const [step, setStep] = useState<Step>("site");
   const [selectedSite, setSelectedSite] = useState<typeof SITES[0] | null>(null);
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [snackbar, setSnackbar] = useState("");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const activeCount = selectedSite
+    ? countActiveStaff(attendanceLogs, selectedSite.id, today)
+    : 0;
+
+  function showSnackbar(msg: string) {
+    setSnackbar(msg);
+    setTimeout(() => setSnackbar(""), 2500);
+  }
 
   useEffect(() => {
     if (pin.length < 4) return;
@@ -297,6 +301,17 @@ export default function ReportPage() {
         <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>作業内容を選択してください</p>
       </div>
 
+      {/* Active staff indicator */}
+      <div className="flex items-center gap-2">
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{ background: activeCount > 0 ? "#10B981" : "#94A3B8" }}
+        />
+        <span style={{ fontSize: 14, color: activeCount > 0 ? "#166534" : "#94A3B8", fontWeight: 600 }}>
+          現在 出勤中: {activeCount}名
+        </span>
+      </div>
+
       {/* Action grid */}
       <div className="grid grid-cols-2 gap-4 max-w-2xl">
         <ActionTile
@@ -315,6 +330,8 @@ export default function ReportPage() {
           bg="#EFF6FF"
           border="1.5px solid #BFDBFE"
           textColor="#1E40AF"
+          disabled={activeCount === 0}
+          onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
           onClick={() => router.push(`/kaitai/report/break?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
         />
         <ActionTile
@@ -324,6 +341,8 @@ export default function ReportPage() {
           bg="#FFFBEB"
           border="1.5px solid #FDE68A"
           textColor="#92400E"
+          disabled={activeCount === 0}
+          onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
           onClick={() => router.push(`/kaitai/report/clockout?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
         />
         <ActionTile
@@ -358,6 +377,23 @@ export default function ReportPage() {
           wide
         />
       </div>
+
+      {/* Snackbar */}
+      {snackbar && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl z-50 pointer-events-none"
+          style={{
+            background: "#1E293B",
+            color: "#FFFFFF",
+            fontSize: 14,
+            fontWeight: 600,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ⚠️ {snackbar}
+        </div>
+      )}
     </div>
   );
 }

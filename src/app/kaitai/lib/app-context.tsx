@@ -10,6 +10,59 @@ export type PlanId    = "free" | "standard" | "business" | "enterprise";
 
 export type ClientStatus = "active" | "past" | "suspended";
 
+// ─── Attendance types ─────────────────────────────────────────────────────────
+
+export type AttendanceStatus = "clock_in" | "break_in" | "break_out" | "clock_out";
+
+export interface AttendanceLog {
+  id: string;
+  userId: string;
+  siteId: string;
+  status: AttendanceStatus;
+  timestamp: string; // ISO
+}
+
+/** Returns the latest AttendanceStatus for a user at a site today, or null */
+export function getLatestStatus(
+  logs: AttendanceLog[],
+  siteId: string,
+  userId: string,
+  today: string
+): AttendanceStatus | null {
+  const entries = logs
+    .filter(l => l.siteId === siteId && l.userId === userId && l.timestamp.startsWith(today))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return entries.length > 0 ? entries[entries.length - 1].status : null;
+}
+
+/** Returns Map<userId, AttendanceStatus> for all users at a site today */
+export function getSiteStatusMap(
+  logs: AttendanceLog[],
+  siteId: string,
+  today: string
+): Map<string, AttendanceStatus> {
+  const map = new Map<string, AttendanceStatus>();
+  const entries = logs
+    .filter(l => l.siteId === siteId && l.timestamp.startsWith(today))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  for (const e of entries) map.set(e.userId, e.status);
+  return map;
+}
+
+/** Count of staff active (clock_in | break_in | break_out) at a site today */
+export function countActiveStaff(
+  logs: AttendanceLog[],
+  siteId: string,
+  today: string
+): number {
+  const map = getSiteStatusMap(logs, siteId, today);
+  let n = 0;
+  for (const s of map.values()) {
+    if (s === "clock_in" || s === "break_in" || s === "break_out") n++;
+  }
+  return n;
+}
+
 // ─── Equipment types ──────────────────────────────────────────────────────────
 
 export type EquipmentCategory = "自社保有" | "リース" | "レンタル";
@@ -163,6 +216,14 @@ type AppContextType = {
   // 作業員評価
   evaluations: WorkerEval[];
   addEvaluation: (data: WorkerEval) => void;
+
+  // 勤怠打刻
+  attendanceLogs: AttendanceLog[];
+  addAttendanceLogs: (entries: Omit<AttendanceLog, "id">[]) => void;
+
+  // 閲覧者ID（職長による緊急連絡先例外制御）
+  viewerMemberId: string | null;
+  setViewerMemberId: (id: string | null) => void;
 };
 
 // ─── Default company (demo) ───────────────────────────────────────────────────
@@ -258,6 +319,16 @@ const SEED_FUEL_LOGS: FuelLog[] = [
   { id: "fuel002", equipmentId: "eq003", equipmentName: "2tダンプ", siteId: "s1", date: "2026-03-22", liters: 30, pricePerLiter: 145, reporter: "鈴木", memo: "" },
 ];
 
+// ─── Seed attendance (2026-04-03) ─────────────────────────────────────────────
+
+const SEED_ATTENDANCE: AttendanceLog[] = [
+  { id: "att001", userId: "m1", siteId: "s1", status: "clock_in",  timestamp: "2026-04-03T07:55:00.000Z" },
+  { id: "att002", userId: "m2", siteId: "s1", status: "clock_in",  timestamp: "2026-04-03T08:03:00.000Z" },
+  { id: "att003", userId: "m3", siteId: "s1", status: "break_in",  timestamp: "2026-04-03T12:00:00.000Z" },
+  { id: "att004", userId: "m4", siteId: "s2", status: "clock_in",  timestamp: "2026-04-03T08:15:00.000Z" },
+  { id: "att005", userId: "m5", siteId: "s2", status: "clock_out", timestamp: "2026-04-03T16:30:00.000Z" },
+];
+
 // ─── Context + provider ───────────────────────────────────────────────────────
 
 const AppContext = createContext<AppContextType>({
@@ -284,6 +355,10 @@ const AppContext = createContext<AppContextType>({
   addExpenseLog: () => {},
   evaluations: [],
   addEvaluation: () => {},
+  attendanceLogs: SEED_ATTENDANCE,
+  addAttendanceLogs: () => {},
+  viewerMemberId: null,
+  setViewerMemberId: () => {},
 });
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -299,8 +374,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [equipment,    setEquipment]    = useState<Equipment[]>(SEED_EQUIPMENT);
   const [assignments,  setAssignments]  = useState<EquipmentAssignment[]>(SEED_ASSIGNMENTS);
   const [fuelLogs,     setFuelLogs]     = useState<FuelLog[]>(SEED_FUEL_LOGS);
-  const [expenseLogs,  setExpenseLogs]  = useState<ExpenseLog[]>([]);
-  const [evaluations,  setEvaluations]  = useState<WorkerEval[]>([]);
+  const [expenseLogs,    setExpenseLogs]    = useState<ExpenseLog[]>([]);
+  const [evaluations,    setEvaluations]    = useState<WorkerEval[]>([]);
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(SEED_ATTENDANCE);
+  const [viewerMemberId, setViewerMemberId] = useState<string | null>(null);
 
   // Derived
   const adminMode = authLevel === "admin" || authLevel === "dev";
@@ -367,6 +444,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setEvaluations(prev => [data, ...prev]);
   }, []);
 
+  const addAttendanceLogs = useCallback((entries: Omit<AttendanceLog, "id">[]) => {
+    const newLogs: AttendanceLog[] = entries.map(e => ({
+      ...e,
+      id: `att${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    }));
+    setAttendanceLogs(prev => [...prev, ...newLogs]);
+  }, []);
+
   const addLog = useCallback((action: string, user = "system") => {
     const device = typeof window !== "undefined"
       ? window.navigator.userAgent.slice(0, 60)
@@ -396,6 +481,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fuelLogs,     addFuelLog,
       expenseLogs,  addExpenseLog,
       evaluations,  addEvaluation,
+      attendanceLogs, addAttendanceLogs,
+      viewerMemberId, setViewerMemberId,
     }}>
       {children}
     </AppContext.Provider>
