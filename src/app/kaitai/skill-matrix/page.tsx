@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Search, Filter, Users, BookOpen, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Search, Filter, Users, BookOpen, X, CheckSquare, Square } from "lucide-react";
 import { T } from "../lib/design-tokens";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -18,27 +18,42 @@ type Member = {
   hireDate?: string | null; licenses?: string[] | null;
 };
 
+// Cell key = "memberId:skillId"
+type CellKey = string;
+function cellKey(memberId: string, skillId: string): CellKey {
+  return `${memberId}:${skillId}`;
+}
+
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
   text: T.text, sub: T.sub, muted: "#9CA3AF",
   border: T.border, card: T.surface,
   primary: T.primary, primaryDk: T.primaryDk,
   green: "#10B981", greenBg: "#D1FAE5",
+  blue: "#3B82F6",
 };
 
-// ─── Teach Modal ─────────────────────────────────────────────────────────────
-function TeachModal({ skill, member, members, currentTeacher, onClose, onSave, onRemove }: {
-  skill: { id: string; name: string; categoryName: string };
-  member: Member;
+// ─── Batch Teacher Modal ─────────────────────────────────────────────────────
+function TeacherModal({ cells, members, onClose, onSave, onRemove }: {
+  cells: { memberId: string; skillId: string; skillName: string }[];
   members: Member[];
-  currentTeacher: string | null;
   onClose: () => void;
   onSave: (teacherId: string | null) => void;
   onRemove: () => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(currentTeacher);
-  const isExisting = !!currentTeacher || currentTeacher === null; // has a userSkill record
-  const others = members.filter(m => m.id !== member.id);
+  // Get all unique member IDs involved as learners
+  const learnerIds = new Set(cells.map(c => c.memberId));
+  // Exclude learners from teacher options
+  const teacherOptions = members.filter(m => !learnerIds.has(m.id));
+
+  const handleSelect = (teacherId: string | null) => {
+    onSave(teacherId);
+  };
+
+  const isSingle = cells.length === 1;
+  const title = isSingle
+    ? cells[0].skillName
+    : `${cells.length}件のスキルを一括登録`;
 
   return (
     <div style={{
@@ -56,13 +71,25 @@ function TeachModal({ skill, member, members, currentTeacher, onClose, onSave, o
           display: "flex", alignItems: "flex-start", justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.primary, marginBottom: 4 }}>
-              {skill.categoryName}
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{skill.name}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{title}</div>
             <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
-              {member.avatar ?? "👤"} {member.name} の指導者を選択
+              指導者をタップすると即座に保存されます
             </div>
+            {!isSingle && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+                {cells.slice(0, 6).map((c, i) => (
+                  <span key={i} style={{
+                    fontSize: 11, padding: "2px 8px", borderRadius: 6,
+                    background: `${C.primary}10`, color: C.primary, fontWeight: 600,
+                  }}>
+                    {c.skillName}
+                  </span>
+                ))}
+                {cells.length > 6 && (
+                  <span style={{ fontSize: 11, color: C.muted }}>他{cells.length - 6}件</span>
+                )}
+              </div>
+            )}
           </div>
           <button onClick={onClose} style={{
             background: "none", border: "none", cursor: "pointer",
@@ -72,70 +99,59 @@ function TeachModal({ skill, member, members, currentTeacher, onClose, onSave, o
           </button>
         </div>
 
-        {/* Options */}
+        {/* Quick-tap teacher list */}
         <div style={{ padding: "12px 20px" }}>
-          {/* Self-learned option */}
-          <label style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 16px", borderRadius: 10, cursor: "pointer",
-            border: `2px solid ${selected === null ? C.primary : C.border}`,
-            background: selected === null ? `${C.primary}08` : "transparent",
-            marginBottom: 8,
-          }}>
-            <input type="radio" name="teacher" checked={selected === null}
-              onChange={() => setSelected(null)}
-              style={{ accentColor: C.primary }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>自主習得</span>
-          </label>
+          {/* Self-learned */}
+          <button
+            onClick={() => handleSelect(null)}
+            style={{
+              display: "flex", alignItems: "center", gap: 12, width: "100%",
+              padding: "14px 16px", borderRadius: 10, cursor: "pointer",
+              border: `1px solid ${C.border}`, background: C.card,
+              marginBottom: 8, textAlign: "left",
+              transition: "background 0.1s",
+            }}
+            onMouseDown={e => (e.currentTarget.style.background = `${C.primary}10`)}
+            onMouseUp={e => (e.currentTarget.style.background = C.card)}
+            onMouseLeave={e => (e.currentTarget.style.background = C.card)}
+          >
+            <span style={{ fontSize: 18 }}>📝</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>自主習得</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>タップで保存 →</span>
+          </button>
 
-          {/* Other members */}
           <div style={{ fontSize: 12, fontWeight: 600, color: C.sub, margin: "12px 0 8px" }}>
             指導者を選択
           </div>
-          {others.map(m => (
-            <label key={m.id} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "10px 16px", borderRadius: 10, cursor: "pointer",
-              border: `2px solid ${selected === m.id ? C.primary : C.border}`,
-              background: selected === m.id ? `${C.primary}08` : "transparent",
-              marginBottom: 6,
-            }}>
-              <input type="radio" name="teacher" checked={selected === m.id}
-                onChange={() => setSelected(m.id)}
-                style={{ accentColor: C.primary }} />
-              <span style={{ fontSize: 16 }}>{m.avatar ?? "👤"}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{m.name}</span>
-            </label>
+          {teacherOptions.map(m => (
+            <button key={m.id}
+              onClick={() => handleSelect(m.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 12, width: "100%",
+                padding: "12px 16px", borderRadius: 10, cursor: "pointer",
+                border: `1px solid ${C.border}`, background: C.card,
+                marginBottom: 6, textAlign: "left",
+                transition: "background 0.1s",
+              }}
+              onMouseDown={e => (e.currentTarget.style.background = `${C.primary}10`)}
+              onMouseUp={e => (e.currentTarget.style.background = C.card)}
+              onMouseLeave={e => (e.currentTarget.style.background = C.card)}
+            >
+              <span style={{ fontSize: 18 }}>{m.avatar ?? "👤"}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{m.name}</span>
+              <span style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>→</span>
+            </button>
           ))}
         </div>
 
-        {/* Footer */}
-        <div style={{
-          padding: "16px 20px", borderTop: `1px solid ${C.border}`,
-          display: "flex", gap: 8,
-        }}>
+        {/* Remove button */}
+        <div style={{ padding: "12px 20px 20px", borderTop: `1px solid ${C.border}` }}>
           <button onClick={onRemove} style={{
-            flex: 0, padding: "10px 16px", borderRadius: 10,
-            border: `1px solid #EF4444`, background: "transparent",
+            width: "100%", padding: "12px", borderRadius: 10,
+            border: `1px solid #FCA5A5`, background: "rgba(239,68,68,0.04)",
             fontSize: 14, fontWeight: 600, color: "#EF4444", cursor: "pointer",
-            whiteSpace: "nowrap",
           }}>
-            解除
-          </button>
-          <div style={{ flex: 1 }} />
-          <button onClick={onClose} style={{
-            padding: "10px 20px", borderRadius: 10,
-            border: `1px solid ${C.border}`, background: C.card,
-            fontSize: 14, fontWeight: 600, color: C.sub, cursor: "pointer",
-          }}>
-            キャンセル
-          </button>
-          <button onClick={() => onSave(selected)} style={{
-            padding: "10px 20px", borderRadius: 10, border: "none",
-            background: C.primary, color: "#fff",
-            fontSize: 14, fontWeight: 700, cursor: "pointer",
-          }}>
-            保存
+            スキル記録を解除
           </button>
         </div>
       </div>
@@ -151,11 +167,14 @@ export default function SkillMatrixPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState<string>("all");
-  const [modal, setModal] = useState<{
-    skillId: string; skillName: string; categoryName: string;
-    memberId: string; currentTeacher: string | null;
-  } | null>(null);
-  const [saving, setSaving] = useState(false);
+
+  // Multi-select mode
+  const [multiMode, setMultiMode] = useState(false);
+  const [selectedCells, setSelectedCells] = useState<Set<CellKey>>(new Set());
+  const [showModal, setShowModal] = useState(false);
+
+  // Track in-flight saves for optimistic UI
+  const pendingSavesRef = useRef(new Set<CellKey>());
 
   const loadData = useCallback(async () => {
     try {
@@ -196,21 +215,24 @@ export default function SkillMatrixPage() {
     [categories],
   );
 
+  // Skill name lookup
+  const skillNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of allSkills) m.set(s.id, s.name);
+    return m;
+  }, [allSkills]);
+
   // Filter skills by category
   const filteredSkills = useMemo(() =>
     selectedCat === "all" ? allSkills : allSkills.filter(s => s.categoryId === selectedCat),
     [allSkills, selectedCat],
   );
 
-  // Sort members by hireDate ascending (oldest first = leftmost), filter by search
+  // Sort members by hireDate ascending
   const sortedMembers = useMemo(() => {
     let list = [...members];
     if (search) list = list.filter(m => m.name.includes(search));
-    list.sort((a, b) => {
-      const da = a.hireDate ?? "9999";
-      const db = b.hireDate ?? "9999";
-      return da.localeCompare(db);
-    });
+    list.sort((a, b) => (a.hireDate ?? "9999").localeCompare(b.hireDate ?? "9999"));
     return list;
   }, [members, search]);
 
@@ -220,53 +242,121 @@ export default function SkillMatrixPage() {
   const completionRate = members.length > 0 && totalSkills > 0
     ? Math.round((totalAchievements / (members.length * totalSkills)) * 100) : 0;
 
-  // Modal handlers
-  const handleCellClick = (skillId: string, skillName: string, categoryName: string, memberId: string) => {
-    const us = skillMap.get(`${memberId}:${skillId}`);
-    setModal({
-      skillId, skillName, categoryName, memberId,
-      currentTeacher: us?.taughtBy ?? null,
+  // ── Cell click handlers ──
+  const toggleCell = (key: CellKey) => {
+    setSelectedCells(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
   };
 
-  const handleSave = async (teacherId: string | null) => {
-    if (!modal) return;
-    setSaving(true);
-    try {
-      await fetch("/api/kaitai/user-skills", {
+  const handleCellClick = (skillId: string, memberId: string) => {
+    if (multiMode) {
+      toggleCell(cellKey(memberId, skillId));
+    } else {
+      // Single mode: select just this cell and show modal immediately
+      setSelectedCells(new Set([cellKey(memberId, skillId)]));
+      setShowModal(true);
+    }
+  };
+
+  // ── Optimistic save/remove ──
+  const applyOptimistic = (cells: { memberId: string; skillId: string }[], teacherId: string | null) => {
+    // Immediately update userSkills state
+    setUserSkills(prev => {
+      const next = [...prev];
+      for (const c of cells) {
+        const key = cellKey(c.memberId, c.skillId);
+        const existingIdx = next.findIndex(us => `${us.memberId}:${us.skillId}` === key);
+        const newEntry: UserSkill = {
+          memberId: c.memberId, skillId: c.skillId,
+          taughtBy: teacherId, achievedAt: new Date().toISOString(),
+          skill: { id: c.skillId, name: skillNameMap.get(c.skillId) ?? "", category: { id: "", name: "" } },
+        };
+        if (existingIdx >= 0) next[existingIdx] = newEntry;
+        else next.push(newEntry);
+      }
+      return next;
+    });
+  };
+
+  const removeOptimistic = (cells: { memberId: string; skillId: string }[]) => {
+    setUserSkills(prev =>
+      prev.filter(us => !cells.some(c => us.memberId === c.memberId && us.skillId === c.skillId)),
+    );
+  };
+
+  const handleSave = (teacherId: string | null) => {
+    const cells = Array.from(selectedCells).map(k => {
+      const [memberId, skillId] = k.split(":");
+      return { memberId, skillId };
+    });
+
+    // Optimistic UI: update immediately
+    applyOptimistic(cells, teacherId);
+    setShowModal(false);
+    setSelectedCells(new Set());
+    if (multiMode) setMultiMode(false);
+
+    // Fire-and-forget API calls in background
+    for (const c of cells) {
+      const key = cellKey(c.memberId, c.skillId);
+      pendingSavesRef.current.add(key);
+      fetch("/api/kaitai/user-skills", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberId: modal.memberId,
-          skillId: modal.skillId,
-          taughtBy: teacherId,
-        }),
+        body: JSON.stringify({ memberId: c.memberId, skillId: c.skillId, taughtBy: teacherId }),
+      }).finally(() => {
+        pendingSavesRef.current.delete(key);
+        // Refresh data after all saves complete
+        if (pendingSavesRef.current.size === 0) loadData();
       });
-      await loadData();
-    } catch { /* ignore */ }
-    setSaving(false);
-    setModal(null);
+    }
   };
 
-  const handleRemove = async () => {
-    if (!modal) return;
-    setSaving(true);
-    try {
-      await fetch("/api/kaitai/user-skills", {
+  const handleRemove = () => {
+    const cells = Array.from(selectedCells).map(k => {
+      const [memberId, skillId] = k.split(":");
+      return { memberId, skillId };
+    });
+
+    // Optimistic UI: remove immediately
+    removeOptimistic(cells);
+    setShowModal(false);
+    setSelectedCells(new Set());
+    if (multiMode) setMultiMode(false);
+
+    // Fire-and-forget
+    for (const c of cells) {
+      fetch("/api/kaitai/user-skills", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberId: modal.memberId,
-          skillId: modal.skillId,
-        }),
+        body: JSON.stringify({ memberId: c.memberId, skillId: c.skillId }),
+      }).finally(() => {
+        if (pendingSavesRef.current.size === 0) loadData();
       });
-      await loadData();
-    } catch { /* ignore */ }
-    setSaving(false);
-    setModal(null);
+    }
   };
 
-  const modalMember = modal ? memberNameMap.get(modal.memberId) : null;
+  const openBatchModal = () => {
+    if (selectedCells.size > 0) setShowModal(true);
+  };
+
+  const exitMultiMode = () => {
+    setMultiMode(false);
+    setSelectedCells(new Set());
+  };
+
+  // Build modal cell info
+  const modalCells = useMemo(() =>
+    Array.from(selectedCells).map(k => {
+      const [memberId, skillId] = k.split(":");
+      return { memberId, skillId, skillName: skillNameMap.get(skillId) ?? "" };
+    }),
+    [selectedCells, skillNameMap],
+  );
 
   if (loading) {
     return (
@@ -279,13 +369,11 @@ export default function SkillMatrixPage() {
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 16px 120px" }}>
       {/* Modal */}
-      {modal && modalMember && (
-        <TeachModal
-          skill={{ id: modal.skillId, name: modal.skillName, categoryName: modal.categoryName }}
-          member={modalMember}
+      {showModal && modalCells.length > 0 && (
+        <TeacherModal
+          cells={modalCells}
           members={members}
-          currentTeacher={modal.currentTeacher}
-          onClose={() => !saving && setModal(null)}
+          onClose={() => { setShowModal(false); if (!multiMode) setSelectedCells(new Set()); }}
           onSave={handleSave}
           onRemove={handleRemove}
         />
@@ -296,19 +384,67 @@ export default function SkillMatrixPage() {
         <Link href="/kaitai" style={{ color: C.primary, display: "flex", alignItems: "center" }}>
           <ArrowLeft size={20} />
         </Link>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>
             スキルマトリックス
           </h1>
           <p style={{ fontSize: 13, color: C.sub, margin: 0 }}>全スタッフ × 全スキルの習得状況</p>
         </div>
+        {/* Multi-select toggle */}
+        {!multiMode ? (
+          <button onClick={() => setMultiMode(true)} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 16px", borderRadius: 10,
+            border: `1px solid ${C.border}`, background: C.card,
+            fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer",
+          }}>
+            <CheckSquare size={16} />
+            複数選択
+          </button>
+        ) : (
+          <button onClick={exitMultiMode} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 16px", borderRadius: 10,
+            border: `1px solid #EF4444`, background: "rgba(239,68,68,0.04)",
+            fontSize: 13, fontWeight: 700, color: "#EF4444", cursor: "pointer",
+          }}>
+            <X size={16} />
+            選択解除
+          </button>
+        )}
       </div>
+
+      {/* Multi-select action bar */}
+      {multiMode && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "12px 16px", borderRadius: 12, marginBottom: 16,
+          background: `${C.blue}08`, border: `1px solid ${C.blue}30`,
+        }}>
+          <CheckSquare size={18} style={{ color: C.blue }} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+            {selectedCells.size > 0
+              ? `${selectedCells.size}件選択中`
+              : "セルをタップして選択してください"}
+          </span>
+          <div style={{ flex: 1 }} />
+          {selectedCells.size > 0 && (
+            <button onClick={openBatchModal} style={{
+              padding: "8px 20px", borderRadius: 10, border: "none",
+              background: C.primary, color: "#fff",
+              fontSize: 14, fontWeight: 700, cursor: "pointer",
+            }}>
+              一括登録
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
           { icon: Users, label: "スタッフ数", value: members.length, color: C.primary },
-          { icon: BookOpen, label: "スキル項目", value: totalSkills, color: "#3B82F6" },
+          { icon: BookOpen, label: "スキル項目", value: totalSkills, color: C.blue },
           { icon: CheckCircle2, label: "習得率", value: `${completionRate}%`, color: C.green },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} style={{
@@ -352,7 +488,7 @@ export default function SkillMatrixPage() {
         </div>
       </div>
 
-      {/* Matrix table — rows=skills, columns=members */}
+      {/* Matrix table */}
       {filteredSkills.length === 0 ? (
         <div style={{
           textAlign: "center", padding: 60, color: C.sub,
@@ -370,7 +506,6 @@ export default function SkillMatrixPage() {
           <table style={{ borderCollapse: "collapse", minWidth: "100%" }}>
             <thead>
               <tr>
-                {/* Top-left corner: "スキル / スタッフ" */}
                 <th style={{
                   position: "sticky", left: 0, top: 0, zIndex: 20,
                   background: "#F3F4F6", padding: "10px 12px",
@@ -378,9 +513,8 @@ export default function SkillMatrixPage() {
                   fontSize: 11, fontWeight: 600, color: C.sub,
                   textAlign: "left", minWidth: 140,
                 }}>
-                  <div>スキル ＼ スタッフ</div>
+                  スキル ＼ スタッフ
                 </th>
-                {/* Column headers = members sorted by hireDate */}
                 {sortedMembers.map(member => (
                   <th key={member.id} style={{
                     background: "#F3F4F6", padding: "8px 4px",
@@ -403,7 +537,6 @@ export default function SkillMatrixPage() {
                     )}
                   </th>
                 ))}
-                {/* Acquisition count column */}
                 <th style={{
                   background: "#F3F4F6", padding: "8px 8px",
                   borderBottom: `2px solid ${C.border}`,
@@ -416,14 +549,12 @@ export default function SkillMatrixPage() {
             </thead>
             <tbody>
               {filteredSkills.map((skill, idx) => {
-                const achieved = sortedMembers.filter(m => skillMap.has(`${m.id}:${skill.id}`)).length;
-                // Show category separator
+                const achieved = sortedMembers.filter(m => skillMap.has(cellKey(m.id, skill.id))).length;
                 const prevSkill = idx > 0 ? filteredSkills[idx - 1] : null;
                 const isNewCategory = !prevSkill || prevSkill.categoryId !== skill.categoryId;
 
                 return (
                   <tr key={skill.id}>
-                    {/* Skill name (row header) */}
                     <td style={{
                       position: "sticky", left: 0, zIndex: 5,
                       background: idx % 2 === 0 ? C.card : "#FAFAFA",
@@ -432,10 +563,7 @@ export default function SkillMatrixPage() {
                       borderTop: isNewCategory ? `2px solid ${C.primary}30` : undefined,
                     }}>
                       {isNewCategory && (
-                        <div style={{
-                          fontSize: 10, fontWeight: 700, color: C.primary,
-                          marginBottom: 2, textTransform: "uppercase",
-                        }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: C.primary, marginBottom: 2 }}>
                           {skill.categoryName}
                         </div>
                       )}
@@ -443,25 +571,42 @@ export default function SkillMatrixPage() {
                         {skill.name}
                       </div>
                     </td>
-                    {/* Cells: one per member */}
                     {sortedMembers.map(member => {
-                      const us = skillMap.get(`${member.id}:${skill.id}`);
+                      const key = cellKey(member.id, skill.id);
+                      const us = skillMap.get(key);
                       const teacher = us?.taughtBy ? memberNameMap.get(us.taughtBy) : null;
+                      const isSelected = selectedCells.has(key);
+
                       return (
                         <td key={member.id}
-                          onClick={() => handleCellClick(skill.id, skill.name, skill.categoryName, member.id)}
+                          onClick={() => handleCellClick(skill.id, member.id)}
                           style={{
                             textAlign: "center", padding: "4px 2px",
                             borderBottom: `1px solid ${C.border}`,
                             borderRight: `1px solid ${C.border}`,
                             borderTop: isNewCategory ? `2px solid ${C.primary}30` : undefined,
-                            background: us
-                              ? `${C.green}10`
+                            background: isSelected
+                              ? `${C.blue}18`
+                              : us ? `${C.green}10`
                               : idx % 2 === 0 ? C.card : "#FAFAFA",
                             cursor: "pointer",
                             verticalAlign: "middle",
+                            outline: isSelected ? `2px solid ${C.blue}` : "none",
+                            outlineOffset: -2,
+                            transition: "background 0.1s, outline 0.1s",
                           }}
                         >
+                          {multiMode && isSelected && (
+                            <div style={{ position: "relative" }}>
+                              <div style={{
+                                position: "absolute", top: -2, right: -2,
+                                width: 14, height: 14, borderRadius: 3,
+                                background: C.blue, display: "flex", alignItems: "center", justifyContent: "center",
+                              }}>
+                                <CheckSquare size={10} style={{ color: "#fff" }} />
+                              </div>
+                            </div>
+                          )}
                           {us ? (
                             <div>
                               <CheckCircle2 size={16} style={{ color: C.green }} />
@@ -479,7 +624,6 @@ export default function SkillMatrixPage() {
                         </td>
                       );
                     })}
-                    {/* Row total */}
                     <td style={{
                       textAlign: "center", padding: "6px 8px",
                       borderBottom: `1px solid ${C.border}`,
@@ -492,7 +636,7 @@ export default function SkillMatrixPage() {
                   </tr>
                 );
               })}
-              {/* Bottom row: per-member totals */}
+              {/* Bottom totals row */}
               <tr>
                 <td style={{
                   position: "sticky", left: 0, zIndex: 5,
@@ -503,7 +647,7 @@ export default function SkillMatrixPage() {
                   習得数
                 </td>
                 {sortedMembers.map(member => {
-                  const achieved = filteredSkills.filter(s => skillMap.has(`${member.id}:${s.id}`)).length;
+                  const achieved = filteredSkills.filter(s => skillMap.has(cellKey(member.id, s.id))).length;
                   const pct = filteredSkills.length > 0 ? Math.round((achieved / filteredSkills.length) * 100) : 0;
                   return (
                     <td key={member.id} style={{
@@ -543,7 +687,7 @@ export default function SkillMatrixPage() {
           <span>未習得</span>
         </div>
         <div style={{ fontSize: 12, color: C.muted }}>
-          セルをタップして指導者を登録できます
+          セルをタップで指導者登録 ・ 「複数選択」で一括登録
         </div>
       </div>
     </div>
