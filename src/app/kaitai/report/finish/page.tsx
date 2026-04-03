@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, CheckCircle, Plus, Minus, ChevronDown, ChevronUp } from "lucide-react";
 import PhotoCapture from "../../components/photo-capture";
@@ -60,6 +60,24 @@ function FinishPageInner() {
 
   // ── 引き継ぎメモ ─────────────────────────────────────────────────────────────
   const [handoverMemo, setHandoverMemo] = useState("");
+
+  // ── 進捗率スライダー ──────────────────────────────────────────────────────────
+  const [progressPct, setProgressPct] = useState(0);
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!siteId) return;
+    fetch("/api/kaitai/sites")
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && Array.isArray(data.sites)) {
+          const site = data.sites.find((s: { id: string }) => s.id === siteId);
+          if (site) setProgressPct(site.progressPct ?? 0);
+        }
+        setProgressLoaded(true);
+      })
+      .catch(() => setProgressLoaded(true));
+  }, [siteId]);
 
   // ── 評価 ─────────────────────────────────────────────────────────────────────
   // 本日この現場に出勤したスタッフ
@@ -132,6 +150,15 @@ function FinishPageInner() {
     // 引き継ぎメモを保存
     if (handoverMemo.trim()) {
       addHandoverMemo({ siteId, date: today, memo: handoverMemo.trim(), evaluatorId });
+    }
+
+    // 進捗率を保存
+    if (siteId) {
+      fetch("/api/kaitai/sites/progress", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, progressPct }),
+      }).catch(() => {});
     }
 
     setDone(true);
@@ -245,6 +272,41 @@ function FinishPageInner() {
           className="w-full rounded-2xl px-5 outline-none"
           style={{ height: 60, fontSize: 22, fontWeight: 700, background: "#FFF", border: "2px solid #EEEEEE", color: "#111" }}
         />
+      </section>
+
+      {/* ─ 施工進捗率 ───────────────────────────────────────────────────────── */}
+      <section>
+        <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>施工進捗率</p>
+        <div className="rounded-2xl px-5 py-4" style={{ background: "#FFF", border: "2px solid #EEEEEE" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 14, color: T.sub, fontWeight: 600 }}>現在の進捗</span>
+            <span style={{
+              fontSize: 28, fontWeight: 800,
+              color: progressPct >= 80 ? "#10B981" : progressPct >= 40 ? T.primary : T.sub,
+            }}>
+              {progressPct}<span style={{ fontSize: 16, fontWeight: 600 }}>%</span>
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={progressPct}
+            onChange={e => setProgressPct(Number(e.target.value))}
+            disabled={!progressLoaded}
+            style={{
+              width: "100%", height: 8, borderRadius: 4,
+              accentColor: T.primary,
+              cursor: "pointer",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: T.muted }}>0%</span>
+            <span style={{ fontSize: 11, color: T.muted }}>50%</span>
+            <span style={{ fontSize: 11, color: T.muted }}>100%</span>
+          </div>
+        </div>
       </section>
 
       {/* ─ 現場写真 ─────────────────────────────────────────────────────────── */}
