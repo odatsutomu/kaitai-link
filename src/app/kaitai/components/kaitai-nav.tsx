@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Users, MoreHorizontal,
   Calendar, ClipboardList, Plus, LogOut,
-  Building2, CreditCard, Shield,
+  Building2,
 } from "lucide-react";
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
@@ -34,10 +34,8 @@ function isActive(href: string, p: string) {
 // ─── PC ヘッダー (≥1024px) ──────────────────────────────────────────────────
 export function KaitaiPCHeader() {
   const pathname = usePathname();
-  const { company, plan } = useAppContext();
+  const { company } = useAppContext();
   if (SUPPRESS_ROUTES.some((r) => pathname.startsWith(r))) return null;
-
-  const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Free";
 
   return (
     <header
@@ -106,40 +104,6 @@ export function KaitaiPCHeader() {
               <Plus size={14} />
               新規現場
             </div>
-          </Link>
-
-          {/* 管理者リンク */}
-          <Link
-            href="/kaitai/admin"
-            className="flex items-center gap-1.5 rounded-xl font-medium"
-            style={{
-              height: 36,
-              padding: "0 14px",
-              background: T.primaryLt,
-              color: T.primaryDk,
-              border: `1px solid ${T.primaryMd}`,
-              fontSize: 14,
-            }}
-          >
-            <Shield size={13} />
-            管理者
-          </Link>
-
-          {/* プランバッジ */}
-          <Link
-            href="/kaitai/billing"
-            className="flex items-center gap-1.5 rounded-lg"
-            style={{
-              height: 32,
-              padding: "0 10px",
-              background: T.primaryLt,
-              border: `1px solid ${T.primaryMd}`,
-            }}
-          >
-            <CreditCard size={12} style={{ color: T.primary }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: T.primaryDk }}>
-              {planLabel}
-            </span>
           </Link>
 
           {/* 会社名チップ */}

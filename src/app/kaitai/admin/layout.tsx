@@ -24,7 +24,6 @@ const EXTERNAL_NAV = [
   { href: "/kaitai/equipment",      label: "機材管理",   icon: Truck    },
   { href: "/kaitai/docs",           label: "帳票出力",   icon: LayoutDashboard },
   { href: "/kaitai/clients",        label: "元請け管理", icon: Settings },
-  { href: "/kaitai/billing",        label: "請求・プラン", icon: TrendingUp },
   { href: "/kaitai/master",         label: "設定・権限", icon: Settings },
 ] as const;
 

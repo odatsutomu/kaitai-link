@@ -8,7 +8,6 @@ import {
   HardHat, LogOut, Bell, Info, Lock, Star,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
-import { PLAN_LIMITS } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -19,20 +18,11 @@ const C = {
   red: "#EF4444",
 };
 
-// ─── Plan badge styles ────────────────────────────────────────────────────────
-
-const PLAN_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
-  free:       { bg: T.bg, fg: "#475569", label: "Free" },
-  standard:   { bg: T.primaryLt, fg: T.primaryDk, label: "Standard" },
-  business:   { bg: "#EFF6FF", fg: "#2563EB", label: "Business" },
-  enterprise: { bg: "#F5F3FF", fg: "#7C3AED", label: "Enterprise" },
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MenuPage() {
   const router = useRouter();
-  const { authLevel, setAuthLevel, company, plan, addLog } = useAppContext();
+  const { authLevel, setAuthLevel, company, addLog } = useAppContext();
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function startPress() {
@@ -41,9 +31,6 @@ export default function MenuPage() {
   function cancelPress() {
     if (pressTimer.current) clearTimeout(pressTimer.current);
   }
-
-  const planStyle = PLAN_STYLE[plan] ?? PLAN_STYLE.free;
-  const limits = PLAN_LIMITS[plan];
 
   return (
     <div className="py-6 pb-28 md:pb-8">
@@ -69,22 +56,6 @@ export default function MenuPage() {
           <div className="flex-1 min-w-0">
             <p className="truncate font-bold" style={{ fontSize: 20, color: C.text }}>{company?.adminName ?? "田中 義雄"}</p>
             <p style={{ fontSize: 16, marginTop: 2, color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
-            {planStyle.label}
-          </span>
-        </div>
-
-        {/* ── Plan info strip ── */}
-        <div
-          className="rounded-2xl px-5 py-4 flex items-center justify-between"
-          style={{ background: planStyle.bg, border: `1px solid ${planStyle.fg}30`, borderRadius: 16 }}
-        >
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: planStyle.fg }}>現在のプラン: {planStyle.label}</p>
-            <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>
-              現場 {limits.sites === Infinity ? "無制限" : `${limits.sites}件`} · メンバー {limits.members === Infinity ? "無制限" : `${limits.members}名`}
-            </p>
           </div>
         </div>
 
