@@ -54,7 +54,6 @@ function BreakPageInner() {
     const status = breakType === "in" ? "break_in" as const : "break_out" as const;
     addAttendanceLogs(selected.map(userId => ({ userId, siteId, status, timestamp: ts })));
     setDone(true);
-    setTimeout(() => router.push("/kaitai"), 1800);
   }
 
   if (done) {
@@ -65,6 +64,26 @@ function BreakPageInner() {
           {breakType === "in" ? "休憩入り" : "休憩戻り"} 記録完了
         </p>
         <p style={{ fontSize: 15, color: "#1565C0", marginTop: 8 }}>{siteName}</p>
+        <button
+          onClick={() => router.push("/kaitai/report")}
+          style={{
+            marginTop: 32,
+            height: 56,
+            padding: "0 36px",
+            background: "#B45309",
+            color: "#FFFFFF",
+            fontSize: 16,
+            fontWeight: 700,
+            borderRadius: 16,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ← 画面に戻る
+        </button>
       </div>
     );
   }

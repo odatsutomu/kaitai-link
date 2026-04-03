@@ -65,7 +65,7 @@ function ActionTile({
 
 export default function ReportPage() {
   const router = useRouter();
-  const { setAuthSiteId, attendanceLogs } = useAppContext();
+  const { setAuthSiteId, authSiteId, attendanceLogs } = useAppContext();
 
   const [step, setStep] = useState<Step>("site");
   const [selectedSite, setSelectedSite] = useState<typeof SITES[0] | null>(null);
@@ -78,6 +78,18 @@ export default function ReportPage() {
   const activeCount = selectedSite
     ? countActiveStaff(attendanceLogs, selectedSite.id, today)
     : 0;
+
+  // 前回の認証が有効なら PIN をスキップして直接アクション画面へ
+  useEffect(() => {
+    if (authSiteId) {
+      const site = SITES.find(s => s.id === authSiteId);
+      if (site) {
+        setSelectedSite(site);
+        setStep("action");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function showSnackbar(msg: string) {
     setSnackbar(msg);

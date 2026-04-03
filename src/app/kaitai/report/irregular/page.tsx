@@ -52,7 +52,6 @@ function IrregularPageInner() {
       rep
     );
     setDone(true);
-    setTimeout(() => router.push("/kaitai"), 2000);
   }
 
   const canSubmit = !!category && memo.trim().length > 0;
@@ -64,6 +63,26 @@ function IrregularPageInner() {
         <p style={{ fontSize: 28, fontWeight: 900, color: "#B71C1C", marginTop: 24 }}>報告送信完了</p>
         <p style={{ fontSize: 15, color: "#C62828", marginTop: 8 }}>{siteName}</p>
         <p style={{ fontSize: 14, color: "#888", marginTop: 4 }}>管理者へ通知されました</p>
+        <button
+          onClick={() => router.push("/kaitai/report")}
+          style={{
+            marginTop: 32,
+            height: 56,
+            padding: "0 36px",
+            background: "#B45309",
+            color: "#FFFFFF",
+            fontSize: 16,
+            fontWeight: 700,
+            borderRadius: 16,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ← 画面に戻る
+        </button>
       </div>
     );
   }

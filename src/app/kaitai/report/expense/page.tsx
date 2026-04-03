@@ -164,7 +164,6 @@ function ExpenseContent() {
     });
 
     setDone(true);
-    setTimeout(() => router.push("/kaitai"), 2000);
   }
 
   // ── Success screen ──────────────────────────────────────────────────────────
@@ -191,7 +190,27 @@ function ExpenseContent() {
           </p>
           <p className="text-sm" style={{ color: T.muted }}>{siteName}</p>
         </div>
-        <p className="text-sm" style={{ color: "#86EFAC" }}>現場トップに戻ります…</p>
+        <p className="text-sm" style={{ color: "#86EFAC" }}>報告が送信されました</p>
+        <button
+          onClick={() => router.push("/kaitai/report")}
+          style={{
+            marginTop: 32,
+            height: 56,
+            padding: "0 36px",
+            background: "#B45309",
+            color: "#FFFFFF",
+            fontSize: 16,
+            fontWeight: 700,
+            borderRadius: 16,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ← 画面に戻る
+        </button>
       </div>
     );
   }

@@ -45,7 +45,6 @@ function StartPageInner() {
     const ts = new Date().toISOString();
     addAttendanceLogs(selected.map(userId => ({ userId, siteId, status: "clock_in" as const, timestamp: ts })));
     setDone(true);
-    setTimeout(() => router.push("/kaitai"), 1800);
   }
 
   if (done) {
@@ -54,6 +53,26 @@ function StartPageInner() {
         <CheckCircle size={96} color="#2E7D32" strokeWidth={1.5} />
         <p style={{ fontSize: 28, fontWeight: 900, color: "#1B5E20", marginTop: 24 }}>勤務開始 記録完了</p>
         <p style={{ fontSize: 15, color: "#388E3C", marginTop: 8 }}>{siteName}</p>
+        <button
+          onClick={() => router.push("/kaitai/report")}
+          style={{
+            marginTop: 32,
+            height: 56,
+            padding: "0 36px",
+            background: "#B45309",
+            color: "#FFFFFF",
+            fontSize: 16,
+            fontWeight: 700,
+            borderRadius: 16,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          ← 画面に戻る
+        </button>
       </div>
     );
   }
