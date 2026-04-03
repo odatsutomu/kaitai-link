@@ -2,7 +2,8 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, CheckCircle, Camera, AlertTriangle } from "lucide-react";
+import { ChevronLeft, CheckCircle, AlertTriangle } from "lucide-react";
+import PhotoCapture from "../../components/photo-capture";
 import { useAppContext } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
@@ -33,6 +34,7 @@ const MEMBERS = [
 function IrregularPageInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const siteId   = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
   const { addLog, company } = useAppContext();
 
@@ -198,14 +200,15 @@ function IrregularPageInner() {
 
         {/* Photo */}
         <section>
-          <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>現場写真</p>
-          <button
-            className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
-            style={{ height: 90, background: "#FEF2F2", border: "2px dashed #FECACA" }}
-          >
-            <Camera size={26} color="#F87171" />
-            <span style={{ fontSize: 14, color: "#F87171", fontWeight: 600 }}>タップして写真を追加（実装予定）</span>
-          </button>
+          <PhotoCapture
+            siteId={siteId}
+            reportType="irregular"
+            maxPhotos={5}
+            accentColor="#EF4444"
+            accentBg="#FEF2F2"
+            label="現場写真"
+            placeholder="タップして現場写真を撮影"
+          />
         </section>
 
       </div>

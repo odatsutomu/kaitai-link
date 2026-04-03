@@ -3,9 +3,10 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ChevronLeft, CheckCircle, Camera,
+  ChevronLeft, CheckCircle,
   Fuel, Wrench, ShoppingCart, Car, Coffee, MoreHorizontal,
 } from "lucide-react";
+import PhotoCapture from "../../components/photo-capture";
 import { useAppContext } from "../../lib/app-context";
 import type { ExpenseCategory } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
@@ -103,7 +104,6 @@ function ExpenseContent() {
   const [amount,   setAmount]   = useState("");
   const [desc,     setDesc]     = useState("");
   const [memo,     setMemo]     = useState("");
-  const [hasPhoto, setHasPhoto] = useState(false);
 
   // Fuel-specific
   const [selectedEqId, setSelectedEqId] = useState(siteEquipment[0]?.id ?? "");
@@ -444,30 +444,15 @@ function ExpenseContent() {
             </div>
 
             {/* レシート写真 */}
-            <button
-              onClick={() => setHasPhoto(v => !v)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all active:scale-[0.98]"
-              style={
-                hasPhoto
-                  ? { background: "#F0FDF4", border: "1.5px solid #86EFAC" }
-                  : { background: T.surface, border: "1.5px dashed #E5E7EB" }
-              }
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: hasPhoto ? "#DCFCE7" : "#F3F4F6" }}
-              >
-                <Camera size={18} style={{ color: hasPhoto ? "#16A34A" : T.muted }} />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold" style={{ color: hasPhoto ? "#15803D" : "#374151" }}>
-                  {hasPhoto ? "レシート添付済み ✓" : "レシート・領収書を撮影"}
-                </p>
-                <p className="text-sm" style={{ color: T.muted }}>
-                  {hasPhoto ? "タップで取り直し" : "任意 — 後で精算に使用"}
-                </p>
-              </div>
-            </button>
+            <PhotoCapture
+              siteId={siteId}
+              reportType="expense"
+              maxPhotos={3}
+              accentColor="#16A34A"
+              accentBg="#F0FDF4"
+              label="レシート写真"
+              placeholder="レシート・領収書を撮影"
+            />
           </>
         )}
 

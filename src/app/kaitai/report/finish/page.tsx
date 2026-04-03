@@ -2,7 +2,8 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, CheckCircle, Plus, Minus, Camera, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, CheckCircle, Plus, Minus, ChevronDown, ChevronUp } from "lucide-react";
+import PhotoCapture from "../../components/photo-capture";
 import { useAppContext, getSiteStatusMap } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 import { EVAL_CATEGORIES, SCORE_META, type EvalScore } from "../../lib/evaluation-data";
@@ -248,14 +249,13 @@ function FinishPageInner() {
 
       {/* ─ 現場写真 ─────────────────────────────────────────────────────────── */}
       <section>
-        <p className="text-sm font-bold tracking-widest uppercase mb-2" style={{ color: T.muted }}>現場写真</p>
-        <button
-          className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl"
-          style={{ height: 80, background: T.bg, border: "2px dashed #DDDDDD" }}
-        >
-          <Camera size={24} color="#BBBBBB" />
-          <span style={{ fontSize: 13, color: "#BBBBBB" }}>タップして写真を追加（実装予定）</span>
-        </button>
+        <PhotoCapture
+          siteId={siteId}
+          reportType="finish"
+          maxPhotos={5}
+          label="現場写真"
+          placeholder="タップして完了写真を撮影"
+        />
       </section>
 
       {/* ─ 作業員評価 ────────────────────────────────────────────────────────── */}
