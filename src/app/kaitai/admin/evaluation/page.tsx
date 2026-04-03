@@ -3,9 +3,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   AlertTriangle, Check, ChevronLeft, ChevronRight, Save,
-  Users, ClipboardList, Star,
+  Users, ClipboardList, Star, TrendingUp, Shield, Award,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
+import { LICENSE_POINTS } from "../../lib/score-engine";
+
+type ComputedScore = {
+  memberId: string;
+  evalScore: number;
+  licenseFloor: number;
+  totalScore: number;
+  criteria: { score1: number; score2: number; score3: number; score4: number; score5: number };
+  monthsUsed: number;
+  grade: string;
+  gradeColor: string;
+};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -102,7 +114,17 @@ export default function AdminMonthlyEvalPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [scores, setScores] = useState<ComputedScore[]>([]);
   const pendingRef = useRef<HTMLDivElement>(null);
+
+  // Fetch decay scores
+  const fetchScores = useCallback(async (m: string) => {
+    try {
+      const res = await fetch(`/api/kaitai/scores?month=${m}`);
+      const data = await res.json();
+      if (data.ok) setScores(data.scores);
+    } catch { /* ignore */ }
+  }, []);
 
   // Fetch members + existing evaluations
   const fetchData = useCallback(async (m: string) => {
@@ -143,7 +165,7 @@ export default function AdminMonthlyEvalPage() {
     } catch { /* ignore */ } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchData(month); }, [month, fetchData]);
+  useEffect(() => { fetchData(month); fetchScores(month); }, [month, fetchData, fetchScores]);
 
   // Update a score
   const setScore = (memberId: string, key: CriteriaKey, value: number) => {
@@ -190,6 +212,7 @@ export default function AdminMonthlyEvalPage() {
       if (!res.ok) throw new Error(data.error || "保存に失敗しました");
 
       setSaved(true);
+      fetchScores(month); // Refresh scores after save
       // Mark all saved rows as confirmed
       setRows(prev => {
         const next = { ...prev };
@@ -453,6 +476,127 @@ export default function AdminMonthlyEvalPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Decay Score Ranking ── */}
+      {scores.length > 0 && (
+        <div style={{
+          marginTop: 20, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            padding: "16px 20px", borderBottom: `1px solid ${T.border}`,
+            display: "flex", alignItems: "center", gap: 10,
+          }}>
+            <TrendingUp size={18} style={{ color: ACCENT }} />
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>
+              減衰型パフォーマンススコア
+            </span>
+            <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>
+              直近3ヶ月加重平均（当月×0.5 + 先月×0.3 + 先々月×0.2）+ 資格ベース
+            </span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "50px 1fr 100px 100px 100px 80px", padding: "10px 20px", gap: 8, background: "#F8FAFC", borderBottom: `1px solid ${T.border}`, fontSize: 12, fontWeight: 700, color: T.sub }}>
+            <div style={{ textAlign: "center" }}>順位</div>
+            <div>メンバー</div>
+            <div style={{ textAlign: "center" }}>
+              <div>評価スコア</div>
+              <div style={{ fontWeight: 500, fontSize: 10, color: T.muted }}>減衰加重平均</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div>資格ベース</div>
+              <div style={{ fontWeight: 500, fontSize: 10, color: T.muted }}>{LICENSE_POINTS}pt × 保有数</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div>合計スコア</div>
+            </div>
+            <div style={{ textAlign: "center" }}>グレード</div>
+          </div>
+
+          {scores.map((sc, i) => {
+            const mem = members.find(m => m.id === sc.memberId);
+            if (!mem) return null;
+            return (
+              <div key={sc.memberId} style={{
+                display: "grid", gridTemplateColumns: "50px 1fr 100px 100px 100px 80px",
+                padding: "12px 20px", gap: 8, alignItems: "center",
+                borderBottom: `1px solid ${T.border}`,
+                background: i < 3 ? "rgba(154,52,18,0.03)" : "transparent",
+              }}>
+                <div style={{ textAlign: "center" }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 28, height: 28, borderRadius: 8, fontSize: 13, fontWeight: 800,
+                    ...(i === 0 ? { background: "#FEF3C7", color: "#B45309" }
+                      : i === 1 ? { background: "#F1F5F9", color: "#475569" }
+                      : i === 2 ? { background: "#FFF7ED", color: "#9A3412" }
+                      : { background: T.bg, color: T.muted }),
+                  }}>{i + 1}</span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{
+                    flexShrink: 0, width: 28, height: 28, borderRadius: 6,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: ACCENT_LT, fontSize: 13,
+                  }}>{mem.avatar ?? "👤"}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {mem.name}
+                  </span>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: sc.evalScore > 0 ? T.text : T.muted }}>
+                    {sc.evalScore}
+                  </span>
+                  <span style={{ fontSize: 11, color: T.muted }}> pt</span>
+                  {sc.monthsUsed > 0 && (
+                    <div style={{ fontSize: 10, color: T.muted }}>{sc.monthsUsed}ヶ月分</div>
+                  )}
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                    <Shield size={12} style={{ color: "#3B82F6" }} />
+                    <span style={{ fontSize: 16, fontWeight: 700, color: sc.licenseFloor > 0 ? "#3B82F6" : T.muted }}>
+                      {sc.licenseFloor}
+                    </span>
+                    <span style={{ fontSize: 11, color: T.muted }}>pt</span>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: sc.gradeColor }}>
+                    {sc.totalScore}
+                  </span>
+                  <span style={{ fontSize: 11, color: T.muted }}> pt</span>
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 36, height: 36, borderRadius: 10, fontSize: 16, fontWeight: 800,
+                    background: `${sc.gradeColor}15`, color: sc.gradeColor,
+                    border: `2px solid ${sc.gradeColor}30`,
+                  }}>{sc.grade}</span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Legend */}
+          <div style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: T.sub }}>計算式：</span>
+            <span style={{ fontSize: 11, color: T.muted }}>
+              合計 = 評価スコア（当月×0.5 + 先月×0.3 + 先々月×0.2 → 0〜500pt） + 資格ベース（{LICENSE_POINTS}pt × 保有数）
+            </span>
+            <span style={{ fontSize: 11, color: T.muted }}>|</span>
+            <span style={{ fontSize: 11, color: T.muted }}>
+              資格保有者はスコア下限200pt保護
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Bottom save bar ── */}
       <div style={{
