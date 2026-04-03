@@ -31,13 +31,24 @@ type PeriodStats = {
   target?: number;
 };
 
+type SiteRevenue = { name: string; amount: number; color: string };
+type CostBreakdown = { waste: number; labor: number; vehicle: number; other: number };
+
 type MonthBar = {
   label: string;
   revenue: number;
   cost: number;
+  siteRevenues: SiteRevenue[];
+  costBreakdown: CostBreakdown;
   prevRevenue?: number;
   prevCost?: number;
 };
+
+// Site color palette for stacked revenue bars
+const SITE_COLORS = [
+  "#B45309", "#D97706", "#F59E0B", "#FBBF24", "#92400E",
+  "#78350F", "#CA8A04", "#EAB308", "#A16207", "#854D0E",
+];
 
 type SiteRank = {
   id: string;
@@ -89,15 +100,48 @@ function generateYearStats(year: number): PeriodStats {
   };
 }
 
+// Site names for revenue breakdown
+const DEMO_SITES = ["山田邸解体", "旧田中倉庫", "旧工場棟(1期)", "松本AP解体"];
+
+function splitRevenueBySite(total: number, seed: number): SiteRevenue[] {
+  const n = 2 + (seed % 3); // 2-4 sites
+  const sites = DEMO_SITES.slice(0, n);
+  const weights = sites.map((_, i) => 1 + ((seed * (i + 3)) % 5));
+  const wSum = weights.reduce((a, b) => a + b, 0);
+  return sites.map((name, i) => ({
+    name,
+    amount: Math.round(total * weights[i] / wSum),
+    color: SITE_COLORS[i % SITE_COLORS.length],
+  }));
+}
+
+function splitCost(total: number, seed: number): CostBreakdown {
+  const wp = 0.32 + (seed % 7) * 0.01;
+  const lp = 0.38 + (seed % 5) * 0.01;
+  const vp = 0.12 + (seed % 3) * 0.005;
+  const sum = wp + lp + vp;
+  return {
+    waste:   Math.round(total * wp / (sum + 0.18)),
+    labor:   Math.round(total * lp / (sum + 0.18)),
+    vehicle: Math.round(total * vp / (sum + 0.18)),
+    other:   Math.round(total * 0.18 / (sum + 0.18)),
+  };
+}
+
 function generateMonthBars(year: number, month: number): MonthBar[] {
   const s = generateMonthStats(year, month);
   const weeks = 4;
   return Array.from({ length: weeks }, (_, i) => {
     const pct = [0.22, 0.28, 0.3, 0.2][i];
+    const rev = Math.round(s.revenue * pct);
+    const cost = Math.round((s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost) * pct);
+    const seed = year * 1000 + month * 10 + i;
     return {
       label: `W${i + 1}`,
-      revenue: Math.round(s.revenue * pct),
-      cost: Math.round((s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost) * pct),
+      revenue: rev,
+      cost,
+      siteRevenues: splitRevenueBySite(rev, seed),
+      costBreakdown: splitCost(cost, seed),
     };
   });
 }
@@ -109,10 +153,13 @@ function generateYearBars(year: number): MonthBar[] {
     const pm = generateMonthStats(prevYear, i + 1);
     const cost = m.wasteCost + m.laborCost + m.vehicleCost + m.otherCost;
     const prevCost = pm.wasteCost + pm.laborCost + pm.vehicleCost + pm.otherCost;
+    const seed = year * 100 + i;
     return {
       label: `${i + 1}月`,
       revenue: m.revenue,
       cost,
+      siteRevenues: splitRevenueBySite(m.revenue, seed),
+      costBreakdown: splitCost(cost, seed),
       prevRevenue: pm.revenue,
       prevCost,
     };
@@ -216,28 +263,36 @@ function niceStep(maxVal: number): number {
   return 10 * mag;
 }
 
-function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boolean }) {
-  const H = 110;
-  const LPAD = 52; // left padding for Y-axis labels
+const COST_COLORS = {
+  waste: "#F87171", labor: "#FB923C", vehicle: "#92400E", other: "#9CA3AF",
+};
+const COST_LABELS: Record<string, string> = {
+  waste: "産廃費", labor: "労務費", vehicle: "車両・燃料", other: "その他",
+};
+
+function BarChart({ bars, compare = false, selectedIdx, onSelect }: {
+  bars: MonthBar[]; compare?: boolean;
+  selectedIdx: number | null; onSelect: (i: number | null) => void;
+}) {
+  const H = 120;
+  const LPAD = 52;
   const maxVal = Math.max(...bars.flatMap(b => [b.revenue, compare ? (b.prevRevenue ?? 0) : 0]), 1);
   const n = bars.length;
   const VW = 400;
   const chartW = VW - LPAD;
   const groupW = chartW / n;
-  const bw = compare ? 6 : 8;
+  const bw = compare ? 7 : 10;
 
-  // Y-axis ticks
   const step = niceStep(maxVal);
   const ticks: number[] = [];
   for (let v = 0; v <= maxVal; v += step) ticks.push(v);
   if (ticks[ticks.length - 1] < maxVal) ticks.push(ticks[ticks.length - 1] + step);
   const yMax = ticks[ticks.length - 1] || 1;
-
   const toY = (v: number) => H - (v / yMax) * H;
 
   return (
     <svg viewBox={`0 0 ${VW} ${H + 24}`} width="100%" style={{ display: "block" }}>
-      {/* Y-axis grid lines and labels */}
+      {/* Y-axis */}
       {ticks.map(v => (
         <g key={v}>
           <line x1={LPAD} y1={toY(v)} x2={VW} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray={v === 0 ? undefined : "3,3"} />
@@ -247,43 +302,158 @@ function BarChart({ bars, compare = false }: { bars: MonthBar[]; compare?: boole
         </g>
       ))}
 
-      {/* Bars */}
       {bars.map((b, i) => {
         const cx = LPAD + i * groupW + groupW / 2;
-        const revH = Math.max((b.revenue / yMax) * H, 2);
-        const costH = Math.max((b.cost / yMax) * H, 2);
+        const isSelected = selectedIdx === i;
+        const opacity = selectedIdx !== null && !isSelected ? 0.35 : 1;
+
+        // ── Revenue: stacked by site ──
+        const revX = cx - bw - 2;
+        let revY = H;
+        const revSegments = b.siteRevenues.map(sr => {
+          const segH = Math.max((sr.amount / yMax) * H, 0.5);
+          revY -= segH;
+          return { ...sr, y: revY, h: segH };
+        });
+
+        // ── Cost: stacked by category ──
+        const costX = cx + 2;
+        let costY = H;
+        const cb = b.costBreakdown;
+        const costSegments = [
+          { key: "waste",   amount: cb.waste,   color: COST_COLORS.waste },
+          { key: "labor",   amount: cb.labor,   color: COST_COLORS.labor },
+          { key: "vehicle", amount: cb.vehicle, color: COST_COLORS.vehicle },
+          { key: "other",   amount: cb.other,   color: COST_COLORS.other },
+        ].map(seg => {
+          const segH = Math.max((seg.amount / yMax) * H, 0.5);
+          costY -= segH;
+          return { ...seg, y: costY, h: segH };
+        });
 
         return (
-          <g key={i}>
-            {compare && b.prevRevenue && (
+          <g key={i} opacity={opacity} style={{ cursor: "pointer" }} onClick={() => onSelect(isSelected ? null : i)}>
+            {/* Click area */}
+            <rect x={cx - groupW / 2} y={0} width={groupW} height={H + 20} fill="transparent" />
+
+            {/* Selected highlight */}
+            {isSelected && (
+              <rect x={cx - groupW / 2 + 2} y={0} width={groupW - 4} height={H} rx={4} fill={T.primaryLt} />
+            )}
+
+            {compare && b.prevRevenue ? (
               <>
                 <rect
                   x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / yMax) * H, 2)}
                   width={bw} height={Math.max((b.prevRevenue / yMax) * H, 2)}
-                  rx={3} fill={T.primaryMd}
+                  rx={2} fill={T.primaryMd}
                 />
                 <rect
                   x={cx - bw + 1} y={H - Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
                   width={bw} height={Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
-                  rx={3} fill="rgba(71,85,105,0.2)"
+                  rx={2} fill="rgba(71,85,105,0.2)"
                 />
-                <rect x={cx + 2} y={H - revH} width={bw} height={revH} rx={3} fill={C.brand} />
-                <rect x={cx + bw + 4} y={H - costH} width={bw} height={costH} rx={3} fill={C.slate} />
+                {/* Stacked revenue */}
+                {revSegments.map((seg, si) => (
+                  <rect key={`r${si}`} x={cx + 2} y={seg.y} width={bw} height={seg.h} fill={seg.color}
+                    rx={si === 0 ? 2 : 0} />
+                ))}
+                {/* Stacked cost */}
+                {costSegments.map((seg, si) => (
+                  <rect key={`c${si}`} x={cx + bw + 4} y={seg.y} width={bw} height={seg.h} fill={seg.color}
+                    rx={si === 0 ? 2 : 0} />
+                ))}
               </>
-            )}
-            {!compare && (
+            ) : (
               <>
-                <rect x={cx - bw - 2} y={H - revH} width={bw} height={revH} rx={3} fill={C.brand} />
-                <rect x={cx + 2} y={H - costH} width={bw} height={costH} rx={3} fill={C.slate} />
+                {/* Stacked revenue bar */}
+                {revSegments.map((seg, si) => (
+                  <rect key={`r${si}`} x={revX} y={seg.y} width={bw} height={seg.h} fill={seg.color}
+                    rx={si === 0 ? 2 : 0} />
+                ))}
+                {/* Stacked cost bar */}
+                {costSegments.map((seg, si) => (
+                  <rect key={`c${si}`} x={costX} y={seg.y} width={bw} height={seg.h} fill={seg.color}
+                    rx={si === 0 ? 2 : 0} />
+                ))}
               </>
             )}
-            <text x={cx} y={H + 14} textAnchor="middle" fontSize={9} fill={T.muted}>
+
+            <text x={cx} y={H + 14} textAnchor="middle" fontSize={9} fill={isSelected ? C.brand : T.muted} fontWeight={isSelected ? 700 : 400}>
               {b.label}
             </text>
           </g>
         );
       })}
     </svg>
+  );
+}
+
+// ─── Detail panel for selected bar ──────────────────────────────────────────
+
+function BarDetail({ bar }: { bar: MonthBar }) {
+  const cb = bar.costBreakdown;
+  const totalCost = cb.waste + cb.labor + cb.vehicle + cb.other;
+  const profit = bar.revenue - totalCost;
+  const profitRate = bar.revenue > 0 ? Math.round((profit / bar.revenue) * 100) : 0;
+
+  return (
+    <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${T.border}` }}>
+      <div className="grid grid-cols-2 gap-4">
+        {/* Revenue breakdown */}
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.brand, marginBottom: 8 }}>
+            売上内訳 ¥{Math.round(bar.revenue).toLocaleString("ja-JP")}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {bar.siteRevenues.map((sr, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: sr.color }} />
+                <span style={{ fontSize: 12, color: C.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {sr.name}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>
+                  ¥{Math.round(sr.amount).toLocaleString("ja-JP")}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cost breakdown */}
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.slate, marginBottom: 8 }}>
+            原価内訳 ¥{Math.round(totalCost).toLocaleString("ja-JP")}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {([
+              { key: "waste", amount: cb.waste, color: COST_COLORS.waste },
+              { key: "labor", amount: cb.labor, color: COST_COLORS.labor },
+              { key: "vehicle", amount: cb.vehicle, color: COST_COLORS.vehicle },
+              { key: "other", amount: cb.other, color: COST_COLORS.other },
+            ] as const).map(seg => (
+              <div key={seg.key} className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: seg.color }} />
+                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>
+                  {COST_LABELS[seg.key]}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>
+                  ¥{Math.round(seg.amount).toLocaleString("ja-JP")}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 pt-2" style={{ borderTop: `1px dashed ${T.border}` }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>粗利</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: profit >= 0 ? C.green : C.red }}>
+                ¥{Math.round(profit).toLocaleString("ja-JP")} ({profitRate}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -573,6 +743,7 @@ export default function AdminPage() {
   const [compare, setCompare] = useState(false);
   const [sortBy, setSortBy] = useState<"profitRate" | "profitAmt">("profitRate");
   const [showPicker, setShowPicker] = useState(false);
+  const [selectedBarIdx, setSelectedBarIdx] = useState<number | null>(null);
 
   const s = mode === "year" ? generateYearStats(year) : generateMonthStats(year, month);
   const totalCost = s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost;
@@ -693,29 +864,51 @@ export default function AdminPage() {
               )}
             </div>
             <Card className="p-5">
-              <BarChart bars={bars} compare={compare && canCompare} />
-              <div className="flex items-center gap-4 mt-3 justify-center flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-2 rounded-sm" style={{ background: C.brand }} />
-                  <span className="text-sm" style={{ color: C.muted }}>{compare ? "今年 売上" : "売上"}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-2 rounded-sm" style={{ background: C.slate }} />
-                  <span className="text-sm" style={{ color: C.muted }}>{compare ? "今年 原価" : "原価"}</span>
-                </div>
+              <BarChart bars={bars} compare={compare && canCompare} selectedIdx={selectedBarIdx} onSelect={setSelectedBarIdx} />
+
+              {/* Legend */}
+              <div className="flex items-center gap-3 mt-3 justify-center flex-wrap">
+                {/* Revenue legend - site colors */}
+                {bars[0]?.siteRevenues.map((sr, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: sr.color }} />
+                    <span style={{ fontSize: 11, color: C.muted }}>{sr.name}</span>
+                  </div>
+                ))}
+                <div style={{ width: 1, height: 14, background: T.border }} />
+                {/* Cost legend - category colors */}
+                {Object.entries(COST_COLORS).map(([key, color]) => (
+                  <div key={key} className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+                    <span style={{ fontSize: 11, color: C.muted }}>{COST_LABELS[key]}</span>
+                  </div>
+                ))}
                 {compare && (
                   <>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-2 rounded-sm" style={{ background: T.primaryMd }} />
-                      <span className="text-sm" style={{ color: C.muted }}>昨年 売上</span>
+                    <div style={{ width: 1, height: 14, background: T.border }} />
+                    <div className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.primaryMd }} />
+                      <span style={{ fontSize: 11, color: C.muted }}>昨年 売上</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-2 rounded-sm" style={{ background: "rgba(71,85,105,0.2)" }} />
-                      <span className="text-sm" style={{ color: C.muted }}>昨年 原価</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(71,85,105,0.2)" }} />
+                      <span style={{ fontSize: 11, color: C.muted }}>昨年 原価</span>
                     </div>
                   </>
                 )}
               </div>
+
+              {/* Click hint */}
+              {selectedBarIdx === null && (
+                <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 6 }}>
+                  棒グラフをクリックすると内訳を表示
+                </p>
+              )}
+
+              {/* Detail panel */}
+              {selectedBarIdx !== null && bars[selectedBarIdx] && (
+                <BarDetail bar={bars[selectedBarIdx]} />
+              )}
             </Card>
           </section>
 
