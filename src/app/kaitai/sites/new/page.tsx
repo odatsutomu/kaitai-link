@@ -321,13 +321,47 @@ export default function SiteNewPage() {
     setChangeReason("");
   }
 
-  function handleSave() {
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
     if (!name.trim()) { setTab(0); return; }
-    setSaved(true);
-    setSavedContract(contract);
-    setSavedEndDate(endDate);
-    // In real app: POST to API
-    alert("保存しました（デモ）");
+    if (!address.trim()) { setTab(0); return; }
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        address: address.trim(),
+        status: status === "見積中" ? "着工前" : status === "受注確定" ? "着工前" : status === "施工中" ? "施工中" : status === "完了" ? "完工" : "着工前",
+        startDate: startDate || null,
+        endDate: endDate || null,
+        contractAmount: parseInt(contract) || 0,
+        costAmount: Math.round(totalBudget),
+        notes: memo.trim() || null,
+        structureType: structureType ?? null,
+        progressPct: 0,
+      };
+      if (mapPos) { body.lat = mapPos.lat; body.lng = mapPos.lng; }
+      if (clientId) { body.clientId = clientId; }
+
+      const res = await fetch("/api/kaitai/sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存に失敗しました");
+
+      setSaved(true);
+      setSavedContract(contract);
+      setSavedEndDate(endDate);
+      alert("現場を登録しました");
+      // Navigate to the site list
+      window.location.href = "/kaitai";
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const canSave = name.trim().length > 0;
@@ -1392,9 +1426,10 @@ export default function SiteNewPage() {
           </Link>
           <button
             onClick={handleSave}
+            disabled={saving || !canSave}
             className="px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
             style={
-              canSave
+              canSave && !saving
                 ? {
                     background: C.amber,
                     color: "#fff",
@@ -1409,7 +1444,7 @@ export default function SiteNewPage() {
             }
           >
             <Check size={16} />
-            {saved ? "更新して保存" : "現場を登録する"}
+            {saving ? "保存中..." : saved ? "更新して保存" : "現場を登録する"}
           </button>
         </div>
 
