@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Shield, BarChart2, Database, Users, ChevronRight,
-  HardHat, LogOut, Bell, Info, Lock, CreditCard, Building2, FileText, Truck, Star,
+  Shield, ChevronRight,
+  HardHat, LogOut, Bell, Info, Lock, Star,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
-import { PinPad } from "../components/pin-pad";
 import { PLAN_LIMITS } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
 
@@ -33,9 +32,7 @@ const PLAN_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
 
 export default function MenuPage() {
   const router = useRouter();
-  const { adminMode, setAdminMode, authLevel, setAuthLevel, company, plan, addLog } = useAppContext();
-
-  const [showPinModal, setShowPinModal] = useState(false);
+  const { authLevel, setAuthLevel, company, plan, addLog } = useAppContext();
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function startPress() {
@@ -45,33 +42,8 @@ export default function MenuPage() {
     if (pressTimer.current) clearTimeout(pressTimer.current);
   }
 
-  const isAdmin = authLevel === "admin" || authLevel === "dev";
   const planStyle = PLAN_STYLE[plan] ?? PLAN_STYLE.free;
   const limits = PLAN_LIMITS[plan];
-
-  function onAdminPinSuccess() {
-    setShowPinModal(false);
-    setAuthLevel("admin");
-    addLog("admin_login", company?.adminName ?? "管理者");
-  }
-
-  function exitAdminMode() {
-    setAdminMode(false);
-    addLog("admin_logout", company?.adminName ?? "管理者");
-  }
-
-  if (showPinModal) {
-    return (
-      <PinPad
-        title="管理者パスワード"
-        subtitle="第二パスワードを入力してください"
-        correctPin={company?.password2 ?? "0000"}
-        onSuccess={onAdminPinSuccess}
-        onBack={() => setShowPinModal(false)}
-        dark={true}
-      />
-    );
-  }
 
   return (
     <div className="py-6 pb-28 md:pb-8">
@@ -80,14 +52,13 @@ export default function MenuPage() {
         {/* ── Page header ── */}
         <div>
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>メニュー</h1>
-          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>設定・権限管理</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>設定・管理</p>
         </div>
 
         {/* ── Profile card ── */}
         <div
           className="rounded-2xl px-5 py-5 flex items-center gap-4"
-          style={{ background: C.card, border: `1px solid ${C.border}`,
- borderRadius: 16 }}
+          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}
         >
           <div
             className="flex items-center justify-center flex-shrink-0 rounded-2xl font-bold"
@@ -99,21 +70,9 @@ export default function MenuPage() {
             <p className="truncate font-bold" style={{ fontSize: 20, color: C.text }}>{company?.adminName ?? "田中 義雄"}</p>
             <p style={{ fontSize: 16, marginTop: 2, color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
-              {planStyle.label}
-            </span>
-            <span
-              style={{
-                fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20,
-                ...(isAdmin
-                  ? { background: "#FEF2F2", color: C.red }
-                  : { background: T.bg, color: C.muted })
-              }}
-            >
-              {isAdmin ? "管理者モード" : "作業員モード"}
-            </span>
-          </div>
+          <span style={{ fontSize: 14, fontWeight: 700, padding: "5px 12px", borderRadius: 20, background: planStyle.bg, color: planStyle.fg }}>
+            {planStyle.label}
+          </span>
         </div>
 
         {/* ── Plan info strip ── */}
@@ -127,14 +86,6 @@ export default function MenuPage() {
               現場 {limits.sites === Infinity ? "無制限" : `${limits.sites}件`} · メンバー {limits.members === Infinity ? "無制限" : `${limits.members}名`}
             </p>
           </div>
-          {isAdmin && (
-            <Link href="/kaitai/billing">
-              <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl" style={{ fontSize: 14, fontWeight: 700, background: planStyle.fg, color: T.surface, borderRadius: 12 }}>
-                <CreditCard size={14} />
-                変更
-              </div>
-            </Link>
-          )}
         </div>
 
         {/* ── Quick actions ── */}
@@ -142,8 +93,7 @@ export default function MenuPage() {
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.sub }}>
             クイックアクション
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
- borderRadius: 16 }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}>
             <Link href="/kaitai/evaluation">
               <div className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors" style={{ minHeight: 72 }}>
                 <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: T.primaryLt }}>
@@ -159,78 +109,27 @@ export default function MenuPage() {
           </div>
         </section>
 
-        {/* ── Admin section ── */}
+        {/* ── 管理者ページ ── */}
         <section>
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.amber }}>
-            管理者機能
+            管理者
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
- borderRadius: 16 }}>
-
-            {/* Toggle row */}
-            <div className="px-5 flex items-center gap-3" style={{ minHeight: 72 }}>
-              <div
-                className="flex items-center justify-center flex-shrink-0 rounded-xl"
-                style={{ width: 44, height: 44, background: isAdmin ? "#FEF2F2" : T.bg }}
-              >
-                <Shield size={22} style={{ color: isAdmin ? C.red : C.muted }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>管理者モード</p>
-                <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>
-                  {isAdmin ? "認証済み — 全機能解放中" : "第二パスワードで認証"}
-                </p>
-              </div>
-              <button
-                onClick={() => isAdmin ? exitAdminMode() : setShowPinModal(true)}
-                className="relative flex-shrink-0 transition-all"
-                style={{
-                  width: 48, height: 28, borderRadius: 14,
-                  background: isAdmin ? "#EF4444" : T.border,
-                }}
-              >
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}>
+            <Link href="/kaitai/admin">
+              <div className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors" style={{ minHeight: 72 }}>
                 <div
-                  className="absolute top-1 transition-all rounded-full"
-                  style={{ width: 20, height: 20, background: T.surface,
- left: isAdmin ? 26 : 4 }}
-                />
-              </button>
-            </div>
-
-            {/* Admin links */}
-            {isAdmin && (
-              <div style={{ borderTop: `1px solid ${C.border}` }}>
-                {[
-                  { href: "/kaitai/admin",            icon: BarChart2,  label: "収支・経営分析",     sub: "売上・原価・粗利の分析レポート" },
-                  { href: "/kaitai/admin/evaluation", icon: Star,       label: "評価ダッシュボード",  sub: "作業員パフォーマンス分析（非公開）" },
-                  { href: "/kaitai/equipment", icon: Truck,      label: "機材・車両管理",  sub: "重機・リース品・給油ログの管理" },
-                  { href: "/kaitai/docs",      icon: FileText,   label: "帳票出力",         sub: "見積書・請求書・報告書などを出力" },
-                  { href: "/kaitai/clients",   icon: Building2,  label: "元請け管理",       sub: "発注元・元請け会社の登録・管理" },
-                  { href: "/kaitai/master",    icon: Database,   label: "マスタ管理",       sub: "単価・現場・労務費の登録・編集" },
-                  { href: "/kaitai/members",   icon: Users,      label: "メンバー評価",     sub: "勤怠統計・パフォーマンス管理" },
-                  { href: "/kaitai/billing",   icon: CreditCard, label: "請求・プラン管理", sub: `現在: ${planStyle.label} プラン` },
-                ].map(({ href, icon: Icon, label, sub }, i) => (
-                  <Link key={href} href={href}>
-                    <div
-                      className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                      style={{ minHeight: 72, borderTop: i > 0 ? `1px solid #F8FAFC` : undefined }}
-                    >
-                      <div
-                        className="flex items-center justify-center flex-shrink-0 rounded-xl"
-                        style={{ width: 44, height: 44, background: "#FEF2F2" }}
-                      >
-                        <Icon size={20} style={{ color: C.red }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{label}</p>
-                        <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>{sub}</p>
-                      </div>
-                      <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={18} /></div>
-                    </div>
-                  </Link>
-                ))}
+                  className="flex items-center justify-center flex-shrink-0 rounded-xl"
+                  style={{ width: 44, height: 44, background: "#FEF2F2" }}
+                >
+                  <Shield size={22} style={{ color: C.red }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>管理者ページ</p>
+                  <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>収支分析・帳票・メンバー管理など</p>
+                </div>
+                <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={18} /></div>
               </div>
-            )}
+            </Link>
           </div>
         </section>
 
@@ -239,8 +138,7 @@ export default function MenuPage() {
           <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.muted }}>
             一般設定
           </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`,
- borderRadius: 16 }}>
+          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}>
             {[
               { icon: Bell,    label: "通知設定",     sub: "作業開始・終了のリマインダー" },
               { icon: Lock,    label: "PINコード変更", sub: "現場報告の認証コード" },

@@ -22,6 +22,9 @@ const ADMIN_NAV = [
 const EXTERNAL_NAV = [
   { href: "/kaitai/admin/members",  label: "従業員管理", icon: Users    },
   { href: "/kaitai/equipment",      label: "機材管理",   icon: Truck    },
+  { href: "/kaitai/docs",           label: "帳票出力",   icon: LayoutDashboard },
+  { href: "/kaitai/clients",        label: "元請け管理", icon: Settings },
+  { href: "/kaitai/billing",        label: "請求・プラン", icon: TrendingUp },
   { href: "/kaitai/master",         label: "設定・権限", icon: Settings },
 ] as const;
 
@@ -278,7 +281,7 @@ function AdminSidebar({ pathname }: { pathname: string }) {
 
       {/* Bottom: version */}
       <div className="mt-auto px-4 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>解体LINK 管理者モード</p>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>解体LINK 管理者ページ</p>
       </div>
     </aside>
   );

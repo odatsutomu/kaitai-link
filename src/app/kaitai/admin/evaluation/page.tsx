@@ -8,7 +8,6 @@ import {
   Calendar,
   AlertTriangle,
   TrendingUp,
-  Lock,
 } from "lucide-react";
 import {
   type WorkerEval,
@@ -146,7 +145,7 @@ const TD_STYLE: React.CSSProperties = {
 };
 
 export default function AdminEvaluationPage() {
-  const { adminMode, evaluations } = useAppContext();
+  const { evaluations } = useAppContext();
 
   const allEvals: WorkerEval[] = useMemo(() => {
     const merged = [...SEED_EVALS, ...evaluations];
@@ -257,60 +256,6 @@ export default function AdminEvaluationPage() {
       avg: evalAvg(e),
     }));
   }, [allEvals, trendWorker, workerAgg]);
-
-  // Guard: admin only
-  if (!adminMode) {
-    return (
-      <div
-        style={{
-          minHeight: "60vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingTop: 40,
-          paddingBottom: 40,
-        }}
-      >
-        <div
-          style={{
-            background: C.card,
-            borderRadius: 16,
-            padding: "48px 40px",
-            maxWidth: 380,
-            width: "100%",
-            textAlign: "center",
-            border: `1px solid ${C.border}`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 16,
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              background: T.bg,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Lock size={32} color={C.muted} />
-          </div>
-          <div
-            style={{ fontSize: 18, fontWeight: 700, color: C.text }}
-          >
-            管理者モードで閲覧できます
-          </div>
-          <div style={{ fontSize: 14, color: C.sub }}>
-            このページにアクセスするには管理者ログインが必要です。
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ paddingTop: "32px", paddingBottom: "32px" }}>

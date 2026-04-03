@@ -10,12 +10,10 @@ const C = {
   border:    "#E5E7EB",
   rustBdr:   "rgba(154,52,18,0.2)",
   rust:      "#9A3412",
-  rustMd:    "#B45309",
   rustLt:    "rgba(154,52,18,0.08)",
   text:      "#111827",
   sub:       "#6B7280",
   muted:     "#9CA3AF",
-  green:     "#059669",
 } as const;
 
 // ─── Feature card data ────────────────────────────────────────────────────────
@@ -25,48 +23,30 @@ const features = [
     name: "現場状況を確認する",
     desc: "稼働中の現場と進捗・原価をリアルタイムで確認",
     href: "/kaitai",
-    note: null,
-    adminRequired: false,
   },
   {
     emoji: "📝",
     name: "作業を報告する",
     desc: "勤務開始・終了・経費・イレギュラーをワンタップ報告",
     href: "/kaitai/report",
-    note: null,
-    adminRequired: false,
-  },
-  {
-    emoji: "📋",
-    name: "帳票を出力する",
-    desc: "見積書・請求書・完了報告書をPDF生成",
-    href: "/kaitai/docs",
-    note: "管理者モードON後にアクセス（メニューから設定）",
-    adminRequired: true,
   },
   {
     emoji: "🚛",
     name: "機材・車両を管理する",
     desc: "重機・リース品の稼働状況と返却期限を管理",
     href: "/kaitai/equipment",
-    note: null,
-    adminRequired: false,
   },
   {
     emoji: "👷",
     name: "メンバーを確認する",
     desc: "作業員のスキル・資格・勤怠をレーダーチャートで把握",
     href: "/kaitai/members",
-    note: null,
-    adminRequired: false,
   },
   {
-    emoji: "📈",
-    name: "収支・経営を分析する",
-    desc: "売上・原価・粗利を月次・年次・案件別で分析",
+    emoji: "📊",
+    name: "管理者ページを見る",
+    desc: "収支分析・帳票出力・評価ダッシュボードなど管理者向け機能",
     href: "/kaitai/admin",
-    note: "管理者モードON後にアクセス",
-    adminRequired: true,
   },
 ];
 
@@ -84,7 +64,6 @@ export default function DemoPage() {
         padding: "0 20px",
         gap: 12,
       }}>
-        {/* Left: back link */}
         <Link href="/kaitai/lp" style={{
           fontSize: 13, color: C.muted,
           textDecoration: "none", fontWeight: 500,
@@ -95,7 +74,6 @@ export default function DemoPage() {
           ← 解体LINK
         </Link>
 
-        {/* Center: badge */}
         <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <span style={{
             background: C.rustLt,
@@ -110,7 +88,6 @@ export default function DemoPage() {
           </span>
         </div>
 
-        {/* Right: CTA */}
         <Link href="/kaitai/signup" style={{
           fontSize: 12, fontWeight: 700,
           color: "#fff",
@@ -171,51 +148,18 @@ export default function DemoPage() {
               display: "flex", flexDirection: "column",
               gap: 0,
             }}>
-              {/* Emoji + admin badge */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={{ fontSize: 36 }}>{f.emoji}</span>
-                {f.adminRequired && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 800,
-                    color: C.rust,
-                    background: C.rustLt,
-                    border: `1px solid ${C.rustBdr}`,
-                    padding: "2px 8px", borderRadius: 99,
-                    letterSpacing: "0.04em",
-                    whiteSpace: "nowrap",
-                  }}>
-                    管理者
-                  </span>
-                )}
-              </div>
-
+              <span style={{ fontSize: 36, marginBottom: 12 }}>{f.emoji}</span>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 6, lineHeight: 1.3 }}>
                 {f.name}
               </div>
-              <div style={{ fontSize: 14, color: C.sub, lineHeight: 1.65, marginBottom: f.note ? 10 : 20 }}>
+              <div style={{ fontSize: 14, color: C.sub, lineHeight: 1.65, marginBottom: 20 }}>
                 {f.desc}
               </div>
-
-              {f.note && (
-                <div style={{
-                  fontSize: 12, color: C.rust,
-                  background: C.rustLt,
-                  border: `1px solid ${C.rustBdr}`,
-                  borderRadius: 8,
-                  padding: "7px 11px",
-                  marginBottom: 16,
-                  lineHeight: 1.5,
-                }}>
-                  ⚠ {f.note}
-                </div>
-              )}
-
               <div style={{ marginTop: "auto" }}>
                 <Link href={f.href} style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  background: f.adminRequired ? C.rustLt : C.rust,
-                  color: f.adminRequired ? C.rust : "#fff",
-                  border: f.adminRequired ? `1.5px solid ${C.rustBdr}` : "none",
+                  background: C.rust,
+                  color: "#fff",
                   padding: "12px 20px", borderRadius: 8,
                   fontWeight: 700, fontSize: 14, textDecoration: "none",
                 }}>
@@ -224,74 +168,6 @@ export default function DemoPage() {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Admin mode guide */}
-        <div style={{
-          background: C.bgCard,
-          border: `2px solid ${C.rust}`,
-          borderRadius: 12,
-          padding: "24px 20px",
-          marginBottom: 40,
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            marginBottom: 12,
-          }}>
-            <span style={{ fontSize: 20 }}>📌</span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>
-              管理者モードについて
-            </span>
-          </div>
-          <p style={{ fontSize: 14, color: C.sub, marginBottom: 20, lineHeight: 1.65 }}>
-            帳票出力・収支分析・機材管理は管理者モードONが必要です
-          </p>
-
-          <div style={{
-            background: C.bgMuted,
-            borderRadius: 10,
-            padding: "16px 20px",
-            marginBottom: 20,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              管理者モードの有効化手順
-            </div>
-            {[
-              "下部ナビ「メニュー」タブをタップ",
-              "管理者モードをONにする",
-              "パスワード: 0000 を入力",
-            ].map((step, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "flex-start", gap: 12,
-                marginBottom: i < 2 ? 10 : 0,
-              }}>
-                <span style={{
-                  flexShrink: 0,
-                  width: 22, height: 22,
-                  background: C.rust,
-                  color: "#fff",
-                  borderRadius: "50%",
-                  fontSize: 12, fontWeight: 800,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  {i + 1}
-                </span>
-                <span style={{ fontSize: 14, color: C.sub, lineHeight: 1.5, paddingTop: 2 }}>
-                  {step}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <Link href="/kaitai/menu" style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: C.rust,
-            color: "#fff",
-            padding: "14px 24px", borderRadius: 8,
-            fontWeight: 700, fontSize: 15, textDecoration: "none",
-          }}>
-            管理者モードを有効にする →
-          </Link>
         </div>
 
         {/* Footer note */}
@@ -304,7 +180,7 @@ export default function DemoPage() {
             デモデータは架空の会社・現場情報です。
           </p>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.7 }}>
-            解体LINKの本番環境では自社の情報で管理できます。
+            管理者ページ（収支分析・帳票出力など）はパスワード「0000」でアクセスできます。
           </p>
           <Link href="/kaitai/signup" style={{
             display: "inline-block",
