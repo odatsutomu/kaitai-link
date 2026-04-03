@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin, Calendar, Edit3, ChevronRight, Search,
-  Building2, CheckCircle, Clock,
+  Building2, CheckCircle, Clock, FileText, Handshake,
+  ShieldCheck, Hammer, Truck, CreditCard, ClipboardCheck,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -21,16 +22,111 @@ type SiteRow = {
   structureType: string;
 };
 
-const STATUS_ORDER: Record<string, number> = { "施工中": 0, "着工前": 1, "完工": 2 };
-const STATUS_DISPLAY: Record<string, string> = { "施工中": "解体中", "着工前": "着工前", "完工": "完工" };
+// ─── 8-stage status system ──────────────────────────────────────────────────
 
-const STATUS_STYLE: Record<string, { bg: string; fg: string; icon: typeof Building2 }> = {
-  "施工中": { bg: "rgba(180,83,9,0.1)", fg: T.primary, icon: Building2 },
-  "着工前": { bg: "rgba(59,130,246,0.1)", fg: "#3B82F6", icon: Clock },
-  "完工":   { bg: "rgba(16,185,129,0.1)", fg: "#10B981", icon: CheckCircle },
+const STATUSES = [
+  { key: "調査・見積",     label: "調査・見積",     group: "pre",    icon: Search,         color: "#6B7280", bg: "rgba(107,114,128,0.1)" },
+  { key: "契約・申請",     label: "契約・申請",     group: "pre",    icon: FileText,       color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
+  { key: "近隣挨拶・養生", label: "近隣挨拶・養生", group: "pre",    icon: Handshake,      color: "#3B82F6", bg: "rgba(59,130,246,0.1)" },
+  { key: "着工・内装解体", label: "着工・内装解体", group: "active", icon: Hammer,         color: T.primary, bg: "rgba(180,83,9,0.1)" },
+  { key: "上屋解体・基礎", label: "上屋解体・基礎", group: "active", icon: Building2,      color: "#B45309", bg: "rgba(180,83,9,0.15)" },
+  { key: "完工・更地確認", label: "完工・更地確認", group: "post",   icon: CheckCircle,    color: "#10B981", bg: "rgba(16,185,129,0.1)" },
+  { key: "産廃書類完了",   label: "産廃書類完了",   group: "post",   icon: ClipboardCheck, color: "#0D9488", bg: "rgba(13,148,136,0.1)" },
+  { key: "入金確認",       label: "入金確認",       group: "done",   icon: CreditCard,     color: "#059669", bg: "rgba(5,150,105,0.1)" },
+] as const;
+
+// Legacy status mapping (backward compat with existing DB values)
+const LEGACY_MAP: Record<string, string> = {
+  "着工前": "調査・見積",
+  "施工中": "着工・内装解体",
+  "解体中": "着工・内装解体",
+  "完工": "完工・更地確認",
 };
 
+function resolveStatus(raw: string) {
+  const mapped = LEGACY_MAP[raw] ?? raw;
+  return STATUSES.find(s => s.key === mapped) ?? STATUSES[0];
+}
+
+function statusIndex(raw: string): number {
+  const mapped = LEGACY_MAP[raw] ?? raw;
+  const idx = STATUSES.findIndex(s => s.key === mapped);
+  return idx >= 0 ? idx : 0;
+}
+
+// ─── Groups for summary cards ───────────────────────────────────────────────
+
+const GROUPS = [
+  { key: "pre",    label: "施工前",   color: "#3B82F6",  statuses: ["調査・見積", "契約・申請", "近隣挨拶・養生"] },
+  { key: "active", label: "施工中",   color: T.primary,  statuses: ["着工・内装解体", "上屋解体・基礎"] },
+  { key: "post",   label: "完工処理", color: "#10B981",  statuses: ["完工・更地確認", "産廃書類完了"] },
+  { key: "done",   label: "入金済",   color: "#059669",  statuses: ["入金確認"] },
+];
+
+function siteGroup(raw: string): string {
+  const s = resolveStatus(raw);
+  return s.group;
+}
+
 const fmt = (n: number) => n > 0 ? `¥${Math.round(n).toLocaleString("ja-JP")}` : "—";
+
+// ─── Status Dropdown ────────────────────────────────────────────────────────
+
+function StatusDropdown({
+  siteId, currentStatus, onStatusChange,
+}: {
+  siteId: string;
+  currentStatus: string;
+  onStatusChange: (siteId: string, newStatus: string) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const resolved = resolveStatus(currentStatus);
+
+  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const newStatus = e.target.value;
+    if (newStatus === resolved.key) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/kaitai/sites", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: siteId, status: newStatus }),
+      });
+      if (res.ok) {
+        onStatusChange(siteId, newStatus);
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
+  return (
+    <select
+      value={resolved.key}
+      onChange={handleChange}
+      disabled={saving}
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: resolved.color,
+        background: resolved.bg,
+        border: `1px solid ${resolved.color}20`,
+        borderRadius: 8,
+        padding: "5px 8px",
+        cursor: "pointer",
+        outline: "none",
+        opacity: saving ? 0.5 : 1,
+        maxWidth: 160,
+      }}
+    >
+      {STATUSES.map(s => (
+        <option key={s.key} value={s.key}>{s.label}</option>
+      ))}
+    </select>
+  );
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function AdminSitesPage() {
   const [sites, setSites] = useState<SiteRow[]>([]);
@@ -47,7 +143,7 @@ export default function AdminSitesPage() {
             id: s.id as string,
             name: s.name as string,
             address: (s.address as string) ?? "",
-            status: (s.status as string) ?? "着工前",
+            status: (s.status as string) ?? "調査・見積",
             startDate: (s.startDate as string) ?? "",
             endDate: (s.endDate as string) ?? "",
             contractAmount: (s.contractAmount as number) ?? 0,
@@ -61,23 +157,23 @@ export default function AdminSitesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  function handleStatusChange(siteId: string, newStatus: string) {
+    setSites(prev => prev.map(s => s.id === siteId ? { ...s, status: newStatus } : s));
+  }
+
   const filtered = sites
     .filter(s => {
       if (!search) return true;
       const q = search.toLowerCase();
       return s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q);
     })
-    .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9));
+    .sort((a, b) => statusIndex(a.status) - statusIndex(b.status));
 
-  const active   = filtered.filter(s => s.status === "施工中");
-  const upcoming = filtered.filter(s => s.status === "着工前");
-  const done     = filtered.filter(s => s.status === "完工");
-
-  const groups = [
-    { label: "解体中", sites: active,   color: T.primary, count: active.length },
-    { label: "着工前", sites: upcoming, color: "#3B82F6", count: upcoming.length },
-    { label: "完工",   sites: done,     color: "#10B981", count: done.length },
-  ];
+  // Group sites
+  const grouped = GROUPS.map(g => ({
+    ...g,
+    sites: filtered.filter(s => siteGroup(s.status) === g.key),
+  }));
 
   if (loading) {
     return (
@@ -95,7 +191,7 @@ export default function AdminSitesPage() {
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>現場管理</h1>
           <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>
-            登録現場の確認・編集（{sites.length}件）
+            登録現場の確認・ステータス管理（{sites.length}件）
           </p>
         </div>
         <Link
@@ -129,45 +225,79 @@ export default function AdminSitesPage() {
       </div>
 
       {/* ── Summary cards ── */}
-      <div className="grid grid-cols-3 gap-3">
-        {groups.map(g => (
+      <div className="grid grid-cols-4 gap-3">
+        {grouped.map(g => (
           <div
-            key={g.label}
+            key={g.key}
             className="px-4 py-3 rounded-xl"
             style={{ background: "#fff", border: `1px solid ${T.border}` }}
           >
             <p style={{ fontSize: 12, color: T.sub, marginBottom: 4 }}>{g.label}</p>
             <p style={{ fontSize: 28, fontWeight: 800, color: g.color, lineHeight: 1 }}>
-              {g.count}<span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: T.sub }}>件</span>
+              {g.sites.length}<span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: T.sub }}>件</span>
             </p>
           </div>
         ))}
       </div>
 
+      {/* ── 8-stage progress indicator ── */}
+      <div
+        className="flex items-center gap-0 rounded-xl overflow-hidden"
+        style={{ background: "#fff", border: `1px solid ${T.border}`, padding: "12px 16px" }}
+      >
+        {STATUSES.map((s, i) => {
+          const count = filtered.filter(site => resolveStatus(site.status).key === s.key).length;
+          return (
+            <div key={s.key} className="flex items-center" style={{ flex: 1 }}>
+              <div className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{
+                    background: count > 0 ? s.bg : T.bg,
+                    border: `2px solid ${count > 0 ? s.color : T.border}`,
+                  }}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 800, color: count > 0 ? s.color : T.muted }}>
+                    {count}
+                  </span>
+                </div>
+                <span style={{ fontSize: 9, color: count > 0 ? s.color : T.muted, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
+                  {s.label.length > 5 ? s.label.replace("・", "\n") : s.label}
+                </span>
+              </div>
+              {i < STATUSES.length - 1 && (
+                <div style={{ width: 12, height: 2, background: T.border, flexShrink: 0 }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       {/* ── Site groups ── */}
-      {groups.map(group => {
+      {grouped.map(group => {
         if (group.sites.length === 0) return null;
         return (
-          <section key={group.label}>
+          <section key={group.key}>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-5 rounded-full" style={{ background: group.color }} />
               <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
                 {group.label}
                 <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, marginLeft: 8 }}>
-                  {group.count}件
+                  {group.sites.length}件
                 </span>
               </h2>
             </div>
 
             <div className="flex flex-col gap-2">
               {group.sites.map(site => {
-                const ss = STATUS_STYLE[site.status] ?? STATUS_STYLE["着工前"];
+                const ss = resolveStatus(site.status);
                 const profit = site.contractAmount > 0 && site.costAmount > 0
                   ? site.contractAmount - site.costAmount
                   : null;
                 const profitPct = profit !== null && site.contractAmount > 0
                   ? Math.round((profit / site.contractAmount) * 100)
                   : null;
+                const isActive = ss.group === "active";
 
                 return (
                   <div
@@ -179,16 +309,15 @@ export default function AdminSitesPage() {
                     }}
                   >
                     <div className="px-5 py-4">
-                      {/* Row 1: name + status + edit */}
+                      {/* Row 1: status dropdown + name + edit */}
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span
-                              className="text-xs font-bold px-2.5 py-1 rounded-full"
-                              style={{ background: ss.bg, color: ss.fg }}
-                            >
-                              {STATUS_DISPLAY[site.status] ?? site.status}
-                            </span>
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <StatusDropdown
+                              siteId={site.id}
+                              currentStatus={site.status}
+                              onStatusChange={handleStatusChange}
+                            />
                             {site.structureType && (
                               <span style={{ fontSize: 12, color: T.muted }}>
                                 {site.structureType}
@@ -258,15 +387,33 @@ export default function AdminSitesPage() {
                         )}
 
                         {/* 進捗 */}
-                        {site.status === "施工中" && site.progressPct > 0 && (
+                        {isActive && site.progressPct > 0 && (
                           <span style={{ fontSize: 12, color: T.sub }}>
                             進捗 {site.progressPct}%
+                          </span>
+                        )}
+
+                        {/* 入金ステータス badge (for post/done) */}
+                        {ss.key === "入金確認" && (
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "#059669", color: "#fff" }}
+                          >
+                            入金済
+                          </span>
+                        )}
+                        {ss.key === "産廃書類完了" && (
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(13,148,136,0.15)", color: "#0D9488" }}
+                          >
+                            請求可
                           </span>
                         )}
                       </div>
 
                       {/* Progress bar for active sites */}
-                      {site.status === "施工中" && site.progressPct > 0 && (
+                      {isActive && site.progressPct > 0 && (
                         <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: T.border }}>
                           <div
                             className="h-full rounded-full"

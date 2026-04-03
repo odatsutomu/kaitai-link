@@ -183,7 +183,7 @@ export default function AdminProjectsPage() {
         setRawSites(data.sites.map((s: Record<string, unknown>) => ({
           id: s.id as string,
           name: s.name as string,
-          status: (s.status === "施工中" ? "解体中" : s.status) as string,
+          status: (s.status as string) ?? "",
           contract: (s.contractAmount as number) ?? 0,
           cost: (s.costAmount as number) ?? 0,
           progressPct: (s.progressPct as number) ?? 0,
@@ -223,8 +223,14 @@ export default function AdminProjectsPage() {
       const mb = b.cost > 0 ? (b.contract - b.cost) / b.contract : 0;
       return dir * (ma - mb);
     }
-    // status sort: 解体中 > 着工前 > 完工
-    const order: Record<string, number> = { "解体中": 0, "着工前": 1, "完工": 2 };
+    // status sort: active first, then pre, then post/done
+    const order: Record<string, number> = {
+      "着工・内装解体": 0, "上屋解体・基礎": 1,
+      "調査・見積": 2, "契約・申請": 3, "近隣挨拶・養生": 4,
+      "完工・更地確認": 5, "産廃書類完了": 6, "入金確認": 7,
+      // legacy
+      "施工中": 0, "解体中": 0, "着工前": 2, "完工": 5,
+    };
     return dir * ((order[a.status] ?? 9) - (order[b.status] ?? 9));
   });
 
@@ -233,7 +239,9 @@ export default function AdminProjectsPage() {
   const totalCost = filteredSites.reduce((s: number, x: SiteRow) => s + x.cost, 0);
   const totalProfit = total - totalCost;
   const avgMargin = total > 0 ? Math.round((totalProfit / total) * 100) : 0;
-  const activeCount = filteredSites.filter((s: SiteRow) => s.status === "解体中").length;
+  const activeCount = filteredSites.filter((s: SiteRow) =>
+    ["着工・内装解体", "上屋解体・基礎", "施工中", "解体中"].includes(s.status)
+  ).length;
 
   const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
     <button
@@ -349,11 +357,21 @@ export default function AdminProjectsPage() {
           const mc     = pct !== null ? marginColor(pct) : null;
 
           const statusStyle: Record<string, { bg: string; color: string; dot: string }> = {
+            "調査・見積":     { bg: "rgba(107,114,128,0.1)", color: "#4B5563", dot: "#6B7280" },
+            "契約・申請":     { bg: "rgba(99,102,241,0.1)",  color: "#4338CA", dot: "#6366F1" },
+            "近隣挨拶・養生": { bg: "#EFF6FF",               color: "#1D4ED8", dot: "#3B82F6" },
+            "着工・内装解体": { bg: T.primaryLt,             color: "#92400E", dot: C.amber },
+            "上屋解体・基礎": { bg: T.primaryLt,             color: "#92400E", dot: C.amber },
+            "完工・更地確認": { bg: "#F0FDF4",               color: "#166534", dot: C.green },
+            "産廃書類完了":   { bg: "rgba(13,148,136,0.1)",  color: "#0F766E", dot: "#0D9488" },
+            "入金確認":       { bg: "rgba(5,150,105,0.1)",   color: "#065F46", dot: "#059669" },
+            // legacy
+            "施工中": { bg: T.primaryLt, color: "#92400E", dot: C.amber },
             "解体中": { bg: T.primaryLt, color: "#92400E", dot: C.amber },
-            "着工前": { bg: "#EFF6FF", color: "#1D4ED8", dot: C.blue  },
-            "完工":   { bg: "#F0FDF4", color: "#166534", dot: C.green },
+            "着工前": { bg: "#EFF6FF",   color: "#1D4ED8", dot: "#3B82F6" },
+            "完工":   { bg: "#F0FDF4",   color: "#166534", dot: C.green },
           };
-          const ss = statusStyle[site.status];
+          const ss = statusStyle[site.status] ?? statusStyle["調査・見積"];
 
           const isAlert = pct !== null && pct < 15;
 

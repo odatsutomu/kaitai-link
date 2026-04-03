@@ -46,6 +46,14 @@ type SiteData = {
   imgHue: string; lat: number; lng: number;
 };
 
+// Map 8-stage statuses to worker display categories
+function toDisplayStatus(raw: string): SiteStatus {
+  if (["着工・内装解体", "上屋解体・基礎", "施工中"].includes(raw)) return "解体中";
+  if (["完工・更地確認", "産廃書類完了", "入金確認", "完工"].includes(raw)) return "完工";
+  if (["調査・見積", "契約・申請", "近隣挨拶・養生", "着工前"].includes(raw)) return "着工前";
+  return raw === "解体中" ? "解体中" : "着工前";
+}
+
 const STATUS_STYLE: Record<SiteStatus, { dot: string; bg: string; text: string }> = {
   着工前: { dot: C.blue,  bg: "#EFF6FF", text: "#1D4ED8" },
   解体中: { dot: C.amber, bg: T.primaryLt, text: "#92400E" },
@@ -743,7 +751,7 @@ export default function KaitaiHome() {
           name: s.name as string,
           type: STRUCTURE_TYPE_LABEL[s.structureType as string] ?? (s.structureType ? `${s.structureType}解体` : "解体工事"),
           address: s.address as string,
-          status: (s.status === "施工中" ? "解体中" : s.status) as SiteStatus,
+          status: toDisplayStatus(s.status as string),
           endDate: (s.endDate as string) ?? "",
           progressPct: (s.progressPct as number) ?? 0,
           workers: 0,

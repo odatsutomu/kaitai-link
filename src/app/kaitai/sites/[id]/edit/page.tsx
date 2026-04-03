@@ -29,7 +29,7 @@ const C = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Status = "見積中" | "受注確定" | "施工中" | "完了" | "請求済";
+type Status = "調査・見積" | "契約・申請" | "近隣挨拶・養生" | "着工・内装解体" | "上屋解体・基礎" | "完工・更地確認" | "産廃書類完了" | "入金確認";
 type StructureType = "木造" | "RC" | "鉄骨" | "軽量鉄骨" | "混合" | "その他";
 type AsbestosLevel = "なし" | "あり(L1)" | "あり(L2)" | "あり(L3)" | "調査中";
 type VehicleLimit = "2t" | "4t" | "10t" | "制限なし";
@@ -49,13 +49,28 @@ const MOCK_SITES: Record<string, any> = {};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const STATUS_LIST: Status[] = ["見積中", "受注確定", "施工中", "完了", "請求済"];
+const STATUS_LIST: Status[] = ["調査・見積", "契約・申請", "近隣挨拶・養生", "着工・内装解体", "上屋解体・基礎", "完工・更地確認", "産廃書類完了", "入金確認"];
 const STATUS_STYLE: Record<Status, { bg: string; color: string; border: string }> = {
-  "見積中":   { bg: "#EFF6FF", color: "#3B82F6", border: "#BFDBFE" },
-  "受注確定": { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
-  "施工中":   { bg: "${T.primaryLt}", color: T.primaryDk, border: "#FED7AA" },
-  "完了":     { bg: T.bg, color: "#475569", border: "#CBD5E1" },
-  "請求済":   { bg: "#FAF5FF", color: "#9333EA", border: "#E9D5FF" },
+  "調査・見積":     { bg: "rgba(107,114,128,0.1)", color: "#6B7280", border: "#D1D5DB" },
+  "契約・申請":     { bg: "rgba(99,102,241,0.1)",  color: "#6366F1", border: "#C7D2FE" },
+  "近隣挨拶・養生": { bg: "#EFF6FF",               color: "#3B82F6", border: "#BFDBFE" },
+  "着工・内装解体": { bg: T.primaryLt,              color: T.primaryDk, border: "#FED7AA" },
+  "上屋解体・基礎": { bg: "rgba(180,83,9,0.15)",   color: T.primaryDk, border: "#FED7AA" },
+  "完工・更地確認": { bg: "#F0FDF4",               color: "#16A34A", border: "#BBF7D0" },
+  "産廃書類完了":   { bg: "rgba(13,148,136,0.1)",  color: "#0D9488", border: "#99F6E4" },
+  "入金確認":       { bg: "rgba(5,150,105,0.1)",   color: "#059669", border: "#A7F3D0" },
+};
+
+// Legacy status mapping for existing DB values
+const LEGACY_STATUS_MAP: Record<string, Status> = {
+  "着工前": "調査・見積",
+  "施工中": "着工・内装解体",
+  "解体中": "着工・内装解体",
+  "完工": "完工・更地確認",
+  "見積中": "調査・見積",
+  "受注確定": "契約・申請",
+  "完了": "完工・更地確認",
+  "請求済": "産廃書類完了",
 };
 
 const STRUCTURE_TYPES: { type: StructureType; icon: string }[] = [
@@ -228,7 +243,7 @@ export default function SiteEditPage({
   const [extendedEnd, setExtendedEnd] = useState("");
   const [extendReason, setExtendReason] = useState("");
   const [showExtend, setShowExtend]   = useState(false);
-  const [status, setStatus]           = useState<Status>("施工中");
+  const [status, setStatus]           = useState<Status>("調査・見積");
 
   // Tab 2
   const [contract, setContract] = useState("");
@@ -255,7 +270,8 @@ export default function SiteEditPage({
         setAddress((s.address as string) ?? "");
         setStartDate((s.startDate as string) ?? "");
         setEndDate((s.endDate as string) ?? "");
-        setStatus(((s.status as string) ?? "施工中") as Status);
+        const rawStatus = (s.status as string) ?? "調査・見積";
+        setStatus(LEGACY_STATUS_MAP[rawStatus] ?? rawStatus as Status);
         const contractStr = s.contractAmount ? String(s.contractAmount) : "";
         setContract(contractStr);
         setSavedContract(contractStr);
