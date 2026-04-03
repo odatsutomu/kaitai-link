@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Building2, User, Lock, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { KaitaiLogo } from "../components/kaitai-logo";
-import { useAppContext, Company } from "../lib/app-context";
+import { useAppContext } from "../lib/app-context";
+import type { Company, PlanId } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
 
 type Step = "company" | "admin" | "password" | "complete";
@@ -22,10 +23,12 @@ const STEP_META: Record<Step, { label: string }> = {
 
 export default function SignupPage() {
   const router = useRouter();
-  const { setCompany, addLog } = useAppContext();
+  const { setCompany, setAuthLevel, addLog } = useAppContext();
 
   const [step, setStep]   = useState<Step>("company");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Form state
   const [companyName, setCompanyName] = useState("");
@@ -57,31 +60,64 @@ export default function SignupPage() {
     return Object.keys(e).length === 0;
   }
 
-  function next() {
+  async function next() {
     if (!validate()) return;
+
+    // 最終ステップ: API で登録
     if (step === "password") {
-      // Complete registration with free plan
-      const company: Company = {
-        id: Date.now().toString(36),
-        name: companyName.trim(),
-        address: address.trim(),
-        phone: phone.trim(),
-        adminName: adminName.trim(),
-        adminEmail: email.trim(),
-        password1: pw1,
-        password2: pw2,
-        plan: "free",
-        stripeCustomerId: "",
-        createdAt: new Date().toISOString(),
-      };
-      setCompany(company);
-      addLog("signup_complete", email.trim());
+      setLoading(true);
+      setApiError("");
+      try {
+        const res = await fetch("/api/kaitai/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: companyName.trim(),
+            address: address.trim(),
+            phone: phone.trim(),
+            adminName: adminName.trim(),
+            adminEmail: email.trim().toLowerCase(),
+            password1: pw1,
+            password2: pw2,
+            plan: "free",
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setApiError(data.error ?? "登録に失敗しました");
+          setLoading(false);
+          return;
+        }
+
+        // 登録成功 — セッション cookie 自動セット済み
+        const company: Company = {
+          id:               data.company.id,
+          name:             data.company.name,
+          adminName:        data.company.adminName,
+          adminEmail:       email.trim().toLowerCase(),
+          plan:             (data.company.plan ?? "free") as PlanId,
+          stripeCustomerId: data.company.stripeCustomerId,
+        };
+        setCompany(company);
+        setAuthLevel("worker");
+        addLog("signup_complete", email.trim());
+        setStep("complete");
+      } catch {
+        setApiError("通信エラーが発生しました");
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
+
     setStep(STEPS[stepIdx + 1]);
   }
 
   function back() {
     if (stepIdx > 0) setStep(STEPS[stepIdx - 1]);
+    setApiError("");
   }
 
   function field(
@@ -96,7 +132,7 @@ export default function SignupPage() {
         <input
           type={opts.type ?? "text"}
           value={value}
-          onChange={e => { onChange(e.target.value); setErrors(prev => ({ ...prev, [opts.key]: "" })); }}
+          onChange={e => { onChange(e.target.value); setErrors(prev => ({ ...prev, [opts.key]: "" })); setApiError(""); }}
           placeholder={opts.placeholder ?? ""}
           className="w-full rounded-2xl px-4 outline-none transition-all"
           style={{
@@ -187,16 +223,20 @@ export default function SignupPage() {
             <div className="flex flex-col gap-4">
               <div className="rounded-2xl p-5" style={{ background: T.primaryLt, border: "1.5px solid #FED7AA" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#B45309", marginBottom: 2 }}>第一パスワード（全従業員共有）</p>
-                <p style={{ fontSize: 11, color: "#92400E" }}>現場確認・スケジュール・勤怠報告に使用</p>
+                <p style={{ fontSize: 11, color: "#92400E" }}>ログインに使用するパスワード</p>
               </div>
               {field("第一パスワード", pw1, setPw1, { placeholder: "4文字以上", type: "password", key: "pw1" })}
 
               <div className="rounded-2xl p-5" style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 2 }}>第二パスワード（管理者専用）</p>
-                <p style={{ fontSize: 11, color: "#7F1D1D" }}>経営分析・メンバー評価・管理者ページに使用</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 2 }}>第二パスワード（管理者専用 4桁PIN）</p>
+                <p style={{ fontSize: 11, color: "#7F1D1D" }}>管理者ページへのアクセスに使用</p>
               </div>
-              {field("第二パスワード", pw2, setPw2, { placeholder: "4文字以上", type: "password", key: "pw2" })}
+              {field("第二パスワード (4桁)", pw2, setPw2, { placeholder: "4文字以上", type: "password", key: "pw2" })}
             </div>
+
+            {apiError && (
+              <p style={{ fontSize: 14, color: "#EF4444", fontWeight: 600 }}>{apiError}</p>
+            )}
           </>
         )}
 
@@ -204,7 +244,7 @@ export default function SignupPage() {
         {step === "complete" && (
           <div className="flex flex-col items-center text-center pt-4">
             <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6" style={{ background: "#E8F5E9" }}>
-              <span style={{ fontSize: 48 }}>🎉</span>
+              <Sparkles size={48} style={{ color: "#10B981" }} />
             </div>
             <h2 style={{ fontSize: 26, fontWeight: 900, color: "#111111", marginBottom: 8 }}>登録完了！</h2>
             <p style={{ fontSize: 15, color: "#666666", marginBottom: 28, lineHeight: 1.6 }}>
@@ -226,11 +266,11 @@ export default function SignupPage() {
             </div>
 
             <button
-              onClick={() => router.push("/kaitai/login")}
+              onClick={() => router.push("/kaitai")}
               className="w-full flex items-center justify-center gap-2 rounded-3xl font-black"
               style={{ height: 64, fontSize: 18, background: "#111111", color: T.surface }}
             >
-              ログインへ進む <ChevronRight size={20} />
+              はじめる <ChevronRight size={20} />
             </button>
           </div>
         )}
@@ -242,10 +282,15 @@ export default function SignupPage() {
         <div className="px-5 pt-4">
           <button
             onClick={next}
+            disabled={loading}
             className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"
-            style={{ height: 64, fontSize: 18, background: "#111111", color: T.surface }}
+            style={{
+              height: 64, fontSize: 18,
+              background: loading ? "#CCCCCC" : "#111111",
+              color: T.surface,
+            }}
           >
-            {step === "password" ? "登録する" : "次へ"} <ChevronRight size={22} />
+            {loading ? "登録中..." : step === "password" ? "登録する" : "次へ"} {!loading && <ChevronRight size={22} />}
           </button>
         </div>
       )}

@@ -16,8 +16,6 @@ const SEED_COMPANIES: Company[] = [
     phone: "03-5555-1001",
     adminName: "佐藤 健一",
     adminEmail: "sato@tokyokaitai.jp",
-    password1: "tokyo2026",
-    password2: "admin01",
     plan: "business",
     stripeCustomerId: "cus_mock_TKY001BIZ",
     createdAt: "2025-10-01T00:00:00.000Z",
@@ -29,8 +27,6 @@ const SEED_COMPANIES: Company[] = [
     phone: "06-6666-2002",
     adminName: "山田 太郎",
     adminEmail: "yamada@kansai-ks.jp",
-    password1: "osaka2026",
-    password2: "admin02",
     plan: "standard",
     stripeCustomerId: "cus_mock_OSK002STD",
     createdAt: "2025-11-15T00:00:00.000Z",
@@ -42,10 +38,7 @@ const SEED_COMPANIES: Company[] = [
     phone: "011-777-3003",
     adminName: "鈴木 一郎",
     adminEmail: "suzuki@hokkaido-k.jp",
-    password1: "sapporo26",
-    password2: "admin03",
     plan: "free",
-    stripeCustomerId: null as unknown as string,
     createdAt: "2026-01-10T00:00:00.000Z",
   },
 ];
@@ -189,7 +182,7 @@ export default function DevPage() {
             {/* Row 4: meta */}
             <div className="flex items-center justify-between mt-2">
               <p style={{ fontSize: 14, color: "#475569" }}>
-                登録: {new Date(c.createdAt).toLocaleDateString("ja-JP")}
+                登録: {c.createdAt ? new Date(c.createdAt).toLocaleDateString("ja-JP") : "—"}
               </p>
               <p style={{ fontSize: 14, color: "#475569" }}>
                 管理者: {c.adminName}

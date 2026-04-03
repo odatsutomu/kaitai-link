@@ -6,93 +6,58 @@ import { Eye, EyeOff, ChevronRight, Mail } from "lucide-react";
 import Link from "next/link";
 import { KaitaiLogo } from "../components/kaitai-logo";
 import { useAppContext } from "../lib/app-context";
-import type { Company } from "../lib/app-context";
+import type { Company, PlanId } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
-
-// ─── Mock company registry (email → company) ────────────────────────────────
-// 実際のシステムではDBから取得する
-
-const COMPANY_BY_EMAIL: Record<string, Company & { password: string }> = {
-  "tanaka@kaitai.jp": {
-    password: "kaitai2026",
-    id: "demo",
-    name: "解体工業株式会社",
-    address: "東京都世田谷区1-1-1",
-    phone: "03-1234-5678",
-    adminName: "田中 義雄",
-    adminEmail: "tanaka@kaitai.jp",
-    password1: "kaitai2026",
-    password2: "0000",
-    plan: "free",
-    stripeCustomerId: "",
-    createdAt: "2026-01-01T00:00:00.000Z",
-  },
-  "yamada@yamada-const.jp": {
-    password: "yamada123",
-    id: "yamada001",
-    name: "山田建設株式会社",
-    address: "大阪府大阪市北区2-3-4",
-    phone: "06-2345-6789",
-    adminName: "山田 一郎",
-    adminEmail: "yamada@yamada-const.jp",
-    password1: "yamada123",
-    password2: "1111",
-    plan: "free",
-    stripeCustomerId: "",
-    createdAt: "2026-02-01T00:00:00.000Z",
-  },
-  "suzuki@suzuki-kai.jp": {
-    password: "suzuki456",
-    id: "suzuki001",
-    name: "鈴木解体工業",
-    address: "愛知県名古屋市中区3-5-6",
-    phone: "052-345-6789",
-    adminName: "鈴木 健二",
-    adminEmail: "suzuki@suzuki-kai.jp",
-    password1: "suzuki456",
-    password2: "2222",
-    plan: "free",
-    stripeCustomerId: "",
-    createdAt: "2026-03-01T00:00:00.000Z",
-  },
-};
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const router = useRouter();
   const { setAuthLevel, setCompany, addLog } = useAppContext();
 
-  const [email,    setEmail]    = useState("tanaka@kaitai.jp");
-  const [password, setPassword] = useState("kaitai2026");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!email.trim())  { setError("メールアドレスを入力してください"); return; }
     if (!password)      { setError("パスワードを入力してください"); return; }
     setLoading(true);
-    setTimeout(() => {
-      const entry = COMPANY_BY_EMAIL[email.trim().toLowerCase()];
-      if (!entry) {
-        setError("メールアドレスが見つかりません");
+    setError("");
+
+    try {
+      const res = await fetch("/api/kaitai/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "ログインに失敗しました");
+        if (res.status === 401) setPassword("");
         setLoading(false);
         return;
       }
-      if (password !== entry.password) {
-        setError("パスワードが違います");
-        setPassword("");
-        setLoading(false);
-        return;
-      }
-      // ログイン成功
-      const { password: _pw, ...company } = entry;
+
+      // ログイン成功 — セッション cookie は自動セット済み
+      const company: Company = {
+        id:               data.company.id,
+        name:             data.company.name,
+        adminName:        data.company.adminName,
+        adminEmail:       data.company.adminEmail,
+        plan:             (data.company.plan ?? "free") as PlanId,
+        stripeCustomerId: data.company.stripeCustomerId,
+      };
       setCompany(company);
-      setAuthLevel("worker");
-      addLog("login_worker", company.adminName);
+      setAuthLevel(data.authLevel ?? "worker");
+      addLog(`login_${data.authLevel}`, company.adminName);
       router.push("/kaitai");
-    }, 400);
+    } catch {
+      setError("通信エラーが発生しました");
+      setLoading(false);
+    }
   }
 
   return (
@@ -175,30 +140,6 @@ export default function LoginPage() {
           >
             {loading ? "確認中..." : <>ログイン <ChevronRight size={22} /></>}
           </button>
-
-          {/* Demo hint */}
-          <div className="mt-4 rounded-2xl p-4" style={{ background: T.primaryLt, border: "1px solid #FED7AA" }}>
-            <p style={{ fontSize: 14, color: "#B45309", fontWeight: 700, marginBottom: 6 }}>デモ用アカウント（タップで切り替え）</p>
-            <div className="flex flex-col gap-1">
-              {[
-                { email: "tanaka@kaitai.jp",      pw: "kaitai2026", company: "解体工業株式会社" },
-                { email: "yamada@yamada-const.jp", pw: "yamada123",  company: "山田建設株式会社" },
-                { email: "suzuki@suzuki-kai.jp",   pw: "suzuki456",  company: "鈴木解体工業" },
-              ].map(d => (
-                <button
-                  key={d.email}
-                  onClick={() => { setEmail(d.email); setPassword(d.pw); setError(""); }}
-                  className="text-left rounded-xl px-3 py-2 transition-colors hover:bg-orange-100"
-                  style={{ background: "rgba(255,255,255,0.6)" }}
-                >
-                  <p style={{ fontSize: 14, color: "#92400E", fontWeight: 700 }}>{d.company}</p>
-                  <p style={{ fontSize: 14, color: "#B45309" }}>
-                    {d.email} / <strong>{d.pw}</strong>
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

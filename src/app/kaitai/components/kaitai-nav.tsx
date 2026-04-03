@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home, Users, MoreHorizontal,
   Calendar, ClipboardList, Plus, LogOut,
@@ -10,6 +10,27 @@ import {
 import Image from "next/image";
 import { useAppContext } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
+
+function LogoutButton() {
+  const router = useRouter();
+  const { setAuthLevel, setCompany } = useAppContext();
+  return (
+    <button
+      onClick={async () => {
+        try { await fetch("/api/kaitai/auth/logout", { method: "POST", credentials: "include" }); } catch {}
+        setAuthLevel("worker");
+        setCompany(null);
+        try { localStorage.removeItem("kaitai_company"); sessionStorage.removeItem("kaitai_auth_level"); } catch {}
+        router.push("/kaitai/login");
+      }}
+      className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
+      title="ログアウト"
+      style={{ width: 36, height: 36 }}
+    >
+      <LogOut size={16} style={{ color: "#94A3B8" }} />
+    </button>
+  );
+}
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 const SUPPRESS_ROUTES = [
@@ -128,14 +149,7 @@ export function KaitaiPCHeader() {
           )}
 
           {/* ログアウト */}
-          <Link
-            href="/kaitai/login"
-            className="flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            title="ログアウト"
-            style={{ width: 36, height: 36 }}
-          >
-            <LogOut size={16} style={{ color: "#94A3B8" }} />
-          </Link>
+          <LogoutButton />
         </div>
       </div>
     </header>

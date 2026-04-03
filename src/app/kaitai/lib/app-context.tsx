@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import type { WorkerEval } from "./evaluation-data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -145,15 +145,13 @@ export interface Client {
 export interface Company {
   id: string;
   name: string;
-  address: string;
-  phone: string;
+  address?: string;
+  phone?: string;
   adminName: string;
   adminEmail: string;
-  password1: string;   // 全従業員共有
-  password2: string;   // 管理者専用 (default "0000")
   plan: PlanId;
-  stripeCustomerId: string;
-  createdAt: string;
+  stripeCustomerId?: string;
+  createdAt?: string;
 }
 
 export interface OperationLog {
@@ -202,7 +200,8 @@ type AppContextType = {
   authLevel: AuthLevel;
   setAuthLevel: (level: AuthLevel) => void;
   company: Company | null;
-  setCompany: (c: Company) => void;
+  setCompany: (c: Company | null) => void;
+  sessionReady: boolean;
   plan: PlanId;
   operationLog: OperationLog[];
   addLog: (action: string, user?: string) => void;
@@ -244,27 +243,13 @@ type AppContextType = {
 
 // ─── Default company (demo) ───────────────────────────────────────────────────
 
-const DEMO_COMPANY: Company = {
-  id: "demo",
-  name: "解体工業株式会社",
-  address: "東京都世田谷区1-1-1",
-  phone: "03-1234-5678",
-  adminName: "田中 義雄",
-  adminEmail: "tanaka@kaitai.jp",
-  password1: "kaitai2026",
-  password2: "0000",
-  plan: "standard",
-  stripeCustomerId: "cus_mock_DEMO00001",
-  createdAt: "2026-01-01T00:00:00.000Z",
-};
-
-function loadCompany(): Company {
-  if (typeof window === "undefined") return DEMO_COMPANY;
+function loadCompany(): Company | null {
+  if (typeof window === "undefined") return null;
   try {
     const s = localStorage.getItem("kaitai_company");
-    return s ? JSON.parse(s) : DEMO_COMPANY;
+    return s ? JSON.parse(s) : null;
   } catch {
-    return DEMO_COMPANY;
+    return null;
   }
 }
 
@@ -354,7 +339,8 @@ const AppContext = createContext<AppContextType>({
   authSiteId: null,   setAuthSiteId: () => {},
   authLevel: "worker", setAuthLevel: () => {},
   company: null,      setCompany: () => {},
-  plan: "standard" as PlanId,
+  sessionReady: false,
+  plan: "free" as PlanId,
   operationLog: [],   addLog: () => {},
   clients: SEED_CLIENTS,
   addClient: () => SEED_CLIENTS[0],
@@ -387,7 +373,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return "worker";
     try { return (sessionStorage.getItem("kaitai_auth_level") as AuthLevel) || "worker"; } catch { return "worker"; }
   });
-  const [company,      setCompanyRaw]   = useState<Company>(loadCompany);
+  const [company,      setCompanyRaw]   = useState<Company | null>(loadCompany);
+  const [sessionReady, setSessionReady] = useState(false);
   const [operationLog, setOperationLog] = useState<OperationLog[]>([]);
   const [clients,      setClients]      = useState<Client[]>(SEED_CLIENTS);
   const [equipment,    setEquipment]    = useState<Equipment[]>(SEED_EQUIPMENT);
@@ -398,6 +385,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(SEED_ATTENDANCE);
   const [viewerMemberId, setViewerMemberId] = useState<string | null>(null);
   const [handoverMemos,  setHandoverMemos]  = useState<HandoverMemo[]>([]);
+
+  // セッション初期化: cookie ベースの認証状態を復元
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/kaitai/auth/me", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled) return;
+        if (data && data.companyId) {
+          const c: Company = {
+            id: data.companyId,
+            name: data.companyName,
+            adminName: data.adminName,
+            adminEmail: data.adminEmail ?? "",
+            plan: (data.plan ?? "free") as PlanId,
+          };
+          setCompanyRaw(c);
+          try { localStorage.setItem("kaitai_company", JSON.stringify(c)); } catch {}
+          setAuthLevelRaw(data.authLevel ?? "worker");
+          try { sessionStorage.setItem("kaitai_auth_level", data.authLevel ?? "worker"); } catch {}
+        }
+        setSessionReady(true);
+      })
+      .catch(() => { if (!cancelled) setSessionReady(true); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Derived
   const adminMode = authLevel === "admin" || authLevel === "dev";
@@ -415,9 +428,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAuthLevelRaw(level);
   }, []);
 
-  const setCompany = useCallback((c: Company) => {
+  const setCompany = useCallback((c: Company | null) => {
     setCompanyRaw(c);
-    try { localStorage.setItem("kaitai_company", JSON.stringify(c)); } catch {}
+    try {
+      if (c) localStorage.setItem("kaitai_company", JSON.stringify(c));
+      else localStorage.removeItem("kaitai_company");
+    } catch {}
   }, []);
 
   const addClient = useCallback((data: Omit<Client, "id" | "createdAt" | "updatedAt">): Client => {
@@ -502,6 +518,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       authSiteId,   setAuthSiteId,
       authLevel,    setAuthLevel,
       company,      setCompany,
+      sessionReady,
       plan: plan as PlanId,
       operationLog, addLog,
       clients,      addClient, updateClient,

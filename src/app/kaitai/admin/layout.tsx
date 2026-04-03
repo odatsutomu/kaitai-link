@@ -38,31 +38,50 @@ function isActive(href: string, pathname: string, exact: boolean) {
 function LoginScreen({
   onSuccess,
   companyName,
-  password2,
 }: {
   onSuccess: () => void;
   companyName: string;
-  password2: string;
 }) {
   const [pin, setPin] = useState("");
   const [shake, setShake] = useState(false);
   const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
-  const handleKey = useCallback((key: string) => {
-    if (key === "⌫") { setPin(p => p.slice(0, -1)); setError(""); return; }
-    if (pin.length >= 4) return;
-    const next = pin + key;
-    setPin(next);
-    if (next.length === 4) {
-      if (next === password2) {
+  const verifyPin = useCallback(async (pinValue: string) => {
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/kaitai/auth/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ pin: pinValue }),
+      });
+      if (res.ok) {
         onSuccess();
       } else {
         setShake(true);
         setError("パスワードが違います");
         setTimeout(() => { setShake(false); setPin(""); setError(""); }, 700);
       }
+    } catch {
+      setShake(true);
+      setError("通信エラー");
+      setTimeout(() => { setShake(false); setPin(""); setError(""); }, 700);
+    } finally {
+      setVerifying(false);
     }
-  }, [pin, password2, onSuccess]);
+  }, [onSuccess]);
+
+  const handleKey = useCallback((key: string) => {
+    if (verifying) return;
+    if (key === "⌫") { setPin(p => p.slice(0, -1)); setError(""); return; }
+    if (pin.length >= 4) return;
+    const next = pin + key;
+    setPin(next);
+    if (next.length === 4) {
+      verifyPin(next);
+    }
+  }, [pin, verifying, verifyPin]);
 
   return (
     <div
@@ -370,8 +389,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {!authed ? (
         <LoginScreen
           onSuccess={handleSuccess}
-          companyName={company?.name ?? "解体工業株式会社"}
-          password2={company?.password2 ?? "0000"}
+          companyName={company?.name ?? ""}
         />
       ) : (
         <>

@@ -22,7 +22,7 @@ const C = {
 
 export default function MenuPage() {
   const router = useRouter();
-  const { authLevel, setAuthLevel, company, addLog } = useAppContext();
+  const { authLevel, setAuthLevel, company, setCompany, addLog } = useAppContext();
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function startPress() {
@@ -135,7 +135,13 @@ export default function MenuPage() {
 
         {/* ── Logout ── */}
         <button
-          onClick={() => { setAuthLevel("worker"); addLog("logout", company?.adminName ?? "—"); router.push("/kaitai/login"); }}
+          onClick={async () => {
+            try { await fetch("/api/kaitai/auth/logout", { method: "POST", credentials: "include" }); } catch {}
+            setAuthLevel("worker");
+            setCompany(null);
+            try { localStorage.removeItem("kaitai_company"); sessionStorage.removeItem("kaitai_auth_level"); } catch {}
+            router.push("/kaitai/login");
+          }}
           className="w-full flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors hover:bg-red-50"
           style={{ background: C.card, border: `1px solid #FECACA`, color: C.red, fontSize: 15, fontWeight: 600, padding: "14px 20px", borderRadius: 12 }}
         >

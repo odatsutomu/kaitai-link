@@ -8,10 +8,11 @@ const COOKIE_NAME  = "kaitai_session";
 const SESSION_DAYS = 30;
 
 export interface KaitaiSessionPayload {
-  companyId:  string;
-  authLevel:  "worker" | "admin";
-  plan:       string;
-  adminName:  string;
+  companyId:   string;
+  authLevel:   "worker" | "admin";
+  plan:        string;
+  adminName:   string;
+  adminEmail:  string;
   companyName: string;
 }
 
@@ -49,6 +50,7 @@ export async function verifySession(
     authLevel:   session.authLevel as "worker" | "admin",
     plan:        session.company.plan,
     adminName:   session.company.adminName,
+    adminEmail:  session.company.adminEmail,
     companyName: session.company.name,
   };
 }
