@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft, Search, User, Award, Filter, Clock,
+  ChevronLeft, Search, User, Award, Filter, Clock, X, RefreshCw, Activity,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -42,11 +42,26 @@ export default function ActivityPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Parse skill_achieve action format: "skill_achieve:teacher→learner:skillName"
-  function parseAction(action: string) {
-    const match = action.match(/^skill_achieve:(.+?)→(.+?):(.+)$/);
-    if (!match) return { teacher: "", learner: "", skill: action };
-    return { teacher: match[1], learner: match[2], skill: match[3] };
+  // Parse action formats:
+  //   skill_achieve:teacher→learner:skillName
+  //   skill_remove:memberName:skillName
+  //   skill_teacher_change:memberName:skillName:oldTeacher→newTeacher
+  type ParsedAction = {
+    type: "achieve" | "remove" | "teacher_change" | "unknown";
+    teacher: string; learner: string; skill: string;
+    oldTeacher?: string; newTeacher?: string;
+  };
+  function parseAction(action: string): ParsedAction {
+    const achieveMatch = action.match(/^skill_achieve:(.+?)→(.+?):(.+)$/);
+    if (achieveMatch) return { type: "achieve", teacher: achieveMatch[1], learner: achieveMatch[2], skill: achieveMatch[3] };
+
+    const removeMatch = action.match(/^skill_remove:(.+?):(.+)$/);
+    if (removeMatch) return { type: "remove", teacher: "", learner: removeMatch[1], skill: removeMatch[2] };
+
+    const changeMatch = action.match(/^skill_teacher_change:(.+?):(.+?):(.+?)→(.+)$/);
+    if (changeMatch) return { type: "teacher_change", teacher: "", learner: changeMatch[1], skill: changeMatch[2], oldTeacher: changeMatch[3], newTeacher: changeMatch[4] };
+
+    return { type: "unknown", teacher: "", learner: "", skill: action };
   }
 
   const filtered = logs.filter(log => {
@@ -68,9 +83,9 @@ export default function ActivityPage() {
     <div style={{ padding: "24px 0", maxWidth: 900 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>スキル習得アクティビティ</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>スキルアクティビティ</h1>
         <p style={{ fontSize: 14, color: T.sub, marginTop: 4 }}>
-          スキル習得イベントのタイムライン
+          スキル習得・取り消し・指導者変更のタイムライン
         </p>
       </div>
 
@@ -151,45 +166,96 @@ export default function ActivityPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {filtered.map((log, idx) => {
-            const { teacher, learner, skill } = parseAction(log.action);
+            const parsed = parseAction(log.action);
             const date = new Date(log.createdAt);
-            const isSelf = teacher === "自主";
+            const isSelf = parsed.teacher === "自主";
+
+            const colorMap = {
+              achieve: isSelf ? "#3B82F6" : ACCENT,
+              remove: "#EF4444",
+              teacher_change: "#7C3AED",
+              unknown: T.muted,
+            };
+            const accentColor = colorMap[parsed.type];
+            const bgMap = {
+              achieve: isSelf ? "rgba(59,130,246,0.08)" : ACCENT_LT,
+              remove: "rgba(239,68,68,0.08)",
+              teacher_change: "rgba(124,58,237,0.08)",
+              unknown: T.bg,
+            };
+            const IconMap = {
+              achieve: isSelf ? User : Award,
+              remove: X,
+              teacher_change: RefreshCw,
+              unknown: Activity,
+            };
+            const Icon = IconMap[parsed.type];
 
             return (
               <div key={log.id} style={{
                 display: "flex", gap: 16, padding: "16px 20px",
                 background: T.surface,
-                borderLeft: `3px solid ${isSelf ? "#3B82F6" : ACCENT}`,
                 border: `1px solid ${T.border}`,
                 borderLeftWidth: 3,
-                borderLeftColor: isSelf ? "#3B82F6" : ACCENT,
+                borderLeftColor: accentColor,
                 borderRadius: idx === 0 ? "12px 12px 0 0" : idx === filtered.length - 1 ? "0 0 12px 12px" : 0,
                 borderTop: idx === 0 ? undefined : "none",
               }}>
-                {/* Icon */}
                 <div style={{
                   width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  background: isSelf ? "rgba(59,130,246,0.08)" : ACCENT_LT,
+                  background: bgMap[parsed.type],
                 }}>
-                  {isSelf ? <User size={20} style={{ color: "#3B82F6" }} /> : <Award size={20} style={{ color: ACCENT }} />}
+                  <Icon size={20} style={{ color: accentColor }} />
                 </div>
 
-                {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>
-                    <span style={{ fontWeight: 700 }}>{learner}</span>
-                    {" が "}
-                    <span style={{
-                      display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 13,
-                      fontWeight: 700, background: ACCENT_LT, color: ACCENT,
-                    }}>
-                      {skill}
-                    </span>
-                    {" を習得"}
-                  </p>
+                  {parsed.type === "achieve" && (
+                    <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>
+                      <span style={{ fontWeight: 700 }}>{parsed.learner}</span>
+                      {" が "}
+                      <span style={{
+                        display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 13,
+                        fontWeight: 700, background: ACCENT_LT, color: ACCENT,
+                      }}>
+                        {parsed.skill}
+                      </span>
+                      {" を習得"}
+                    </p>
+                  )}
+                  {parsed.type === "remove" && (
+                    <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>
+                      <span style={{ fontWeight: 700 }}>{parsed.learner}</span>
+                      {" の "}
+                      <span style={{
+                        display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 13,
+                        fontWeight: 700, background: "rgba(239,68,68,0.08)", color: "#EF4444",
+                      }}>
+                        {parsed.skill}
+                      </span>
+                      {" を取り消し"}
+                    </p>
+                  )}
+                  {parsed.type === "teacher_change" && (
+                    <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>
+                      <span style={{ fontWeight: 700 }}>{parsed.learner}</span>
+                      {" の "}
+                      <span style={{
+                        display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 13,
+                        fontWeight: 700, background: "rgba(124,58,237,0.08)", color: "#7C3AED",
+                      }}>
+                        {parsed.skill}
+                      </span>
+                      {" の指導者を変更"}
+                    </p>
+                  )}
+                  {parsed.type === "unknown" && (
+                    <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{log.action}</p>
+                  )}
                   <p style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>
-                    {isSelf ? "自主習得" : `指導者: ${teacher}`}
+                    {parsed.type === "achieve" && (isSelf ? "自主習得" : `指導者: ${parsed.teacher}`)}
+                    {parsed.type === "remove" && `操作者: ${log.user}`}
+                    {parsed.type === "teacher_change" && `${parsed.oldTeacher} → ${parsed.newTeacher}`}
                     {" ・ "}
                     {date.toLocaleDateString("ja-JP")} {date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
                   </p>

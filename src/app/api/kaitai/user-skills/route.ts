@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
   const skill = await prisma.kaitaiSkill.findFirst({ where: { id: skillId, companyId: session.companyId } });
   if (!skill) return NextResponse.json({ error: "スキルが見つかりません" }, { status: 404 });
 
+  // Check if record already exists (to detect teacher change vs new achievement)
+  const existing = await prisma.kaitaiUserSkill.findFirst({
+    where: { companyId: session.companyId, memberId, skillId },
+  });
+
   const userSkill = await prisma.kaitaiUserSkill.upsert({
     where: { companyId_memberId_skillId: { companyId: session.companyId, memberId, skillId } },
     create: { companyId: session.companyId, memberId, skillId, taughtBy: taughtBy ?? null },
@@ -43,14 +48,30 @@ export async function POST(req: NextRequest) {
   const member = await prisma.kaitaiMember.findFirst({ where: { id: memberId, companyId: session.companyId } });
   const teacher = taughtBy ? await prisma.kaitaiMember.findFirst({ where: { id: taughtBy, companyId: session.companyId } }) : null;
 
-  await prisma.kaitaiOperationLog.create({
-    data: {
-      companyId: session.companyId,
-      action: `skill_achieve:${teacher?.name ?? "自主"}→${member?.name ?? memberId}:${skill.name}`,
-      user: session.adminName ?? member?.name ?? "",
-      device: req.headers.get("user-agent")?.slice(0, 120) ?? "",
-    },
-  });
+  if (existing && existing.taughtBy !== (taughtBy ?? null)) {
+    // Teacher changed
+    const oldTeacher = existing.taughtBy
+      ? await prisma.kaitaiMember.findFirst({ where: { id: existing.taughtBy, companyId: session.companyId } })
+      : null;
+    await prisma.kaitaiOperationLog.create({
+      data: {
+        companyId: session.companyId,
+        action: `skill_teacher_change:${member?.name ?? memberId}:${skill.name}:${oldTeacher?.name ?? "自主"}→${teacher?.name ?? "自主"}`,
+        user: session.adminName ?? member?.name ?? "",
+        device: req.headers.get("user-agent")?.slice(0, 120) ?? "",
+      },
+    });
+  } else if (!existing) {
+    // New achievement
+    await prisma.kaitaiOperationLog.create({
+      data: {
+        companyId: session.companyId,
+        action: `skill_achieve:${teacher?.name ?? "自主"}→${member?.name ?? memberId}:${skill.name}`,
+        user: session.adminName ?? member?.name ?? "",
+        device: req.headers.get("user-agent")?.slice(0, 120) ?? "",
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true, userSkill }, { status: 201 });
 }
@@ -68,6 +89,20 @@ export async function DELETE(req: NextRequest) {
   });
   if (!existing) return NextResponse.json({ error: "記録が見つかりません" }, { status: 404 });
 
+  // Log the removal
+  const member = await prisma.kaitaiMember.findFirst({ where: { id: memberId, companyId: session.companyId } });
+  const skill = await prisma.kaitaiSkill.findFirst({ where: { id: skillId, companyId: session.companyId } });
+
   await prisma.kaitaiUserSkill.delete({ where: { id: existing.id } });
+
+  await prisma.kaitaiOperationLog.create({
+    data: {
+      companyId: session.companyId,
+      action: `skill_remove:${member?.name ?? memberId}:${skill?.name ?? skillId}`,
+      user: session.adminName ?? member?.name ?? "",
+      device: req.headers.get("user-agent")?.slice(0, 120) ?? "",
+    },
+  });
+
   return NextResponse.json({ ok: true });
 }

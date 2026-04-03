@@ -475,26 +475,177 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
             </Card>
           </section>
 
-          {/* Score breakdown */}
+          {/* Score breakdown — detailed */}
           {score && (
             <section>
-              <SectionLabel>スコア内訳</SectionLabel>
-              <Card style={{ padding: 20 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {[
-                    { label: "基礎スキル点", value: score.baseScore, color: "#3B82F6", max: 200 },
-                    { label: "実績・ボーナス点", value: score.perfScore, color: ACCENT, max: 500 },
-                    { label: "信頼性点", value: score.reliabilityScore, color: "#10B981", max: 300 },
-                  ].map(({ label, value, color }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 14, color: T.sub }}>{label}</span>
-                      <span style={{ fontSize: 16, fontWeight: 700, color }}>{value} pt</span>
-                    </div>
-                  ))}
-                  <div style={{ borderTop: `2px solid ${T.border}`, paddingTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>合計</span>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: score.gradeColor }}>{score.totalScore} pt</span>
+              <SectionLabel>スコア算出根拠（1000点満点）</SectionLabel>
+
+              {/* 1. 基礎スキル点 */}
+              <Card style={{ padding: 20, marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: "#3B82F6" }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>基礎スキル点</span>
                   </div>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: "#3B82F6" }}>{score.baseScore}<span style={{ fontSize: 12, fontWeight: 600 }}> / 200</span></span>
+                </div>
+                <div style={{ padding: "12px 16px", borderRadius: 10, background: "#F8FAFC", marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.sub, marginBottom: 4 }}>
+                    <span>保有資格数 × 50pt</span>
+                    <span style={{ fontWeight: 700, color: T.text }}>{licenses.length} × 50 = {licenses.length * 50} pt</span>
+                  </div>
+                  {licenses.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+                      {licenses.map(lic => (
+                        <span key={lic} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: "rgba(59,130,246,0.08)", color: "#3B82F6", fontWeight: 600 }}>
+                          {LICENSE_LABELS[lic as License] ?? lic}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: T.muted }}>※ 上限200pt（4資格分まで）</div>
+                {/* Progress bar */}
+                <div style={{ height: 6, borderRadius: 3, background: T.bg, marginTop: 8, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 3, width: `${(score.baseScore / 200) * 100}%`, background: "#3B82F6" }} />
+                </div>
+              </Card>
+
+              {/* 2. 実績・ボーナス点 */}
+              <Card style={{ padding: 20, marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: ACCENT }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>実績・ボーナス点</span>
+                  </div>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: ACCENT }}>{score.perfScore}<span style={{ fontSize: 12, fontWeight: 600 }}> / 500</span></span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* Eval score */}
+                  <div style={{ padding: "10px 16px", borderRadius: 10, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ color: T.sub }}>月次評価スコア（加重移動平均）</span>
+                      <span style={{ fontWeight: 700, color: T.text }}>{score.evalScore} pt</span>
+                    </div>
+                    {score.monthsUsed > 0 && (
+                      <div style={{ fontSize: 11, color: T.muted }}>
+                        直近{score.monthsUsed}ヶ月の加重平均（当月×0.5 + 先月×0.3 + 先々月×0.2）
+                      </div>
+                    )}
+                    {/* Per-criteria breakdown */}
+                    {score.criteria && score.monthsUsed > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+                        {EVAL_LABELS.map((label, i) => {
+                          const val = [score.criteria.score1, score.criteria.score2, score.criteria.score3, score.criteria.score4, score.criteria.score5][i];
+                          return (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 11, color: T.muted, minWidth: 110 }}>{label}</span>
+                              <div style={{ flex: 1, height: 4, borderRadius: 2, background: T.bg, overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 2, width: `${(val / 5) * 100}%`, background: ACCENT }} />
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 24, textAlign: "right" }}>{val}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  {/* Teaching bonus */}
+                  <div style={{ padding: "10px 16px", borderRadius: 10, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: T.sub }}>教育ボーナス（指導回数 × 15pt）</span>
+                      <span style={{ fontWeight: 700, color: "#7C3AED" }}>+{score.teachingBonus} pt</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                      直近90日間の指導回数: {Math.round(score.teachingBonus / 15)}回
+                    </div>
+                  </div>
+                  {/* Growth bonus */}
+                  <div style={{ padding: "10px 16px", borderRadius: 10, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: T.sub }}>成長モメンタム（習得数 × 20pt）</span>
+                      <span style={{ fontWeight: 700, color: "#10B981" }}>+{score.growthBonus} pt</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                      直近90日間の新規習得: {Math.round(score.growthBonus / 20)}件
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>※ 上限500pt</div>
+                <div style={{ height: 6, borderRadius: 3, background: T.bg, marginTop: 8, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 3, width: `${(score.perfScore / 500) * 100}%`, background: ACCENT }} />
+                </div>
+              </Card>
+
+              {/* 3. 信頼性点 */}
+              <Card style={{ padding: 20, marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: "#10B981" }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>信頼性点</span>
+                  </div>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: "#10B981" }}>{score.reliabilityScore}<span style={{ fontSize: 12, fontWeight: 600 }}> / 300</span></span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ padding: "10px 16px", borderRadius: 10, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: T.sub }}>出勤率（MAX 200pt）</span>
+                      <span style={{ fontWeight: 700, color: T.text }}>{attendancePct}% → {Math.round((attendancePct / 100) * 200)} pt</span>
+                    </div>
+                  </div>
+                  <div style={{ padding: "10px 16px", borderRadius: 10, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: T.sub }}>日報提出率（MAX 100pt）</span>
+                      <span style={{ fontWeight: 700, color: T.text }}>90% → {Math.round((90 / 100) * 100)} pt</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>※ 上限300pt</div>
+                <div style={{ height: 6, borderRadius: 3, background: T.bg, marginTop: 8, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 3, width: `${(score.reliabilityScore / 300) * 100}%`, background: "#10B981" }} />
+                </div>
+              </Card>
+
+              {/* Total */}
+              <Card style={{ padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: T.text }}>合計スコア</span>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: score.gradeColor }}>{score.totalScore}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: score.gradeColor }}> / 1000 pt</span>
+                  </div>
+                </div>
+                {/* Visual breakdown bar */}
+                <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", background: T.bg }}>
+                  <div style={{ width: `${(score.baseScore / 1000) * 100}%`, background: "#3B82F6", transition: "width 0.3s" }} />
+                  <div style={{ width: `${(score.perfScore / 1000) * 100}%`, background: ACCENT, transition: "width 0.3s" }} />
+                  <div style={{ width: `${(score.reliabilityScore / 1000) * 100}%`, background: "#10B981", transition: "width 0.3s" }} />
+                </div>
+                <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: "#3B82F6" }} />
+                    <span style={{ color: T.sub }}>基礎 {score.baseScore}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: ACCENT }} />
+                    <span style={{ color: T.sub }}>実績 {score.perfScore}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 4, background: "#10B981" }} />
+                    <span style={{ color: T.sub }}>信頼性 {score.reliabilityScore}</span>
+                  </div>
+                </div>
+                {/* Grade */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  marginTop: 16, padding: "12px 0", borderTop: `1px solid ${T.border}`,
+                }}>
+                  <span style={{
+                    fontSize: 20, fontWeight: 800, padding: "4px 16px", borderRadius: 8,
+                    background: `${score.gradeColor}18`, color: score.gradeColor,
+                  }}>
+                    グレード {score.grade}
+                  </span>
                 </div>
               </Card>
             </section>

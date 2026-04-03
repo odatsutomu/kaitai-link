@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   // Filter by action type prefix
   if (type === "skill") {
-    where.action = { startsWith: "skill_achieve:" };
+    where.action = { startsWith: "skill_" };
   }
 
   const logs = await prisma.kaitaiOperationLog.findMany({
