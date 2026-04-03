@@ -47,9 +47,9 @@ export default function KaitaiLpPage() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 24px", height: 60,
       }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <Image src="/logo.png" alt="解体LINK" width={120} height={36} style={{ objectFit: "contain" }} />
-        </div>
+        <span style={{ fontSize: 20, fontWeight: 900, color: C.orange, letterSpacing: "-0.02em" }}>
+          解体LINK
+        </span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link href="/kaitai/login" style={{
             border: `1.5px solid ${C.border}`,
@@ -72,45 +72,31 @@ export default function KaitaiLpPage() {
         </div>
       </nav>
 
-      {/* ── 2. Hero ────────────────────────────────────────────────────────── */}
+      {/* ── 2. Hero image ─────────────────────────────────────────────────── */}
+      <section style={{ paddingTop: 60 }}>
+        <Image
+          src="/kaitai.png"
+          alt="解体LINK — 解体現場の管理を、感覚からデータへ"
+          width={1280}
+          height={720}
+          priority
+          style={{ width: "100%", height: "auto", display: "block" }}
+        />
+      </section>
+
+      {/* ── 3. Hero text ───────────────────────────────────────────────────── */}
       <section style={{
-        minHeight: "100dvh",
-        background: `radial-gradient(ellipse 80% 60% at 50% 20%, rgba(249,115,22,0.12) 0%, transparent 70%), ${C.bgDark}`,
+        background: C.bgDark,
         display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        padding: "100px 24px 60px",
+        alignItems: "center",
+        padding: "64px 24px 72px",
         textAlign: "center",
       }}>
-        {/* Large logo */}
-        <div style={{
-          display: "inline-block",
-          background: "rgba(255,255,255,0.96)",
-          borderRadius: 16,
-          padding: "16px 36px",
-          marginBottom: 36,
-          boxShadow: `0 0 40px rgba(249,115,22,0.25)`,
-        }}>
-          <Image src="/logo.png" alt="解体LINK" width={220} height={66} style={{ objectFit: "contain", display: "block" }} />
-        </div>
-
-        {/* Badge */}
-        <span style={{
-          display: "inline-block",
-          background: "rgba(249,115,22,0.15)",
-          border: `1px solid rgba(249,115,22,0.35)`,
-          color: C.orangeL,
-          fontSize: 13, fontWeight: 700,
-          padding: "5px 14px", borderRadius: 99,
-          marginBottom: 28, letterSpacing: "0.02em",
-        }}>
-          🏗 解体工事専用 業務管理ツール
-        </span>
-
         {/* H1 */}
         <h1 style={{
-          fontSize: "clamp(30px, 7vw, 68px)",
+          fontSize: "clamp(28px, 6vw, 60px)",
           fontWeight: 900, lineHeight: 1.15,
-          color: C.textPri, marginBottom: 28, letterSpacing: "-0.03em",
+          color: C.textPri, marginBottom: 24, letterSpacing: "-0.03em",
           maxWidth: 780,
         }}>
           解体現場の管理を、<br />
@@ -128,7 +114,7 @@ export default function KaitaiLpPage() {
         <p style={{
           fontSize: "clamp(15px, 2vw, 17px)",
           color: C.textSub, maxWidth: 560,
-          lineHeight: 1.85, marginBottom: 44,
+          lineHeight: 1.85, marginBottom: 40,
         }}>
           出勤状況から現場のトラブル、明日の引き継ぎまで。<br />
           現場の「今」をリアルタイムに共有し、<br />
@@ -136,7 +122,7 @@ export default function KaitaiLpPage() {
         </p>
 
         {/* CTAs */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginBottom: 60 }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/kaitai/demo" style={{
             background: `linear-gradient(135deg, ${C.orange}, ${C.orangeL})`,
             color: "#fff",
@@ -157,51 +143,6 @@ export default function KaitaiLpPage() {
           }}>
             無料で試してみる →
           </Link>
-        </div>
-
-        {/* Mock phone UI */}
-        <div style={{
-          width: 280,
-          background: C.bgCard,
-          borderRadius: 24,
-          border: `1px solid ${C.border}`,
-          overflow: "hidden",
-          boxShadow: `0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)`,
-        }}>
-          <div style={{
-            background: C.bgCard2,
-            padding: "12px 16px",
-            borderBottom: `1px solid ${C.border}`,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.textPri }}>現場状況</span>
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              background: "rgba(74,222,128,0.15)",
-              color: C.green,
-              padding: "2px 8px", borderRadius: 99,
-            }}>3件稼働中</span>
-          </div>
-          {[
-            { name: "山田邸解体工事", pct: 68, color: C.orange },
-            { name: "田中ビル解体", pct: 42, color: "#38BDF8" },
-            { name: "鈴木倉庫撤去", pct: 91, color: C.green },
-          ].map((s) => (
-            <div key={s.name} style={{ padding: "11px 16px", borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: C.textPri }}>{s.name}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.pct}%</span>
-              </div>
-              <div style={{ height: 4, background: C.bgDark, borderRadius: 99, overflow: "hidden" }}>
-                <div style={{ width: `${s.pct}%`, height: "100%", background: s.color, borderRadius: 99 }} />
-              </div>
-            </div>
-          ))}
-          <div style={{ padding: "10px 0 12px", display: "flex", justifyContent: "space-around", background: C.bgCard2 }}>
-            {["🏗", "📝", "🚛", "👷", "☰"].map((icon) => (
-              <span key={icon} style={{ fontSize: 18 }}>{icon}</span>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -425,9 +366,7 @@ export default function KaitaiLpPage() {
             gap: 32, marginBottom: 40,
           }}>
             <div>
-              <div style={{ marginBottom: 12 }}>
-                <Image src="/logo.png" alt="解体LINK" width={140} height={42} style={{ objectFit: "contain" }} />
-              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.orange, marginBottom: 8 }}>解体LINK</div>
               <div style={{ fontSize: 13, color: C.textMuted, maxWidth: 240, lineHeight: 1.6 }}>
                 解体業専用の現場管理ツール。<br />
                 現場と事務所をつなぐプラットフォーム。
