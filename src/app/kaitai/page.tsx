@@ -383,7 +383,7 @@ function StatusPanel({ sites }: { sites: typeof import("./page").mockSites }) {
 // ─── 右パネル：現場マップ ─────────────────────────────────────────────────────
 function MapPanel() {
   const mapSites = sites.map(s => ({
-    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status,
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status, address: s.address,
   }));
   return (
     <div className="bg-white rounded-xl overflow-hidden" style={{ border: `1.5px solid ${C.border}`, boxShadow: shadow }}>
@@ -459,7 +459,7 @@ export default function KaitaiHome() {
   ];
 
   const mapSites = sites.map(s => ({
-    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status,
+    id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status, address: s.address,
   }));
 
   return (

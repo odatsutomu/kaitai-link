@@ -11,21 +11,70 @@ export interface MapSite {
   lat: number;
   lng: number;
   status: "解体中" | "着工前" | "完工";
+  address?: string;
 }
 
 const STATUS_COLOR: Record<MapSite["status"], string> = {
-  "解体中": T.primary,  // amber  — 稼働中
-  "着工前": "#3B82F6",  // blue   — 予定
-  "完工":   T.muted,  // gray   — 完了
+  "解体中": T.primary,
+  "着工前": "#3B82F6",
+  "完工":   T.muted,
 };
 
-// Google Maps スタイルのティアドロップ型ピン SVG を生成
+const STATUS_STYLE: Record<MapSite["status"], { bg: string; fg: string }> = {
+  "解体中": { bg: "rgba(180,83,9,0.12)", fg: "#92400E" },
+  "着工前": { bg: "#DBEAFE",             fg: "#1D4ED8" },
+  "完工":   { bg: "#F1F5F9",             fg: "#475569" },
+};
+
+// Google Maps スタイルのティアドロップ型ピン SVG
 function teardropPin(color: string): string {
   return `
     <svg width="32" height="48" viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35))">
       <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
       <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.92"/>
     </svg>
+  `;
+}
+
+// Building2 icon (lucide-style) for popup thumbnail
+const BUILDING_SVG = `
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+    stroke="rgba(255,255,255,0.85)" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+    <path d="M6 12H4a2 2 0 0 0-2 2v8h4"/>
+    <path d="M18 9h2a2 2 0 0 1 2 2v11h-4"/>
+    <path d="M10 6h4"/><path d="M10 10h4"/>
+    <path d="M10 14h4"/><path d="M10 18h4"/>
+  </svg>
+`;
+
+// 現場カード型ポップアップ HTML を生成
+function buildPopupHtml(site: MapSite): string {
+  const color = STATUS_COLOR[site.status];
+  const st = STATUS_STYLE[site.status];
+  const addrHtml = site.address
+    ? `<p style="font-size:12px;color:#6B7280;margin:0 0 12px 0;line-height:1.45;">${site.address}</p>`
+    : "";
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;width:240px;background:#fff;border-radius:14px;overflow:hidden;">
+      <div style="height:72px;background:linear-gradient(135deg,${color} 0%,${color}cc 100%);display:flex;align-items:center;justify-content:center;">
+        ${BUILDING_SVG}
+      </div>
+      <div style="padding:14px 16px 16px;">
+        <span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${st.bg};color:${st.fg};margin-bottom:8px;">${site.status}</span>
+        <p style="font-size:15px;font-weight:800;color:#1E293B;margin:0 0 ${site.address ? "5px" : "12px"} 0;line-height:1.3;">${site.name}</p>
+        ${addrHtml}
+        <a href="/kaitai/site/${site.id}"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;background:${color};color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 0;border-radius:8px;letter-spacing:0.02em;">
+          詳細を見る
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </a>
+      </div>
+    </div>
   `;
 }
 
@@ -44,6 +93,40 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
 
     import("leaflet").then((L) => {
       if (!containerRef.current || mapRef.current) return;
+
+      // Leaflet のデフォルトポップアップスタイルを上書き
+      if (!document.getElementById("kaitai-popup-css")) {
+        const style = document.createElement("style");
+        style.id = "kaitai-popup-css";
+        style.textContent = `
+          .kaitai-info-popup .leaflet-popup-content-wrapper {
+            padding: 0 !important;
+            border-radius: 14px !important;
+            border: 1px solid #E5E7EB !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+            overflow: hidden !important;
+          }
+          .kaitai-info-popup .leaflet-popup-content {
+            margin: 0 !important;
+            line-height: normal !important;
+          }
+          .kaitai-info-popup .leaflet-popup-tip {
+            background: #fff !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+          }
+          .kaitai-info-popup .leaflet-popup-close-button {
+            color: rgba(255,255,255,0.8) !important;
+            font-size: 18px !important;
+            padding: 8px 10px !important;
+            z-index: 10 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+          }
+          .kaitai-info-popup .leaflet-popup-close-button:hover {
+            color: #fff !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -71,23 +154,26 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
         maxZoom: 19,
       }).addTo(map);
 
-      // ティアドロップ型ピンを配置
+      // ティアドロップ型ピン + 現場カードポップアップ
       sites.forEach((site) => {
         const color = STATUS_COLOR[site.status];
         const icon = L.divIcon({
           html: teardropPin(color),
           iconSize: [32, 48],
-          iconAnchor: [16, 48],   // 下端の先端を座標に合わせる
-          popupAnchor: [0, -48],
+          iconAnchor: [16, 48],
+          popupAnchor: [0, -54],
           className: "",
         });
 
         L.marker([site.lat, site.lng], { icon })
           .addTo(map)
-          .bindPopup(`
-            <div style="font-size:13px;font-weight:700;color:#1E293B;min-width:120px">${site.name}</div>
-            <div style="font-size:12px;color:#64748B;margin-top:3px">${site.status}</div>
-          `);
+          .bindPopup(buildPopupHtml(site), {
+            className: "kaitai-info-popup",
+            maxWidth: 260,
+            minWidth: 240,
+            closeButton: true,
+            autoClose: true,
+          });
       });
 
       // 全ピンが収まるように自動フィット
