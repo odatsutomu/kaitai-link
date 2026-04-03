@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
-  LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2,
+  LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2, Building2,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -20,6 +20,7 @@ const ADMIN_NAV = [
 ] as const;
 
 const EXTERNAL_NAV = [
+  { href: "/kaitai/admin/sites",    label: "現場管理",   icon: Building2 },
   { href: "/kaitai/admin/members",  label: "従業員管理", icon: Users    },
   { href: "/kaitai/equipment",      label: "機材管理",   icon: Truck    },
   { href: "/kaitai/docs",           label: "帳票出力",   icon: LayoutDashboard },
