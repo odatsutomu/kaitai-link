@@ -83,27 +83,38 @@ function isComplete(row: EvalRow) {
   return row.score1 > 0 && row.score2 > 0 && row.score3 > 0 && row.score4 > 0 && row.score5 > 0;
 }
 
-// ─── Score Picker ────────────────────────────────────────────────────────────
+// ─── Score Picker (Dropdown) ─────────────────────────────────────────────────
+
+const SCORE_LABELS: Record<number, string> = {
+  1: "1 - 要改善",
+  2: "2 - やや不足",
+  3: "3 - 標準",
+  4: "4 - 良好",
+  5: "5 - 優秀",
+};
 
 function ScorePicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
-    <div style={{ display: "flex", gap: 2 }}>
+    <select
+      value={value}
+      onChange={e => onChange(Number(e.target.value))}
+      style={{
+        width: "100%", maxWidth: 130, height: 36, borderRadius: 8,
+        padding: "0 8px", fontSize: 13, fontWeight: 700,
+        border: value > 0 ? `2px solid ${ACCENT}` : `1px solid ${T.border}`,
+        background: value > 0 ? ACCENT_LT : T.bg,
+        color: value > 0 ? ACCENT : T.muted,
+        cursor: "pointer", outline: "none",
+        appearance: "auto",
+      }}
+    >
+      <option value={0} style={{ color: T.muted }}>— 未評価</option>
       {[1, 2, 3, 4, 5].map(n => (
-        <button
-          key={n}
-          onClick={() => onChange(n)}
-          style={{
-            width: 32, height: 32, borderRadius: 6, fontSize: 13, fontWeight: 700,
-            border: value === n ? `2px solid ${ACCENT}` : `1px solid ${T.border}`,
-            background: value === n ? ACCENT_LT : "transparent",
-            color: value === n ? ACCENT : value > 0 ? T.sub : T.muted,
-            cursor: "pointer", transition: "all 0.15s",
-          }}
-        >
-          {n}
-        </button>
+        <option key={n} value={n} style={{ color: T.text }}>
+          {SCORE_LABELS[n]}
+        </option>
       ))}
-    </div>
+    </select>
   );
 }
 

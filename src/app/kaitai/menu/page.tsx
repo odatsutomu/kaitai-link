@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, ChevronRight,
-  HardHat, LogOut, Bell, Info, Lock, Star,
+  HardHat, LogOut, Bell, Info, Lock,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
@@ -58,27 +58,6 @@ export default function MenuPage() {
             <p style={{ fontSize: 16, marginTop: 2, color: C.sub }}>{company?.name ?? "解体工業株式会社"}</p>
           </div>
         </div>
-
-        {/* ── Quick actions ── */}
-        <section>
-          <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4, color: C.sub }}>
-            クイックアクション
-          </p>
-          <div className="overflow-hidden" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16 }}>
-            <Link href="/kaitai/evaluation">
-              <div className="px-5 flex items-center gap-3 hover:bg-gray-50 transition-colors" style={{ minHeight: 72 }}>
-                <div className="flex items-center justify-center flex-shrink-0 rounded-xl" style={{ width: 44, height: 44, background: T.primaryLt }}>
-                  <Star size={20} style={{ color: C.amber }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 16, fontWeight: 600, color: C.text }}>評価入力</p>
-                  <p style={{ fontSize: 14, marginTop: 2, color: C.muted }}>本日の現場メンバーを評価する</p>
-                </div>
-                <div className="flex items-center justify-center rounded-full" style={{ width: 32, height: 32, background: "#FFF8E6", color: C.amber }}><ChevronRight size={18} /></div>
-              </div>
-            </Link>
-          </div>
-        </section>
 
         {/* ── 管理者ページ ── */}
         <section>
