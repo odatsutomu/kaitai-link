@@ -92,7 +92,6 @@ export default function KaitaiLpPage() {
         padding: "64px 24px 72px",
         textAlign: "center",
       }}>
-        {/* H1 */}
         <h1 style={{
           fontSize: "clamp(28px, 6vw, 60px)",
           fontWeight: 900, lineHeight: 1.15,
@@ -110,18 +109,16 @@ export default function KaitaiLpPage() {
           </span>
         </h1>
 
-        {/* Subtext */}
         <p style={{
           fontSize: "clamp(15px, 2vw, 17px)",
           color: C.textSub, maxWidth: 560,
           lineHeight: 1.85, marginBottom: 40,
         }}>
-          出勤状況から現場のトラブル、明日の引き継ぎまで。<br />
-          現場の「今」をリアルタイムに共有し、<br />
-          管理業務をスマートにする解体業専用ツール。
+          現場報告・収支分析・人材育成・機材管理まで。<br />
+          解体業のすべてをスマホ1台で完結し、<br />
+          経営判断をデータで支える業界特化型ツール。
         </p>
 
-        {/* CTAs */}
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/kaitai/demo" style={{
             background: `linear-gradient(135deg, ${C.orange}, ${C.orangeL})`,
@@ -146,9 +143,9 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 3. Pain points ─────────────────────────────────────────────────── */}
+      {/* ── 4. Pain points (6 items) ──────────────────────────────────────── */}
       <section style={{ background: C.bgDark, padding: "80px 24px" }} id="problem">
-        <div style={{ maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ maxWidth: 1060, margin: "0 auto", textAlign: "center" }}>
           <p style={sectionLabel}>PROBLEM</p>
           <h2 style={h2Style}>こんな課題、ありませんか？</h2>
           <p style={{ color: C.textSub, marginBottom: 48, fontSize: 16 }}>
@@ -156,14 +153,16 @@ export default function KaitaiLpPage() {
           </p>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: 20, textAlign: "left",
           }}>
             {[
               { emoji: "📋", title: "日報管理がバラバラ", desc: "紙・LINE・メモアプリが混在。集計に毎朝1時間かかる。" },
               { emoji: "📄", title: "帳票作成が手作業", desc: "見積書・請求書をExcelで一から作成。記入ミスも多い。" },
               { emoji: "🔧", title: "機材の状況が不明", desc: "どの現場に何がある？リース返却期限はいつ？誰もわからない。" },
-              { emoji: "📋", title: "引き継ぎが口頭だけ", desc: "翌日の担当者への申し送りが口頭や電話のみ。伝達漏れが多い。" },
+              { emoji: "💬", title: "引き継ぎが口頭だけ", desc: "翌日の担当者への申し送りが口頭や電話のみ。伝達漏れが多い。" },
+              { emoji: "💰", title: "現場の収支が見えない", desc: "工事が終わるまで利益が出たか不明。原価超過に気づくのが遅い。" },
+              { emoji: "👷", title: "人材育成が属人的", desc: "誰がどのスキルを持っているか把握できない。評価基準も曖昧。" },
             ].map((c) => (
               <div key={c.title} style={{
                 background: C.bgCard,
@@ -179,13 +178,13 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 4. Solution ────────────────────────────────────────────────────── */}
+      {/* ── 5. Solution (5 pillars) ───────────────────────────────────────── */}
       <section style={{ background: C.bgCard, padding: "80px 24px" }} id="solution">
-        <div style={{ maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ maxWidth: 1060, margin: "0 auto", textAlign: "center" }}>
           <p style={sectionLabel}>SOLUTION</p>
           <h2 style={h2Style}>解体LINKが、現場をつなぐ</h2>
           <p style={{ color: C.textSub, marginBottom: 56, fontSize: 16 }}>
-            現場管理に必要な3つの柱を、スマホ1台に集約。
+            現場管理に必要な5つの柱を、スマホ1台に集約。
           </p>
           <div style={{
             display: "grid",
@@ -196,20 +195,32 @@ export default function KaitaiLpPage() {
               {
                 num: "01",
                 title: "現場リアルタイム管理",
-                desc: "出勤・退勤・作業進捗・イレギュラーをその場でスマホ報告。事務所と現場が常に同じ情報を見ながら動ける。",
+                desc: "8段階のプロジェクトステータスで進捗を可視化。写真付き作業報告・産廃記録・引き継ぎメモまで、現場の「今」をリアルタイムに共有。",
                 icon: "🏗",
               },
               {
                 num: "02",
-                title: "簡単帳票作成",
-                desc: "見積書・請求書・完了報告書をその場でPDF出力。Excelへの転記作業や手書きミスはゼロに。",
-                icon: "📋",
+                title: "経営分析ダッシュボード",
+                desc: "現場別の売上内訳・費目別の原価推移をグラフで表示。月次・年次の比較分析で、利益率の改善ポイントが一目でわかる。",
+                icon: "📊",
               },
               {
                 num: "03",
-                title: "翌日への引き継ぎメモ",
-                desc: "現場終了時に翌日担当者への申し送りを記録。翌朝の作業開始時に自動で表示され、伝達漏れを防ぐ。",
-                icon: "📝",
+                title: "人材マネジメント",
+                desc: "スキルマトリクスで技術者の育成状況を見える化。月次5段階評価・資格管理・経験年数の追跡で、チーム力を底上げ。",
+                icon: "👥",
+              },
+              {
+                num: "04",
+                title: "機材・リース管理",
+                desc: "重機・車両・アタッチメントの所在と状態を一元管理。リース返却期限のアラートで、無駄なコストを防止。",
+                icon: "🚛",
+              },
+              {
+                num: "05",
+                title: "帳票・書類自動化",
+                desc: "見積書・請求書・領収書・作業報告書・完了報告書をPDF出力。現場データから自動で書類を生成し、事務作業を大幅に削減。",
+                icon: "📋",
               },
             ].map((s) => (
               <div key={s.num} style={{
@@ -231,13 +242,13 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 5. Features ────────────────────────────────────────────────────── */}
+      {/* ── 6. Features (12 items) ────────────────────────────────────────── */}
       <section style={{ background: C.bgDark, padding: "80px 24px" }} id="features">
         <div style={{ maxWidth: 1060, margin: "0 auto", textAlign: "center" }}>
           <p style={sectionLabel}>FEATURES</p>
           <h2 style={h2Style}>主な機能</h2>
           <p style={{ color: C.textSub, marginBottom: 48, fontSize: 16 }}>
-            解体業の現場管理に特化した機能群。
+            解体業の現場管理に特化した機能群。すべてスマホ対応。
           </p>
           <div style={{
             display: "grid",
@@ -245,12 +256,18 @@ export default function KaitaiLpPage() {
             gap: 20, textAlign: "left",
           }}>
             {[
-              { emoji: "🏗", name: "現場状況ダッシュボード", desc: "進捗率・原価・担当者をひと目で。複数現場を同時管理。" },
-              { emoji: "📝", name: "ワンタップ報告", desc: "勤務開始〜終了・経費・イレギュラー。写真添付可。" },
-              { emoji: "📋", name: "帳票自動出力", desc: "見積書・請求書・領収書・完了報告書をPDF生成。" },
-              { emoji: "🚛", name: "機材・車両管理", desc: "リース期限アラート・現場アサイン・給油記録。" },
-              { emoji: "👷", name: "メンバー管理", desc: "経験年数・資格・勤怠をまとめて把握。" },
-              { emoji: "📬", name: "引き継ぎメモ", desc: "翌朝作業開始時に自動表示。口頭伝達に頼らない。" },
+              { emoji: "🏗", name: "現場ダッシュボード", desc: "進捗率・原価・担当者をひと目で。マップ表示で複数現場を同時管理。" },
+              { emoji: "📝", name: "ワンタップ作業報告", desc: "作業開始〜終了・経費・イレギュラーをスマホから。カメラで写真も添付。" },
+              { emoji: "🔄", name: "8段階ステータス管理", desc: "調査・見積から入金確認まで。プロジェクトの進行をステージごとに追跡。" },
+              { emoji: "📊", name: "経営分析", desc: "現場別売上・費目別原価の積み上げグラフ。月次/年次の収支推移を可視化。" },
+              { emoji: "📋", name: "プロジェクト収支", desc: "受注額・原価・粗利率を現場単位で管理。原価超過リスクを早期に検知。" },
+              { emoji: "🧑‍🔧", name: "スキルマトリクス", desc: "技術者ごとのスキル習得状況を一覧表示。指導者の記録で育成を組織的に。" },
+              { emoji: "⭐", name: "月次評価", desc: "勤怠・安全・技術・近隣対応を5段階で評価。S〜Dランクで人材を見える化。" },
+              { emoji: "🚛", name: "機材・車両管理", desc: "リース返却期限アラート・現場アサイン・給油記録を一元管理。" },
+              { emoji: "📄", name: "帳票PDF出力", desc: "見積書・請求書・領収書・作業報告書・完了報告書をワンクリックで生成。" },
+              { emoji: "👷", name: "メンバー管理", desc: "資格・経験年数・勤怠・日当をまとめて把握。直用/外注の区分にも対応。" },
+              { emoji: "⏰", name: "出退勤・勤怠管理", desc: "現場ごとの出勤・退勤・休憩をリアルタイムに記録。労務費の集計に直結。" },
+              { emoji: "📅", name: "スケジュール・配車", desc: "人員・重機の現場アサインをカレンダーで管理。稼働率の最適化に。" },
             ].map((f) => (
               <div key={f.name} style={{
                 background: C.bgCard,
@@ -266,8 +283,87 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 6. How it works ────────────────────────────────────────────────── */}
-      <section style={{ background: C.bgCard, padding: "80px 24px" }} id="how">
+      {/* ── 7. Who is it for ──────────────────────────────────────────────── */}
+      <section style={{ background: C.bgCard, padding: "80px 24px" }} id="users">
+        <div style={{ maxWidth: 1060, margin: "0 auto", textAlign: "center" }}>
+          <p style={sectionLabel}>WHO IS IT FOR</p>
+          <h2 style={h2Style}>立場に合わせた最適な画面</h2>
+          <p style={{ color: C.textSub, marginBottom: 56, fontSize: 16 }}>
+            現場作業員から経営者まで、それぞれに必要な情報を最適な形で提供。
+          </p>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 20, textAlign: "left",
+          }}>
+            {[
+              {
+                role: "現場作業員",
+                icon: "👷",
+                color: "#3B82F6",
+                features: [
+                  "スマホでワンタップ作業報告",
+                  "写真付き経費・イレギュラー報告",
+                  "自分のスキルチェックシート確認",
+                  "本日の作業予定・メンバー確認",
+                ],
+              },
+              {
+                role: "現場責任者",
+                icon: "🏗",
+                color: C.orange,
+                features: [
+                  "進捗スライダーで工事の進行を報告",
+                  "産廃量・引き継ぎメモの記録",
+                  "チームメンバーの出退勤管理",
+                  "現場ごとのリアルタイム状況確認",
+                ],
+              },
+              {
+                role: "経営者・管理者",
+                icon: "📊",
+                color: C.green,
+                features: [
+                  "全現場の収支・粗利をダッシュボードで一覧",
+                  "現場別売上・費目別原価の推移分析",
+                  "従業員の月次評価・スキル管理",
+                  "8段階ステータスでプロジェクト全体を把握",
+                ],
+              },
+            ].map((u) => (
+              <div key={u.role} style={{
+                background: C.bgCard2,
+                border: `1px solid ${C.border}`,
+                borderRadius: 16, padding: "32px 28px",
+              }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>{u.icon}</div>
+                <div style={{
+                  fontSize: 20, fontWeight: 800, color: u.color, marginBottom: 20,
+                }}>{u.role}</div>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {u.features.map((f, i) => (
+                    <li key={i} style={{
+                      fontSize: 14, color: C.textSub, lineHeight: 1.7,
+                      paddingLeft: 20, position: "relative", marginBottom: 8,
+                    }}>
+                      <span style={{
+                        position: "absolute", left: 0, top: 2,
+                        width: 8, height: 8, borderRadius: 4,
+                        background: u.color, display: "inline-block",
+                        opacity: 0.6,
+                      }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 8. How it works ────────────────────────────────────────────────── */}
+      <section style={{ background: C.bgDark, padding: "80px 24px" }} id="how">
         <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
           <p style={sectionLabel}>HOW IT WORKS</p>
           <h2 style={h2Style}>3ステップで始められます</h2>
@@ -284,7 +380,7 @@ export default function KaitaiLpPage() {
             ].map((s) => (
               <div key={s.num} style={{ display: "flex", alignItems: "stretch", flex: "1 1 220px", minWidth: 200 }}>
                 <div style={{
-                  flex: 1, background: C.bgCard2,
+                  flex: 1, background: C.bgCard,
                   border: `1px solid ${C.border}`,
                   borderRadius: 16, padding: "36px 24px",
                   margin: "0 8px 16px", textAlign: "center",
@@ -312,7 +408,7 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 7. CTA ─────────────────────────────────────────────────────────── */}
+      {/* ── 9. CTA ─────────────────────────────────────────────────────────── */}
       <section style={{
         background: `linear-gradient(135deg, #C2410C 0%, ${C.orange} 50%, ${C.orangeL} 100%)`,
         padding: "80px 24px", textAlign: "center",
@@ -353,7 +449,7 @@ export default function KaitaiLpPage() {
         </div>
       </section>
 
-      {/* ── 8. Footer ──────────────────────────────────────────────────────── */}
+      {/* ── 10. Footer ─────────────────────────────────────────────────────── */}
       <footer style={{
         background: "#030810",
         borderTop: `1px solid ${C.border}`,
@@ -367,14 +463,16 @@ export default function KaitaiLpPage() {
           }}>
             <div>
               <div style={{ fontSize: 22, fontWeight: 900, color: C.orange, marginBottom: 8 }}>解体LINK</div>
-              <div style={{ fontSize: 13, color: C.textMuted, maxWidth: 240, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 13, color: C.textMuted, maxWidth: 280, lineHeight: 1.6 }}>
                 解体業専用の現場管理ツール。<br />
+                現場報告から経営分析まで、<br />
                 現場と事務所をつなぐプラットフォーム。
               </div>
             </div>
             <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
               {[
                 { label: "機能", href: "#features" },
+                { label: "対象ユーザー", href: "#users" },
                 { label: "デモ", href: "/kaitai/demo" },
                 { label: "お問い合わせ", href: "mailto:info@kaitailink.jp" },
               ].map((l) => (
