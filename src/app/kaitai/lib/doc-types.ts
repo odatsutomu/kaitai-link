@@ -15,6 +15,7 @@ export interface LineItem {
   qty: number;
   unit: string;
   unitPrice: number;
+  taxRate?: number;   // 10 | 8 | 0 (%)
 }
 
 export interface DocSite {
@@ -57,7 +58,7 @@ export const FOOTER_BRANDING =
 
 export function genDocNo(type: DocType, siteId: string): string {
   const prefix: Record<DocType, string> = {
-    estimate: "EST", invoice: "INV", receipt: "REC", completion: "CMP", report: "RPT",
+    estimate: "EST", invoice: "INV", receipt: "REC", completion: "CMP", report: "RPT", demolition: "DMC",
   };
   const d = new Date();
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;

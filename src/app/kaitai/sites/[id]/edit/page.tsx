@@ -202,7 +202,7 @@ function AmountInput({
   );
 }
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <div
       className={className}
@@ -211,12 +211,30 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
         border: `1px solid ${C.border}`,
         borderRadius: "0.75rem",
         padding: "1.25rem",
+        ...style,
       }}
     >
       {children}
     </div>
   );
 }
+
+// ─── Common demolition work items (for line item suggestions) ────────────────
+
+const COMMON_WORK_ITEMS: { name: string; spec: string; unit: string }[] = [
+  { name: "仮設工事（足場・養生シート）",        spec: "足場組立・養生シート設置含む",         unit: "式" },
+  { name: "残置物撤去・廃棄物処理",              spec: "家具・家電・残置物一式",               unit: "式" },
+  { name: "内部造作・設備撤去工事",              spec: "内装・建具・設備機器等撤去",           unit: "式" },
+  { name: "アスベスト等有害物質除去工事",         spec: "事前調査・除去・適正処分含む",         unit: "式" },
+  { name: "構造体解体工事（重機使用）",           spec: "解体重機による構造体解体",             unit: "式" },
+  { name: "産廃処分費（分別・搬出・処理）",       spec: "産業廃棄物の適正処分費",              unit: "式" },
+  { name: "基礎解体・埋設物確認工事",             spec: "コンクリート基礎解体・埋設物調査",    unit: "式" },
+  { name: "残土処分・地盤整地",                  spec: "残土搬出・整地・転圧",                unit: "式" },
+  { name: "電気・ガス・水道 切断工事",            spec: "引込管・配線の撤去・切断",             unit: "式" },
+  { name: "防音・防塵養生工事",                  spec: "防音シート・飛散防止ネット設置",       unit: "式" },
+  { name: "清掃・後片付け",                      spec: "現場清掃・ゴミ収集",                  unit: "式" },
+  { name: "諸経費",                              spec: "現場管理・交通費等",                  unit: "式" },
+];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -327,8 +345,10 @@ export default function SiteEditPage({
   const [siteImages,       setSiteImages]       = useState<{ id: string; url: string; reportType?: string }[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
 
-  const [contractSaving, setContractSaving] = useState(false);
-  const [contractSaved,  setContractSaved]  = useState(false);
+  const [contractSaving,    setContractSaving]    = useState(false);
+  const [contractSaved,     setContractSaved]     = useState(false);
+  const [openNameDropdown,  setOpenNameDropdown]  = useState<number | null>(null);
+  const [bulkTaxRate,       setBulkTaxRate]       = useState("10");
 
   // Load contract data when tab 3 is first opened
   useEffect(() => {
@@ -435,7 +455,14 @@ export default function SiteEditPage({
 
   // ─── Contract data helpers ──────────────────────────────────────────────────
   function blankLineItem(): LineItem {
-    return { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0 };
+    return { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0, taxRate: 10 };
+  }
+
+  function applyBulkTaxRate() {
+    const rate = Number(bulkTaxRate);
+    const apply = (items: LineItem[]) => items.map(it => ({ ...it, taxRate: rate }));
+    if (activeItemsTab === "estimate") setEstimateItems(prev => apply(prev));
+    else setInvoiceItems(prev => apply(prev));
   }
 
   function updateLineItem(
@@ -1108,9 +1135,13 @@ export default function SiteEditPage({
 
                 {/* ── Section 2: 見積・請求明細エディタ ────────── */}
                 <SectionLabel>② 見積・請求明細エディタ</SectionLabel>
-                <Card>
-                  {/* Switcher */}
-                  <div className="flex items-center justify-between mb-4">
+                <Card style={{ padding: 0, overflow: "hidden" }}>
+                  {/* ── Header bar ── */}
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                    style={{ borderBottom: `1px solid ${C.border}`, background: T.bg }}
+                  >
+                    {/* Tab switcher */}
                     <div className="flex gap-1">
                       {(["estimate", "invoice"] as const).map(t => (
                         <button
@@ -1119,80 +1150,326 @@ export default function SiteEditPage({
                           className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
                           style={activeItemsTab === t
                             ? { background: C.amber, color: "#fff" }
-                            : { background: C.bg, color: C.muted, border: `1px solid ${C.border}` }}
+                            : { background: C.card, color: C.muted, border: `1px solid ${C.border}` }}
                         >
                           {t === "estimate" ? "📋 見積明細" : "💴 請求明細"}
                         </button>
                       ))}
                     </div>
-                    <button
-                      onClick={copyItemsToOther}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                      style={{ background: C.bg, color: C.sub, border: `1px solid ${C.border}` }}
-                      title={activeItemsTab === "estimate" ? "見積明細→請求明細にコピー" : "請求明細→見積明細にコピー"}
-                    >
-                      <Copy size={12} />
-                      {activeItemsTab === "estimate" ? "請求にコピー" : "見積にコピー"}
-                    </button>
+                    {/* Controls */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Bulk tax rate */}
+                      <div className="flex items-center gap-1.5 text-sm" style={{ color: C.sub }}>
+                        <span>税区分を一括で</span>
+                        <select
+                          value={bulkTaxRate}
+                          onChange={e => setBulkTaxRate(e.target.value)}
+                          className="rounded-lg outline-none"
+                          style={{ border: `1px solid ${C.border}`, padding: "4px 8px", fontSize: 13, background: C.card, color: C.text, cursor: "pointer" }}
+                        >
+                          <option value="10">10%</option>
+                          <option value="8">8%</option>
+                          <option value="0">0%</option>
+                        </select>
+                        <span>に</span>
+                        <button
+                          onClick={applyBulkTaxRate}
+                          className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
+                          style={{ background: C.card, color: C.sub, border: `1px solid ${C.border}` }}
+                        >
+                          変更する
+                        </button>
+                      </div>
+                      {/* Copy to other */}
+                      <button
+                        onClick={copyItemsToOther}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                        style={{ background: C.card, color: C.sub, border: `1px solid ${C.border}` }}
+                        title={activeItemsTab === "estimate" ? "見積明細を請求明細にコピー" : "請求明細を見積明細にコピー"}
+                      >
+                        <Copy size={12} />
+                        {activeItemsTab === "estimate" ? "請求にコピー" : "見積にコピー"}
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Line items table */}
+                  {/* ── Table ── */}
                   {(() => {
                     const items = activeItemsTab === "estimate" ? estimateItems : invoiceItems;
-                    const inputSt = { background: C.bg, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, padding: "5px 8px", fontSize: 13, outline: "none", width: "100%" };
                     const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+                    const tax      = items.reduce((s, it) => s + Math.floor(it.qty * it.unitPrice * ((it.taxRate ?? 10) / 100)), 0);
+
+                    const cellInput: React.CSSProperties = {
+                      border: "none",
+                      borderBottom: `1.5px dashed ${C.border}`,
+                      background: "transparent",
+                      outline: "none",
+                      padding: "4px 2px",
+                      fontSize: 13,
+                      color: C.text,
+                      width: "100%",
+                      fontFamily: "inherit",
+                    };
+
                     return (
-                      <>
-                        {items.length > 0 && (
-                          <div
-                            className="grid text-sm font-bold mb-1 px-1"
-                            style={{ gridTemplateColumns: "1fr 0.8fr 60px 60px 90px 36px", color: C.muted, gap: 6 }}
-                          >
-                            <span>工事項目</span>
-                            <span>仕様・内訳</span>
-                            <span className="text-right">数量</span>
-                            <span>単位</span>
-                            <span className="text-right">単価</span>
-                            <span />
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          {items.map((it, i) => (
-                            <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: "1fr 0.8fr 60px 60px 90px 36px" }}>
-                              <input style={inputSt} value={it.name} onChange={e => updateLineItem(activeItemsTab, i, "name", e.target.value)} placeholder="例：仮設・養生工事" />
-                              <input style={inputSt} value={it.spec} onChange={e => updateLineItem(activeItemsTab, i, "spec", e.target.value)} placeholder="仕様" />
-                              <input style={{ ...inputSt, textAlign: "right" }} type="number" value={it.qty} onChange={e => updateLineItem(activeItemsTab, i, "qty", Number(e.target.value))} />
-                              <input style={inputSt} value={it.unit} onChange={e => updateLineItem(activeItemsTab, i, "unit", e.target.value)} placeholder="式" />
-                              <input style={{ ...inputSt, textAlign: "right" }} type="number" value={it.unitPrice} onChange={e => updateLineItem(activeItemsTab, i, "unitPrice", Number(e.target.value))} placeholder="0" />
-                              <button onClick={() => removeLineItem(activeItemsTab, i)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto" style={{ color: C.muted }}>
-                                <X size={13} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => {
-                            const setter = activeItemsTab === "estimate" ? setEstimateItems : setInvoiceItems;
-                            setter(prev => [...prev, blankLineItem()]);
-                          }}
-                          className="mt-3 flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl"
-                          style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid #E5E7EB` }}
-                        >
-                          <Plus size={12} /> 行を追加
-                        </button>
-                        {items.length > 0 && (
-                          <div className="mt-3 pt-3 flex items-center justify-end gap-4" style={{ borderTop: `1px solid ${C.border}` }}>
-                            <span className="text-sm" style={{ color: C.muted }}>小計</span>
-                            <span className="text-sm font-bold" style={{ color: C.text }}>¥{subtotal.toLocaleString()}</span>
-                            <span className="text-sm" style={{ color: C.muted }}>税込</span>
-                            <span className="font-bold" style={{ color: C.amberDk }}>¥{(Math.floor(subtotal * 1.1)).toLocaleString()}</span>
-                          </div>
-                        )}
-                      </>
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+                          <colgroup>
+                            <col style={{ width: "30%" }} />
+                            <col style={{ width: "19%" }} />
+                            <col style={{ width: "9%" }} />
+                            <col style={{ width: "8%" }} />
+                            <col style={{ width: "13%" }} />
+                            <col style={{ width: "9%" }} />
+                            <col style={{ width: "11%" }} />
+                            <col style={{ width: "4%" }} />
+                          </colgroup>
+                          <thead>
+                            <tr style={{ background: T.bg, borderBottom: `2px solid ${C.border}` }}>
+                              {["品番・品名", "仕様・内訳", "数量", "単位", "単価", "税区分", "金額", ""].map((h, i) => (
+                                <th key={i} style={{
+                                  padding: "10px 12px",
+                                  textAlign: i >= 2 && i <= 6 ? (i === 3 ? "center" : "right") : "left",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: C.sub,
+                                  letterSpacing: 0.5,
+                                  whiteSpace: "nowrap",
+                                }}>
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((it, i) => {
+                              const amount  = it.qty * it.unitPrice;
+                              const taxRate = it.taxRate ?? 10;
+                              const isOpen  = openNameDropdown === i;
+
+                              return (
+                                <tr
+                                  key={i}
+                                  style={{
+                                    borderBottom: `1px solid ${C.border}`,
+                                    background: i % 2 === 0 ? C.card : T.bg,
+                                  }}
+                                >
+                                  {/* 品番・品名 + dropdown */}
+                                  <td style={{ padding: "8px 12px", position: "relative" }}>
+                                    <input
+                                      style={cellInput}
+                                      value={it.name}
+                                      placeholder="品番・品名"
+                                      onChange={e => updateLineItem(activeItemsTab, i, "name", e.target.value)}
+                                      onFocus={() => setOpenNameDropdown(i)}
+                                      onBlur={() => setTimeout(() => setOpenNameDropdown(null), 160)}
+                                    />
+                                    {/* よく使う項目 dropdown */}
+                                    {isOpen && (
+                                      <div style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: 0,
+                                        zIndex: 40,
+                                        background: "#fff",
+                                        border: `1px solid ${C.border}`,
+                                        borderRadius: 10,
+                                        boxShadow: "0 6px 24px rgba(0,0,0,0.12)",
+                                        minWidth: 260,
+                                        maxHeight: 260,
+                                        overflowY: "auto",
+                                      }}>
+                                        <div style={{
+                                          padding: "6px 12px",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          color: C.muted,
+                                          borderBottom: `1px solid ${C.border}`,
+                                          letterSpacing: 1,
+                                          textTransform: "uppercase",
+                                        }}>
+                                          よく使う項目
+                                        </div>
+                                        {COMMON_WORK_ITEMS.map(item => (
+                                          <button
+                                            key={item.name}
+                                            onMouseDown={() => {
+                                              updateLineItem(activeItemsTab, i, "name", item.name);
+                                              if (!it.spec) updateLineItem(activeItemsTab, i, "spec", item.spec);
+                                              if (!it.unit || it.unit === "式") updateLineItem(activeItemsTab, i, "unit", item.unit);
+                                              setOpenNameDropdown(null);
+                                            }}
+                                            className="w-full text-left hover:bg-gray-50 transition-colors"
+                                            style={{
+                                              display: "block",
+                                              padding: "9px 14px",
+                                              fontSize: 13,
+                                              color: C.text,
+                                              background: "none",
+                                              border: "none",
+                                              cursor: "pointer",
+                                              borderBottom: `1px solid ${T.bg}`,
+                                            }}
+                                          >
+                                            {item.name}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                  {/* 仕様・内訳 */}
+                                  <td style={{ padding: "8px 12px" }}>
+                                    <input
+                                      style={{ ...cellInput, fontSize: 12, color: C.sub }}
+                                      value={it.spec}
+                                      placeholder="仕様・内訳"
+                                      onChange={e => updateLineItem(activeItemsTab, i, "spec", e.target.value)}
+                                    />
+                                  </td>
+                                  {/* 数量 */}
+                                  <td style={{ padding: "8px 12px" }}>
+                                    <input
+                                      type="number"
+                                      style={{ ...cellInput, textAlign: "right" }}
+                                      value={it.qty || ""}
+                                      onChange={e => updateLineItem(activeItemsTab, i, "qty", Number(e.target.value))}
+                                    />
+                                  </td>
+                                  {/* 単位 */}
+                                  <td style={{ padding: "8px 12px" }}>
+                                    <input
+                                      style={{ ...cellInput, textAlign: "center" }}
+                                      value={it.unit}
+                                      placeholder="単位"
+                                      onChange={e => updateLineItem(activeItemsTab, i, "unit", e.target.value)}
+                                    />
+                                  </td>
+                                  {/* 単価 */}
+                                  <td style={{ padding: "8px 12px" }}>
+                                    <input
+                                      type="number"
+                                      style={{ ...cellInput, textAlign: "right" }}
+                                      value={it.unitPrice || ""}
+                                      placeholder="0"
+                                      onChange={e => updateLineItem(activeItemsTab, i, "unitPrice", Number(e.target.value))}
+                                    />
+                                  </td>
+                                  {/* 税区分 */}
+                                  <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                                    <select
+                                      value={taxRate}
+                                      onChange={e => updateLineItem(activeItemsTab, i, "taxRate", Number(e.target.value))}
+                                      className="rounded-lg outline-none"
+                                      style={{
+                                        border: `1px solid ${C.border}`,
+                                        padding: "3px 6px",
+                                        fontSize: 12,
+                                        background: C.card,
+                                        color: C.text,
+                                        cursor: "pointer",
+                                        width: "100%",
+                                      }}
+                                    >
+                                      <option value={10}>10%</option>
+                                      <option value={8}>8%</option>
+                                      <option value={0}>0%</option>
+                                    </select>
+                                  </td>
+                                  {/* 金額 */}
+                                  <td style={{
+                                    padding: "8px 12px",
+                                    textAlign: "right",
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: amount > 0 ? C.text : "#CBD5E1",
+                                    fontVariantNumeric: "tabular-nums",
+                                    whiteSpace: "nowrap",
+                                  }}>
+                                    {amount > 0 ? amount.toLocaleString() : ""}
+                                  </td>
+                                  {/* 削除 */}
+                                  <td style={{ padding: "4px 6px", textAlign: "center" }}>
+                                    <button
+                                      onClick={() => removeLineItem(activeItemsTab, i)}
+                                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto transition-colors"
+                                      style={{ color: "#CBD5E1", border: "none", background: "none", cursor: "pointer" }}
+                                    >
+                                      <X size={13} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          {/* Footer: + 行の追加 / 小計 / 消費税 */}
+                          <tfoot>
+                            <tr style={{ borderTop: `1px solid ${C.border}`, background: T.bg }}>
+                              <td colSpan={7} style={{ padding: "10px 14px" }}>
+                                <p className="text-sm" style={{ color: C.muted, marginBottom: 6 }}>
+                                  印刷時には最低5行になります。行の追加は最大80行までです。
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    const setter = activeItemsTab === "estimate" ? setEstimateItems : setInvoiceItems;
+                                    setter(prev => [...prev, blankLineItem()]);
+                                  }}
+                                  className="flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+                                  style={{ color: C.amber, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                                >
+                                  <Plus size={14} /> 行の追加
+                                </button>
+                              </td>
+                              <td />
+                            </tr>
+                            <tr style={{ borderTop: `1px solid ${C.border}` }}>
+                              <td colSpan={5} />
+                              <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 13, fontWeight: 600, color: C.sub, background: T.bg }}>小計</td>
+                              <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.text, background: T.bg, fontVariantNumeric: "tabular-nums" }}>
+                                {subtotal.toLocaleString()}
+                              </td>
+                              <td style={{ background: T.bg }} />
+                            </tr>
+                            <tr>
+                              <td colSpan={5} />
+                              <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 13, color: C.sub, background: T.bg }}>消費税</td>
+                              <td style={{ padding: "8px 12px", textAlign: "right", fontSize: 13, color: C.sub, background: T.bg, fontVariantNumeric: "tabular-nums" }}>
+                                {tax.toLocaleString()}
+                              </td>
+                              <td style={{ background: T.bg }} />
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
                     );
                   })()}
 
-                  <div className="mt-4">
+                  {/* ── Bottom bar: total + notes ── */}
+                  {(() => {
+                    const items    = activeItemsTab === "estimate" ? estimateItems : invoiceItems;
+                    const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+                    const tax      = items.reduce((s, it) => s + Math.floor(it.qty * it.unitPrice * ((it.taxRate ?? 10) / 100)), 0);
+                    return (
+                      <div
+                        className="flex items-center justify-between px-4 py-3 flex-wrap gap-3"
+                        style={{ borderTop: `2px solid ${C.border}`, background: T.bg }}
+                      >
+                        <div className="flex items-center gap-4 text-sm" style={{ color: C.sub }}>
+                          <span>小計 <strong style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{subtotal.toLocaleString()} 円</strong></span>
+                          <span>消費税 <strong style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{tax.toLocaleString()} 円</strong></span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold" style={{ color: C.sub }}>合計</span>
+                          <span className="text-xl font-bold" style={{ color: C.amberDk, fontVariantNumeric: "tabular-nums" }}>
+                            {(subtotal + tax).toLocaleString()} 円
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ──備考 ── */}
+                  <div style={{ padding: "14px 16px", borderTop: `1px solid ${C.border}` }}>
                     <FieldLabel>備考・特記事項</FieldLabel>
                     <textarea
                       value={cNotes}
