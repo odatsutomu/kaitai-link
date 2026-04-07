@@ -39,6 +39,7 @@ model KaitaiCompany {
   processors      KaitaiProcessor[]
   processorPrices KaitaiProcessorPrice[]
   contractData    KaitaiContractData[]
+  wasteCategories KaitaiWasteCategory[]
 }
 
 model KaitaiSession {
@@ -280,8 +281,9 @@ model KaitaiProcessorPrice {
   companyId   String
   processorId String
   wasteType   String
-  unit        String   @default("kg")
+  unit        String   @default("t")
   unitPrice   Int      @default(0)
+  direction   String   @default("cost")  // "cost" | "buyback"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -291,6 +293,20 @@ model KaitaiProcessorPrice {
   @@unique([processorId, wasteType])
   @@index([companyId])
   @@index([processorId])
+}
+
+model KaitaiWasteCategory {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  sortOrder Int      @default(0)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, name])
+  @@index([companyId])
 }
 
 model KaitaiOperationLog {

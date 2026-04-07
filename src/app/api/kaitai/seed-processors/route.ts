@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     lat: number;
     lng: number;
     notes: string;
-    prices: { wasteType: string; unit: string; unitPrice: number }[];
+    prices: { wasteType: string; unit: string; unitPrice: number; direction?: string }[];
   }[] = [
     {
       name: "岡山廃棄物センター株式会社",
@@ -34,12 +34,12 @@ export async function POST(req: NextRequest) {
       lng: 133.9420,
       notes: "コンクリート・木材・混合廃棄物対応。平日8:00〜17:00。",
       prices: [
-        { wasteType: "コンクリートガラ",   unit: "t",   unitPrice: 8000  },
-        { wasteType: "木材（可燃）",        unit: "t",   unitPrice: 25000 },
-        { wasteType: "混合廃棄物",          unit: "t",   unitPrice: 45000 },
-        { wasteType: "石膏ボード",          unit: "t",   unitPrice: 32000 },
-        { wasteType: "ガラス・陶磁器くず", unit: "t",   unitPrice: 18000 },
-        { wasteType: "廃プラスチック",      unit: "t",   unitPrice: 38000 },
+        { wasteType: "コンクリートガラ（無筋）", unit: "t", unitPrice: 8000,  direction: "cost" },
+        { wasteType: "木くず",                   unit: "t", unitPrice: 25000, direction: "cost" },
+        { wasteType: "混合廃棄物（ミンチ）",     unit: "t", unitPrice: 45000, direction: "cost" },
+        { wasteType: "石膏ボード",               unit: "t", unitPrice: 32000, direction: "cost" },
+        { wasteType: "ガラス・陶磁器くず・瓦",  unit: "t", unitPrice: 18000, direction: "cost" },
+        { wasteType: "廃プラスチック類",         unit: "t", unitPrice: 38000, direction: "cost" },
       ],
     },
     {
@@ -49,10 +49,9 @@ export async function POST(req: NextRequest) {
       lng: 134.0350,
       notes: "コンクリート専門。大量搬入割引あり（50t以上）。土日対応可（要事前連絡）。",
       prices: [
-        { wasteType: "コンクリートガラ",   unit: "t",   unitPrice: 6500  },
-        { wasteType: "アスファルトくず",   unit: "t",   unitPrice: 7000  },
-        { wasteType: "岩石類",              unit: "t",   unitPrice: 5000  },
-        { wasteType: "土砂・残土",          unit: "m3",  unitPrice: 3500  },
+        { wasteType: "コンクリートガラ（無筋）", unit: "t",  unitPrice: 6500, direction: "cost" },
+        { wasteType: "コンクリートガラ（有筋）", unit: "t",  unitPrice: 9000, direction: "cost" },
+        { wasteType: "アスファルトガラ",         unit: "t",  unitPrice: 7000, direction: "cost" },
       ],
     },
     {
@@ -62,11 +61,9 @@ export async function POST(req: NextRequest) {
       lng: 133.7850,
       notes: "木材・紙類のリサイクル処理。遠方のため搬出量をまとめてから持込。",
       prices: [
-        { wasteType: "木材（可燃）",        unit: "t",   unitPrice: 20000 },
-        { wasteType: "木材（不燃混合）",    unit: "t",   unitPrice: 28000 },
-        { wasteType: "廃プラスチック",      unit: "t",   unitPrice: 35000 },
-        { wasteType: "混合廃棄物",          unit: "t",   unitPrice: 42000 },
-        { wasteType: "繊維くず",            unit: "t",   unitPrice: 30000 },
+        { wasteType: "木くず",             unit: "t", unitPrice: 20000, direction: "cost" },
+        { wasteType: "廃プラスチック類",   unit: "t", unitPrice: 35000, direction: "cost" },
+        { wasteType: "混合廃棄物（ミンチ）", unit: "t", unitPrice: 42000, direction: "cost" },
       ],
     },
     {
@@ -76,12 +73,9 @@ export async function POST(req: NextRequest) {
       lng: 133.7730,
       notes: "金属くず・アスベスト含有廃材専門。特別管理産廃マニフェスト対応。",
       prices: [
-        { wasteType: "金属くず（鉄）",      unit: "t",   unitPrice: -3000 },
-        { wasteType: "金属くず（アルミ）",  unit: "t",   unitPrice: -8000 },
-        { wasteType: "アスベスト（L1）",    unit: "t",   unitPrice: 180000 },
-        { wasteType: "アスベスト（L2）",    unit: "t",   unitPrice: 120000 },
-        { wasteType: "アスベスト（L3）",    unit: "t",   unitPrice: 80000  },
-        { wasteType: "廃油・廃液",          unit: "L",   unitPrice: 85     },
+        { wasteType: "金属くず",                             unit: "t", unitPrice: 5000,  direction: "buyback" },
+        { wasteType: "特別管理産業廃棄物（アスベスト等）",  unit: "t", unitPrice: 150000, direction: "cost"    },
+        { wasteType: "石膏ボード",                           unit: "t", unitPrice: 28000, direction: "cost"    },
       ],
     },
   ];
@@ -102,7 +96,8 @@ export async function POST(req: NextRequest) {
             companyId,
             wasteType: pr.wasteType,
             unit:      pr.unit,
-            unitPrice: pr.unitPrice,
+            unitPrice: Math.abs(pr.unitPrice),
+            direction: pr.direction ?? "cost",
           })),
         },
       },

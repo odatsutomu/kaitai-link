@@ -39,13 +39,14 @@ export async function POST(req: NextRequest) {
       notes:     notes?.trim()   ?? null,
       prices: prices?.length
         ? {
-            create: (prices as { wasteType: string; unit: string; unitPrice: number }[])
+            create: (prices as { wasteType: string; unit: string; unitPrice: number; direction?: string }[])
               .filter(p => p.wasteType?.trim())
               .map(p => ({
                 companyId: session.companyId,
                 wasteType: p.wasteType.trim(),
-                unit:      p.unit ?? "kg",
-                unitPrice: Number(p.unitPrice) || 0,
+                unit:      p.unit ?? "t",
+                unitPrice: Math.abs(Number(p.unitPrice)) || 0,
+                direction: p.direction === "buyback" ? "buyback" : "cost",
               })),
           }
         : undefined,
@@ -86,13 +87,14 @@ export async function PATCH(req: NextRequest) {
         notes:   notes?.trim()   ?? null,
         prices: prices?.length
           ? {
-              create: (prices as { wasteType: string; unit: string; unitPrice: number }[])
+              create: (prices as { wasteType: string; unit: string; unitPrice: number; direction?: string }[])
                 .filter(p => p.wasteType?.trim())
                 .map(p => ({
                   companyId: session.companyId,
                   wasteType: p.wasteType.trim(),
-                  unit:      p.unit ?? "kg",
-                  unitPrice: Number(p.unitPrice) || 0,
+                  unit:      p.unit ?? "t",
+                  unitPrice: Math.abs(Number(p.unitPrice)) || 0,
+                  direction: p.direction === "buyback" ? "buyback" : "cost",
                 })),
             }
           : undefined,
