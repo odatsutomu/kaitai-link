@@ -12,15 +12,35 @@ export async function POST(_req: NextRequest) {
 
   const results: string[] = [];
 
-  // 1. Add direction column to KaitaiProcessorPrice
+  // 0. List all kaitai tables to diagnose naming
   try {
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "KaitaiProcessorPrice"
-      ADD COLUMN IF NOT EXISTS direction TEXT NOT NULL DEFAULT 'cost'
+    const tables = await prisma.$queryRawUnsafe<{ table_name: string }[]>(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
     `);
-    results.push("✅ KaitaiProcessorPrice.direction カラム追加（または既存）");
+    results.push(`📋 既存テーブル: ${tables.map(t => t.table_name).join(", ")}`);
   } catch (e) {
-    results.push(`⚠️ direction カラム: ${(e as Error).message}`);
+    results.push(`⚠️ テーブル一覧取得: ${(e as Error).message}`);
+  }
+
+  // 1. Add direction column — try both possible table names
+  const priceTableCandidates = ["KaitaiProcessorPrice", "kaitai_processor_price"];
+  let directionAdded = false;
+  for (const tbl of priceTableCandidates) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "${tbl}" ADD COLUMN IF NOT EXISTS direction TEXT NOT NULL DEFAULT 'cost'`
+      );
+      results.push(`✅ ${tbl}.direction カラム追加（または既存）`);
+      directionAdded = true;
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
+  if (!directionAdded) {
+    results.push("⚠️ direction カラム: 対応するテーブルが見つかりませんでした（上のテーブル一覧を確認）");
   }
 
   // 2. Create KaitaiWasteCategory table
