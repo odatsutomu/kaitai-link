@@ -33,9 +33,11 @@ model KaitaiCompany {
   images        KaitaiImage[]
   operationLogs   KaitaiOperationLog[]
   monthlyEvals    KaitaiMonthlyEval[]
-  skillCategories KaitaiSkillCategory[]
-  skills          KaitaiSkill[]
-  userSkills      KaitaiUserSkill[]
+  skillCategories  KaitaiSkillCategory[]
+  skills           KaitaiSkill[]
+  userSkills       KaitaiUserSkill[]
+  processors       KaitaiProcessor[]
+  processorPrices  KaitaiProcessorPrice[]
 }
 
 model KaitaiSession {
@@ -252,6 +254,39 @@ model KaitaiUserSkill {
   @@index([companyId])
   @@index([memberId])
   @@index([skillId])
+}
+
+model KaitaiProcessor {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company KaitaiCompany          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  prices  KaitaiProcessorPrice[]
+
+  @@index([companyId])
+}
+
+model KaitaiProcessorPrice {
+  id          String   @id @default(cuid())
+  companyId   String
+  processorId String
+  wasteType   String
+  unit        String   @default("kg")
+  unitPrice   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company   KaitaiCompany   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  processor KaitaiProcessor @relation(fields: [processorId], references: [id], onDelete: Cascade)
+
+  @@unique([processorId, wasteType])
+  @@index([companyId])
+  @@index([processorId])
 }
 
 model KaitaiOperationLog {

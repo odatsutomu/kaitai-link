@@ -1,12 +1,21 @@
 import React from "react";
-import { DocSite, SELF_COMPANY, FOOTER_BRANDING, todayStr, fmtDate } from "../../lib/doc-types";
+import { DocSite, SELF_COMPANY, todayStr, fmtDate } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, ProjectInfo, NotesBox, DocFooter, PrintStyles } from "./shared";
 import { T } from "../../lib/design-tokens";
 
 interface Props {
-  site: DocSite;
-  docNo: string;
-  issueDate?: string;
+  site:            DocSite;
+  docNo:           string;
+  issueDate?:      string;
+  wasteDisposals?: WasteDisposalItem[];
+}
+
+export interface WasteDisposalItem {
+  wasteType:     string;
+  processorName: string;
+  unit:          string;
+  quantity:      number;
+  unitPrice:     number;
 }
 
 const WORK_ITEMS = [
@@ -20,7 +29,9 @@ const WORK_ITEMS = [
   "清掃・後片付け",
 ];
 
-export function CompletionDoc({ site, docNo, issueDate = todayStr() }: Props) {
+export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDisposals = [] }: Props) {
+  const totalWasteCost = wasteDisposals.reduce((s, w) => s + w.quantity * w.unitPrice, 0);
+
   return (
     <>
       <PrintStyles />
@@ -81,6 +92,47 @@ export function CompletionDoc({ site, docNo, issueDate = todayStr() }: Props) {
             </tbody>
           </table>
         </div>
+
+        {/* Waste disposal section */}
+        {wasteDisposals.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#333", marginBottom: 6, letterSpacing: 1 }}>
+              廃材処理明細
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+              <thead>
+                <tr>
+                  <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B" }}>廃材の種類</th>
+                  <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "left", fontWeight: 700, border: "1px solid #1E293B" }}>処理場</th>
+                  <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "right", fontWeight: 700, border: "1px solid #1E293B", width: 70 }}>数量</th>
+                  <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "right", fontWeight: 700, border: "1px solid #1E293B", width: 80 }}>単価</th>
+                  <th style={{ background: T.text, color: "#fff", padding: "6px 10px", textAlign: "right", fontWeight: 700, border: "1px solid #1E293B", width: 90 }}>金額</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wasteDisposals.map((w, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                    <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB" }}>{w.wasteType}</td>
+                    <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB", color: "#555" }}>{w.processorName}</td>
+                    <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB", textAlign: "right" }}>{w.quantity.toLocaleString()}{w.unit}</td>
+                    <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB", textAlign: "right" }}>¥{w.unitPrice.toLocaleString()}/{w.unit}</td>
+                    <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB", textAlign: "right", fontWeight: 700 }}>¥{(w.quantity * w.unitPrice).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={4} style={{ padding: "7px 10px", border: "1px solid #D1D5DB", textAlign: "right", fontWeight: 700, background: "#F8FAFC" }}>
+                    廃材処理費合計
+                  </td>
+                  <td style={{ padding: "7px 10px", border: "1px solid #D1D5DB", textAlign: "right", fontWeight: 700, background: "#F8FAFC", color: "#B45309" }}>
+                    ¥{totalWasteCost.toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
         {/* Photo area placeholder */}
         <div style={{ marginBottom: 14 }}>
