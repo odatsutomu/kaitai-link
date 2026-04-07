@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
   LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2, Building2, CalendarDays,
-  Wrench, Activity,
+  Wrench, Activity, Factory,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -26,10 +26,11 @@ const EXTERNAL_NAV = [
   { href: "/kaitai/admin/calendar",  label: "スケジュール管理", icon: CalendarDays },
   { href: "/kaitai/admin/members",   label: "従業員管理",     icon: Users    },
   { href: "/kaitai/admin/skills",    label: "スキル管理",     icon: Wrench   },
-  { href: "/kaitai/admin/equipment", label: "機材管理",       icon: Truck    },
-  { href: "/kaitai/admin/docs",      label: "帳票出力",       icon: LayoutDashboard },
-  { href: "/kaitai/admin/clients",   label: "元請け管理",     icon: Settings },
-  { href: "/kaitai/admin/master",    label: "設定・権限",     icon: Settings },
+  { href: "/kaitai/admin/equipment",  label: "機材管理",       icon: Truck          },
+  { href: "/kaitai/admin/processors", label: "処理場管理",     icon: Factory        },
+  { href: "/kaitai/admin/docs",       label: "帳票出力",       icon: LayoutDashboard },
+  { href: "/kaitai/admin/clients",    label: "元請け管理",     icon: Settings       },
+  { href: "/kaitai/admin/master",     label: "設定・権限",     icon: Settings       },
 ] as const;
 
 const PAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
