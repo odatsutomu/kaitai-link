@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ChevronLeft, Printer, Plus, X, Trash2 } from "lucide-react";
-import { MOCK_DOC_SITES, DOC_META, genDocNo, todayStr, DocType } from "../../lib/doc-types";
-import { EstimateDoc }   from "../templates/estimate";
-import { InvoiceDoc }    from "../templates/invoice";
-import { ReceiptDoc }    from "../templates/receipt";
+import { DOC_META, genDocNo, todayStr, DocType } from "../../lib/doc-types";
+import type { DocSite, LineItem } from "../../lib/doc-types";
+import { EstimateDoc }       from "../templates/estimate";
+import { InvoiceDoc }        from "../templates/invoice";
+import { ReceiptDoc }        from "../templates/receipt";
 import { CompletionDoc, WasteDisposalItem } from "../templates/completion";
-import { ReportDoc }     from "../templates/report";
+import { ReportDoc }         from "../templates/report";
+import { DemolitionCertDoc } from "../templates/demolition-cert";
+import type { DemolitionCertData } from "../templates/demolition-cert";
 import { T } from "../../lib/design-tokens";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -64,7 +67,6 @@ function WasteDisposalPanel({
     setRows(rows.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
   }
 
-  // Derive resolved items for totals preview
   const resolved = rows.map(row => {
     const proc  = processors.find(p => p.id === row.processorId);
     const price = proc?.prices.find(p => p.wasteType === row.wasteType);
@@ -77,7 +79,6 @@ function WasteDisposalPanel({
       className="no-print rounded-xl overflow-hidden"
       style={{ background: C.card, border: `1px solid ${C.border}`, marginBottom: 24 }}
     >
-      {/* Panel header */}
       <div
         className="flex items-center justify-between px-5 py-4"
         style={{ borderBottom: `1px solid ${C.border}`, background: T.bg }}
@@ -95,7 +96,6 @@ function WasteDisposalPanel({
         </button>
       </div>
 
-      {/* Column headers */}
       {rows.length > 0 && (
         <div
           className="grid px-5 py-2.5 text-sm font-bold uppercase tracking-wide"
@@ -126,7 +126,6 @@ function WasteDisposalPanel({
             className="grid items-center gap-2 px-5 py-3"
             style={{ gridTemplateColumns: "2fr 2fr 100px 80px 90px 36px", borderTop: `1px solid #F1F5F9` }}
           >
-            {/* 廃材の種類 */}
             <div className="relative">
               <input
                 list={`wt-${i}`}
@@ -144,7 +143,6 @@ function WasteDisposalPanel({
               </datalist>
             </div>
 
-            {/* 処理場 */}
             <select
               className={inputCls}
               style={inputStyle}
@@ -155,7 +153,6 @@ function WasteDisposalPanel({
               {processors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
 
-            {/* 数量 */}
             <input
               type="number"
               className={`${inputCls} text-right`}
@@ -165,23 +162,14 @@ function WasteDisposalPanel({
               onChange={e => setField(i, "quantity", Number(e.target.value))}
             />
 
-            {/* 単価（自動表示） */}
             <div className="text-right text-sm" style={{ color: price ? C.amberDk : C.muted }}>
-              {price
-                ? `¥${price.unitPrice.toLocaleString()}/${price.unit}`
-                : "—"
-              }
+              {price ? `¥${price.unitPrice.toLocaleString()}/${price.unit}` : "—"}
             </div>
 
-            {/* 金額（自動計算） */}
             <div className="text-right text-sm font-bold font-numeric" style={{ color: C.text }}>
-              {price && row.quantity > 0
-                ? `¥${(row.quantity * price.unitPrice).toLocaleString()}`
-                : "—"
-              }
+              {price && row.quantity > 0 ? `¥${(row.quantity * price.unitPrice).toLocaleString()}` : "—"}
             </div>
 
-            {/* 削除 */}
             <button
               onClick={() => removeRow(i)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto"
@@ -193,7 +181,6 @@ function WasteDisposalPanel({
         );
       })}
 
-      {/* Total row */}
       {rows.length > 0 && (
         <div
           className="flex items-center justify-between px-5 py-4"
@@ -216,15 +203,86 @@ interface Props { type: string; siteId: string }
 export default function PreviewClient({ type, siteId }: Props) {
   const router  = useRouter();
   const docType = (type as DocType) in DOC_META ? (type as DocType) : "estimate";
-  const site    = MOCK_DOC_SITES.find(s => s.id === siteId) ?? MOCK_DOC_SITES[0];
   const meta    = DOC_META[docType];
-  const docNo   = genDocNo(docType, site?.id ?? "x");
-  const issueDate = todayStr();
+
+  // Site + contract data from API
+  const [site,         setSite]         = useState<DocSite | null>(null);
+  const [certData,     setCertData]     = useState<DemolitionCertData>({
+    landAddress: "", houseNo: "", structureKind: "",
+    floor1Area: "", floor2Area: "", floor3Area: "",
+  });
+  const [photoUrls,    setPhotoUrls]    = useState<string[]>([]);
+  const [loading,      setLoading]      = useState(true);
 
   // Waste disposal state (completion doc only)
-  const [processors,   setProcessors]   = useState<Processor[]>([]);
-  const [wasteRows,    setWasteRows]    = useState<WasteRow[]>([]);
+  const [processors, setProcessors] = useState<Processor[]>([]);
+  const [wasteRows,  setWasteRows]  = useState<WasteRow[]>([]);
 
+  const docNo     = genDocNo(docType, siteId);
+  const issueDate = todayStr();
+
+  // Load site data + contract data
+  useEffect(() => {
+    if (!siteId) { setLoading(false); return; }
+
+    Promise.all([
+      fetch("/api/kaitai/sites", { credentials: "include" })
+        .then(r => r.ok ? r.json() : null),
+      fetch(`/api/kaitai/sites/contract?siteId=${siteId}`, { credentials: "include" })
+        .then(r => r.ok ? r.json() : null),
+    ]).then(([sitesData, contractRes]) => {
+      const raw = sitesData?.sites?.find((s: Record<string, unknown>) => s.id === siteId);
+      if (raw) {
+        const cd = contractRes?.data;
+        const items: LineItem[] = cd?.estimateItems ?? cd?.invoiceItems ?? [];
+        setSite({
+          id:             raw.id as string,
+          name:           raw.name as string,
+          address:        raw.address as string,
+          contractAmount: (raw.contractAmount as number) ?? 0,
+          startDate:      (raw.startDate as string) ?? "",
+          endDate:        (raw.endDate as string) ?? "",
+          status:         raw.status as string,
+          structureType:  raw.structureType as string | undefined,
+          items:          docType === "invoice"
+            ? (cd?.invoiceItems ?? [])
+            : (cd?.estimateItems ?? items),
+          memo:           (cd?.notes as string) ?? undefined,
+          clientName:     (cd?.clientName as string) ?? undefined,
+          clientAddress:  (cd?.clientAddress as string) ?? undefined,
+          clientZip:      (cd?.clientZip as string) ?? undefined,
+          clientContact:  (cd?.clientContact as string) ?? undefined,
+        });
+        if (cd) {
+          setCertData({
+            landAddress:   cd.landAddress   ?? "",
+            houseNo:       cd.houseNo       ?? "",
+            structureKind: cd.structureKind ?? "",
+            floor1Area:    cd.floor1Area    ?? "",
+            floor2Area:    cd.floor2Area    ?? "",
+            floor3Area:    cd.floor3Area    ?? "",
+          });
+          // Load photo URLs from saved photoIds
+          const ids: string[] = Array.isArray(cd.photoIds) ? cd.photoIds : [];
+          if (ids.length > 0 && docType === "completion") {
+            fetch(`/api/kaitai/upload?siteId=${siteId}`, { credentials: "include" })
+              .then(r => r.ok ? r.json() : null)
+              .then(imgData => {
+                if (imgData?.images) {
+                  const urls = ids
+                    .map((id: string) => imgData.images.find((img: { id: string; url: string }) => img.id === id)?.url)
+                    .filter(Boolean) as string[];
+                  setPhotoUrls(urls);
+                }
+              });
+          }
+        }
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [siteId, docType]);
+
+  // Load processors for completion doc
   useEffect(() => {
     if (docType !== "completion") return;
     fetch("/api/kaitai/processors", { credentials: "include" })
@@ -233,7 +291,6 @@ export default function PreviewClient({ type, siteId }: Props) {
       .catch(() => {});
   }, [docType]);
 
-  // Build WasteDisposalItem[] for the document template
   const wasteDisposals: WasteDisposalItem[] = wasteRows
     .filter(r => r.wasteType && r.processorId && r.quantity > 0)
     .map(r => {
@@ -260,9 +317,18 @@ export default function PreviewClient({ type, siteId }: Props) {
     estimate:   <EstimateDoc   site={site} docNo={docNo} issueDate={issueDate} />,
     invoice:    <InvoiceDoc    site={site} docNo={docNo} issueDate={issueDate} />,
     receipt:    <ReceiptDoc    site={site} docNo={docNo} issueDate={issueDate} />,
-    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} />,
+    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} photoUrls={photoUrls} />,
     report:     <ReportDoc     site={site} docNo={docNo} issueDate={issueDate} />,
+    demolition: <DemolitionCertDoc site={site} certData={certData} docNo={docNo} issueDate={issueDate} />,
   }[docType] : null;
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100dvh", background: T.border, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: T.sub, fontSize: 14 }}>読み込み中...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100dvh", background: T.border }}>
@@ -299,57 +365,35 @@ export default function PreviewClient({ type, siteId }: Props) {
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={handlePrint}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: T.primary, color: "#fff",
-              border: "none", borderRadius: 8, padding: "8px 16px",
-              fontSize: 14, fontWeight: 700, cursor: "pointer",
-            }}
-          >
-            <Printer size={15} />
-            印刷・PDF保存
-          </button>
-        </div>
+        <button
+          onClick={handlePrint}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: T.primary, color: "#fff",
+            border: "none", borderRadius: 8, padding: "8px 16px",
+            fontSize: 14, fontWeight: 700, cursor: "pointer",
+          }}
+        >
+          <Printer size={15} />
+          印刷 / PDF保存
+        </button>
       </div>
 
-      {/* ── Document preview area ── */}
-      <div
-        className="no-print"
-        style={{ padding: "24px 16px 48px", display: "flex", justifyContent: "center" }}
-      >
-        <div style={{ width: "100%", maxWidth: 860 }}>
+      {/* ── Waste disposal panel (completion only) ── */}
+      {docType === "completion" && (
+        <div className="no-print" style={{ maxWidth: 794, margin: "0 auto", paddingTop: 24 }}>
+          <WasteDisposalPanel processors={processors} rows={wasteRows} setRows={setWasteRows} />
+        </div>
+      )}
 
-          {/* Waste disposal input panel (completion only) */}
-          {docType === "completion" && (
-            <WasteDisposalPanel
-              processors={processors}
-              rows={wasteRows}
-              setRows={setWasteRows}
-            />
-          )}
-
-          <div style={{ overflowX: "auto" }}>
-            {DocComponent}
+      {/* ── Document ── */}
+      <div style={{ padding: "24px 16px", display: "flex", justifyContent: "center" }}>
+        {DocComponent ?? (
+          <div style={{ color: T.sub, fontSize: 14, padding: 40 }}>
+            現場データが見つかりません。ログインしてから再度お試しください。
           </div>
-        </div>
+        )}
       </div>
-
-      {/* ── Print-only: document fills the page ── */}
-      <div style={{ display: "none" }} className="print-only">
-        {DocComponent}
-      </div>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @media print {
-            .print-only { display: block !important; }
-            .no-print { display: none !important; }
-          }
-        `,
-      }} />
     </div>
   );
 }

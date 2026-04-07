@@ -4,13 +4,15 @@ import { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
-  MapPin, Calendar, ChevronRight,
+  MapPin, ChevronRight,
   Building2, Zap, Droplets, Flame, AlertTriangle,
   Truck, FileText, Camera, Upload, X, Check,
-  Clock, Edit3, Plus, Info, Shield, ChevronDown,
+  Clock, Edit3, Plus, Info, ChevronDown,
+  Save, ExternalLink, Copy, AlertCircle,
 } from "lucide-react";
 import { useAppContext } from "../../../lib/app-context";
 import type { LatLng } from "../../../lib/geocode";
+import type { LineItem } from "../../../lib/doc-types";
 import { T } from "../../../lib/design-tokens";
 
 const MapPicker = dynamic(
@@ -105,7 +107,7 @@ const WASTE_ESTIMATE: Record<StructureType, number> = {
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function TabBar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
-  const tabs = ["基本・スケジュール", "契約・お金", "現場環境・リスク"];
+  const tabs = ["基本・スケジュール", "契約・お金", "現場環境・リスク", "契約・帳票作成"];
   return (
     <div className="flex" style={{ borderBottom: `2px solid ${C.border}` }}>
       {tabs.map((label, i) => (
@@ -296,6 +298,75 @@ export default function SiteEditPage({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
 
+  // ─── Tab 3: Contract / Document data ────────────────────────────────────────
+  // Section 1: 顧客・契約基本情報
+  const [cClientName,    setCClientName]    = useState("");
+  const [cClientZip,     setCClientZip]     = useState("");
+  const [cClientAddress, setCClientAddress] = useState("");
+  const [cClientContact, setCClientContact] = useState("");
+  const [cPaymentTerms,  setCPaymentTerms]  = useState("");
+  const [cExpiryDays,    setCExpiryDays]    = useState("30");
+  const [cProjectName,   setCProjectName]   = useState("");
+  const [cProjectAddr,   setCProjectAddr]   = useState("");
+
+  // Section 2: 見積・請求明細
+  const [activeItemsTab,  setActiveItemsTab]  = useState<"estimate" | "invoice">("estimate");
+  const [estimateItems,   setEstimateItems]   = useState<LineItem[]>([]);
+  const [invoiceItems,    setInvoiceItems]    = useState<LineItem[]>([]);
+  const [cNotes,          setCNotes]          = useState("");
+
+  // Section 3: 建物滅失登記用データ
+  const [cLandAddress,   setCLandAddress]   = useState("");
+  const [cHouseNo,       setCHouseNo]       = useState("");
+  const [cStructureKind, setCStructureKind] = useState("");
+  const [cFloor1Area,    setCFloor1Area]    = useState("");
+  const [cFloor2Area,    setCFloor2Area]    = useState("");
+  const [cFloor3Area,    setCFloor3Area]    = useState("");
+
+  // Section 4: 工事完了報告写真
+  const [siteImages,       setSiteImages]       = useState<{ id: string; url: string; reportType?: string }[]>([]);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
+
+  const [contractSaving, setContractSaving] = useState(false);
+  const [contractSaved,  setContractSaved]  = useState(false);
+
+  // Load contract data when tab 3 is first opened
+  useEffect(() => {
+    if (tab !== 3 || !id || !loaded) return;
+    fetch(`/api/kaitai/sites/contract?siteId=${id}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(res => {
+        const d = res?.data;
+        if (!d) return;
+        setCClientName(d.clientName ?? "");
+        setCClientZip(d.clientZip ?? "");
+        setCClientAddress(d.clientAddress ?? "");
+        setCClientContact(d.clientContact ?? "");
+        setCPaymentTerms(d.paymentTerms ?? "");
+        setCExpiryDays(String(d.expiryDays ?? 30));
+        setCProjectName(d.projectName ?? name);
+        setCProjectAddr(d.projectAddress ?? address);
+        setEstimateItems(Array.isArray(d.estimateItems) ? d.estimateItems : []);
+        setInvoiceItems(Array.isArray(d.invoiceItems) ? d.invoiceItems : []);
+        setCNotes(d.notes ?? "");
+        setCLandAddress(d.landAddress ?? "");
+        setCHouseNo(d.houseNo ?? "");
+        setCStructureKind(d.structureKind ?? "");
+        setCFloor1Area(d.floor1Area ?? "");
+        setCFloor2Area(d.floor2Area ?? "");
+        setCFloor3Area(d.floor3Area ?? "");
+        setSelectedPhotoIds(Array.isArray(d.photoIds) ? d.photoIds : []);
+      })
+      .catch(() => {});
+
+    // Also load site images for photo selection
+    fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(res => { if (res?.images) setSiteImages(res.images); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, id, loaded]);
+
   // Change log (pre-populated with saved originals)
   const [changeLog, setChangeLog]   = useState<ChangeLogEntry[]>([]);
   const [pendingChange, setPendingChange] = useState<{ field: string; before: string; after: string } | null>(null);
@@ -360,6 +431,79 @@ export default function SiteEditPage({
   function handleSave() {
     if (!name.trim()) { setTab(0); return; }
     alert("更新しました（デモ）");
+  }
+
+  // ─── Contract data helpers ──────────────────────────────────────────────────
+  function blankLineItem(): LineItem {
+    return { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0 };
+  }
+
+  function updateLineItem(
+    type: "estimate" | "invoice",
+    i: number,
+    field: keyof LineItem,
+    value: string | number
+  ) {
+    const setter = type === "estimate" ? setEstimateItems : setInvoiceItems;
+    setter(prev => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
+  }
+
+  function removeLineItem(type: "estimate" | "invoice", i: number) {
+    const setter = type === "estimate" ? setEstimateItems : setInvoiceItems;
+    setter(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  function copyItemsToOther() {
+    if (activeItemsTab === "estimate") {
+      setInvoiceItems([...estimateItems]);
+    } else {
+      setEstimateItems([...invoiceItems]);
+    }
+  }
+
+  function togglePhotoId(imgId: string) {
+    setSelectedPhotoIds(prev =>
+      prev.includes(imgId)
+        ? prev.filter(p => p !== imgId)
+        : prev.length < 6 ? [...prev, imgId] : prev
+    );
+  }
+
+  async function handleContractSave() {
+    if (!id) return;
+    setContractSaving(true);
+    try {
+      await fetch("/api/kaitai/sites/contract", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId:        id,
+          clientName:    cClientName,
+          clientZip:     cClientZip,
+          clientAddress: cClientAddress,
+          clientContact: cClientContact,
+          paymentTerms:  cPaymentTerms,
+          expiryDays:    Number(cExpiryDays) || 30,
+          projectName:   cProjectName,
+          projectAddress: cProjectAddr,
+          estimateItems,
+          invoiceItems,
+          notes:         cNotes,
+          landAddress:   cLandAddress,
+          houseNo:       cHouseNo,
+          structureKind: cStructureKind,
+          floor1Area:    cFloor1Area,
+          floor2Area:    cFloor2Area,
+          floor3Area:    cFloor3Area,
+          photoIds:      selectedPhotoIds,
+        }),
+      });
+      setContractSaved(true);
+      setTimeout(() => setContractSaved(false), 2500);
+    } finally {
+      setContractSaving(false);
+    }
   }
 
   const canSave = name.trim().length > 0;
@@ -911,6 +1055,297 @@ export default function SiteEditPage({
                   </button>
                   <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple className="hidden"
                     onChange={(e) => { const names = Array.from(e.target.files ?? []).map((f) => f.name); setFiles((prev) => [...prev, ...names]); }} />
+                </div>
+              </>
+            )}
+
+            {/* ════ TAB 3 ════ */}
+            {tab === 3 && (
+              <>
+                {/* ── Section 1: 顧客・契約基本情報 ──────────── */}
+                <SectionLabel>① 顧客・契約基本情報</SectionLabel>
+                <Card>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <FieldLabel>顧客名（宛先）</FieldLabel>
+                      <InputField value={cClientName} onChange={setCClientName} placeholder="例：山田 太郎 様" />
+                    </div>
+                    <div>
+                      <FieldLabel>顧客担当者</FieldLabel>
+                      <InputField value={cClientContact} onChange={setCClientContact} placeholder="例：田中 花子" />
+                    </div>
+                    <div>
+                      <FieldLabel>顧客郵便番号</FieldLabel>
+                      <InputField value={cClientZip} onChange={setCClientZip} placeholder="例：700-0000" />
+                    </div>
+                    <div>
+                      <FieldLabel>顧客住所</FieldLabel>
+                      <InputField value={cClientAddress} onChange={setCClientAddress} placeholder="例：岡山県岡山市..." />
+                    </div>
+                    <div>
+                      <FieldLabel>工事件名（帳票用）</FieldLabel>
+                      <InputField value={cProjectName} onChange={setCProjectName} placeholder={name || "例：山田邸解体工事"} />
+                    </div>
+                    <div>
+                      <FieldLabel>工事場所（帳票用）</FieldLabel>
+                      <InputField value={cProjectAddr} onChange={setCProjectAddr} placeholder={address || "例：岡山市北区..."} />
+                    </div>
+                    <div>
+                      <FieldLabel>支払条件</FieldLabel>
+                      <InputField value={cPaymentTerms} onChange={setCPaymentTerms} placeholder="例：工事完了後30日以内" />
+                    </div>
+                    <div>
+                      <FieldLabel>見積有効期限（日数）</FieldLabel>
+                      <InputField
+                        type="number"
+                        value={cExpiryDays}
+                        onChange={setCExpiryDays}
+                        placeholder="30"
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* ── Section 2: 見積・請求明細エディタ ────────── */}
+                <SectionLabel>② 見積・請求明細エディタ</SectionLabel>
+                <Card>
+                  {/* Switcher */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex gap-1">
+                      {(["estimate", "invoice"] as const).map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setActiveItemsTab(t)}
+                          className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                          style={activeItemsTab === t
+                            ? { background: C.amber, color: "#fff" }
+                            : { background: C.bg, color: C.muted, border: `1px solid ${C.border}` }}
+                        >
+                          {t === "estimate" ? "📋 見積明細" : "💴 請求明細"}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={copyItemsToOther}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
+                      style={{ background: C.bg, color: C.sub, border: `1px solid ${C.border}` }}
+                      title={activeItemsTab === "estimate" ? "見積明細→請求明細にコピー" : "請求明細→見積明細にコピー"}
+                    >
+                      <Copy size={12} />
+                      {activeItemsTab === "estimate" ? "請求にコピー" : "見積にコピー"}
+                    </button>
+                  </div>
+
+                  {/* Line items table */}
+                  {(() => {
+                    const items = activeItemsTab === "estimate" ? estimateItems : invoiceItems;
+                    const inputSt = { background: C.bg, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, padding: "5px 8px", fontSize: 13, outline: "none", width: "100%" };
+                    const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+                    return (
+                      <>
+                        {items.length > 0 && (
+                          <div
+                            className="grid text-sm font-bold mb-1 px-1"
+                            style={{ gridTemplateColumns: "1fr 0.8fr 60px 60px 90px 36px", color: C.muted, gap: 6 }}
+                          >
+                            <span>工事項目</span>
+                            <span>仕様・内訳</span>
+                            <span className="text-right">数量</span>
+                            <span>単位</span>
+                            <span className="text-right">単価</span>
+                            <span />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          {items.map((it, i) => (
+                            <div key={i} className="grid items-center gap-1.5" style={{ gridTemplateColumns: "1fr 0.8fr 60px 60px 90px 36px" }}>
+                              <input style={inputSt} value={it.name} onChange={e => updateLineItem(activeItemsTab, i, "name", e.target.value)} placeholder="例：仮設・養生工事" />
+                              <input style={inputSt} value={it.spec} onChange={e => updateLineItem(activeItemsTab, i, "spec", e.target.value)} placeholder="仕様" />
+                              <input style={{ ...inputSt, textAlign: "right" }} type="number" value={it.qty} onChange={e => updateLineItem(activeItemsTab, i, "qty", Number(e.target.value))} />
+                              <input style={inputSt} value={it.unit} onChange={e => updateLineItem(activeItemsTab, i, "unit", e.target.value)} placeholder="式" />
+                              <input style={{ ...inputSt, textAlign: "right" }} type="number" value={it.unitPrice} onChange={e => updateLineItem(activeItemsTab, i, "unitPrice", Number(e.target.value))} placeholder="0" />
+                              <button onClick={() => removeLineItem(activeItemsTab, i)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto" style={{ color: C.muted }}>
+                                <X size={13} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const setter = activeItemsTab === "estimate" ? setEstimateItems : setInvoiceItems;
+                            setter(prev => [...prev, blankLineItem()]);
+                          }}
+                          className="mt-3 flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl"
+                          style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid #E5E7EB` }}
+                        >
+                          <Plus size={12} /> 行を追加
+                        </button>
+                        {items.length > 0 && (
+                          <div className="mt-3 pt-3 flex items-center justify-end gap-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                            <span className="text-sm" style={{ color: C.muted }}>小計</span>
+                            <span className="text-sm font-bold" style={{ color: C.text }}>¥{subtotal.toLocaleString()}</span>
+                            <span className="text-sm" style={{ color: C.muted }}>税込</span>
+                            <span className="font-bold" style={{ color: C.amberDk }}>¥{(Math.floor(subtotal * 1.1)).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+
+                  <div className="mt-4">
+                    <FieldLabel>備考・特記事項</FieldLabel>
+                    <textarea
+                      value={cNotes}
+                      onChange={e => setCNotes(e.target.value)}
+                      placeholder="例：解体後の更地渡し。敷地境界の確認を含む。"
+                      rows={3}
+                      className="w-full px-3.5 py-3 rounded-xl text-sm outline-none resize-none"
+                      style={{ background: C.bg, border: `1.5px solid ${C.border}`, color: C.text, fontFamily: "inherit" }}
+                    />
+                  </div>
+                </Card>
+
+                {/* ── Section 3: 建物滅失登記用データ ──────────── */}
+                <SectionLabel>③ 建物滅失登記用データ</SectionLabel>
+                <Card>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <FieldLabel>所在地（登記簿上の住所）</FieldLabel>
+                      <InputField value={cLandAddress} onChange={setCLandAddress} placeholder="例：岡山市北区〇〇町123番地" />
+                    </div>
+                    <div>
+                      <FieldLabel>家屋番号</FieldLabel>
+                      <InputField value={cHouseNo} onChange={setCHouseNo} placeholder="例：123番1" />
+                    </div>
+                    <div>
+                      <FieldLabel>種類</FieldLabel>
+                      <InputField value={cStructureKind} onChange={setCStructureKind} placeholder="例：居宅、店舗、倉庫" />
+                    </div>
+                    <div>
+                      <FieldLabel>1階床面積（㎡）</FieldLabel>
+                      <InputField type="number" value={cFloor1Area} onChange={setCFloor1Area} placeholder="例：65.50" />
+                    </div>
+                    <div>
+                      <FieldLabel>2階床面積（㎡）</FieldLabel>
+                      <InputField type="number" value={cFloor2Area} onChange={setCFloor2Area} placeholder="例：45.20（なければ空欄）" />
+                    </div>
+                    <div>
+                      <FieldLabel>3階床面積（㎡）</FieldLabel>
+                      <InputField type="number" value={cFloor3Area} onChange={setCFloor3Area} placeholder="例：30.10（なければ空欄）" />
+                    </div>
+                    {(cFloor1Area || cFloor2Area || cFloor3Area) && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                        <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
+                          延床面積合計：{(
+                            (parseFloat(cFloor1Area) || 0) +
+                            (parseFloat(cFloor2Area) || 0) +
+                            (parseFloat(cFloor3Area) || 0)
+                          ).toFixed(2)} ㎡
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* ── Section 4: 工事完了報告写真 ───────────────── */}
+                <SectionLabel>④ 工事完了報告用写真（最大6枚）</SectionLabel>
+                <Card>
+                  {siteImages.length === 0 ? (
+                    <div className="py-6 text-center" style={{ color: C.muted }}>
+                      <Camera size={24} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
+                      <p className="text-sm">現場写真がまだアップロードされていません</p>
+                      <p className="text-sm mt-1">現場編集の「現場環境・リスク」タブから写真を追加できます</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm mb-3" style={{ color: C.muted }}>
+                        報告書に掲載する写真を選択してください（最大6枚）
+                        <span className="ml-2 font-bold" style={{ color: C.amberDk }}>
+                          {selectedPhotoIds.length}/6 選択中
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                        {siteImages.map(img => {
+                          const selected = selectedPhotoIds.includes(img.id);
+                          return (
+                            <button
+                              key={img.id}
+                              onClick={() => togglePhotoId(img.id)}
+                              className="relative aspect-square rounded-xl overflow-hidden transition-all"
+                              style={{
+                                border: selected ? `3px solid ${C.amber}` : `2px solid ${C.border}`,
+                                opacity: !selected && selectedPhotoIds.length >= 6 ? 0.4 : 1,
+                              }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              {selected && (
+                                <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: C.amber }}>
+                                  <Check size={13} color="#fff" />
+                                </div>
+                              )}
+                              {img.reportType && (
+                                <div className="absolute bottom-0 left-0 right-0 py-0.5 text-center" style={{ background: "rgba(0,0,0,0.5)", fontSize: 9, color: "#fff" }}>
+                                  {img.reportType}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </Card>
+
+                {/* ── PDF Preview / Download buttons ─────────────── */}
+                <SectionLabel>📄 帳票プレビュー・PDF出力</SectionLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { type: "estimate",   label: "見積書",         emoji: "📋", missing: !cClientName ? "顧客名が未入力です" : null },
+                    { type: "invoice",    label: "請求書",         emoji: "💴", missing: !cClientName ? "顧客名が未入力です" : null },
+                    { type: "demolition", label: "建物滅失証明書", emoji: "🏚", missing: !cLandAddress ? "所在地（登記）が未入力です" : null },
+                    { type: "completion", label: "工事完了報告書", emoji: "✅", missing: null },
+                  ].map(({ type, label, emoji, missing }) => (
+                    <div key={type} className="relative group">
+                      <button
+                        onClick={() => !missing && window.open(`/kaitai/docs/preview?type=${type}&site=${id}`, "_blank")}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-sm transition-all"
+                        style={missing
+                          ? { background: C.bg, color: C.muted, border: `1.5px solid ${C.border}`, cursor: "not-allowed" }
+                          : { background: T.primaryLt, color: C.amberDk, border: `1.5px solid #E5E7EB`, cursor: "pointer" }
+                        }
+                      >
+                        <span style={{ fontSize: 18 }}>{emoji}</span>
+                        <span className="flex-1 text-left">{label}</span>
+                        {missing
+                          ? <AlertCircle size={15} style={{ color: "#F59E0B", flexShrink: 0 }} />
+                          : <ExternalLink size={14} style={{ flexShrink: 0 }} />
+                        }
+                      </button>
+                      {missing && (
+                        <div className="absolute bottom-full left-0 mb-1.5 px-3 py-2 rounded-lg text-sm font-medium pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          style={{ background: T.text, color: T.bg, whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+                          ⚠️ {missing}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Floating save */}
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={handleContractSave}
+                    disabled={contractSaving}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+                    style={contractSaved
+                      ? { background: "#16A34A", color: "#fff" }
+                      : { background: contractSaving ? C.bg : C.amber, color: contractSaving ? C.muted : "#fff" }
+                    }
+                  >
+                    {contractSaved ? <Check size={16} /> : <Save size={16} />}
+                    {contractSaved ? "保存しました" : contractSaving ? "保存中..." : "帳票データを保存する"}
+                  </button>
                 </div>
               </>
             )}

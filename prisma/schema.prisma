@@ -24,20 +24,21 @@ model KaitaiCompany {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  sessions      KaitaiSession[]
-  sites         KaitaiSite[]
-  members       KaitaiMember[]
-  equipment     KaitaiEquipment[]
-  clients       KaitaiClient[]
-  expenseLogs   KaitaiExpenseLog[]
-  images        KaitaiImage[]
+  sessions        KaitaiSession[]
+  sites           KaitaiSite[]
+  members         KaitaiMember[]
+  equipment       KaitaiEquipment[]
+  clients         KaitaiClient[]
+  expenseLogs     KaitaiExpenseLog[]
+  images          KaitaiImage[]
   operationLogs   KaitaiOperationLog[]
   monthlyEvals    KaitaiMonthlyEval[]
-  skillCategories  KaitaiSkillCategory[]
-  skills           KaitaiSkill[]
-  userSkills       KaitaiUserSkill[]
-  processors       KaitaiProcessor[]
-  processorPrices  KaitaiProcessorPrice[]
+  skillCategories KaitaiSkillCategory[]
+  skills          KaitaiSkill[]
+  userSkills      KaitaiUserSkill[]
+  processors      KaitaiProcessor[]
+  processorPrices KaitaiProcessorPrice[]
+  contractData    KaitaiContractData[]
 }
 
 model KaitaiSession {
@@ -73,9 +74,10 @@ model KaitaiSite {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  company     KaitaiCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  expenseLogs KaitaiExpenseLog[]
-  images      KaitaiImage[]
+  company      KaitaiCompany       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expenseLogs  KaitaiExpenseLog[]
+  images       KaitaiImage[]
+  contractData KaitaiContractData?
 
   @@index([companyId])
 }
@@ -304,4 +306,44 @@ model KaitaiOperationLog {
 
   @@index([companyId])
   @@index([createdAt])
+}
+
+model KaitaiContractData {
+  id             String   @id @default(cuid())
+  companyId      String
+  siteId         String   @unique
+
+  // Section 1: 顧客・契約基本情報
+  clientName     String?
+  clientZip      String?
+  clientAddress  String?
+  clientContact  String?
+  paymentTerms   String?
+  expiryDays     Int      @default(30)
+  projectName    String?
+  projectAddress String?
+
+  // Section 2: 見積・請求明細
+  estimateItems  Json     @default("[]")
+  invoiceItems   Json     @default("[]")
+  notes          String?
+
+  // Section 3: 建物滅失登記用データ
+  landAddress    String?
+  houseNo        String?
+  structureKind  String?
+  floor1Area     String?
+  floor2Area     String?
+  floor3Area     String?
+
+  // Section 4: 工事完了報告
+  photoIds       Json     @default("[]")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site    KaitaiSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }

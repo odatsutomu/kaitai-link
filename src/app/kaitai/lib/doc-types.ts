@@ -1,4 +1,4 @@
-export type DocType = "estimate" | "invoice" | "receipt" | "completion" | "report";
+export type DocType = "estimate" | "invoice" | "receipt" | "completion" | "report" | "demolition";
 
 export const DOC_META: Record<DocType, { label: string; emoji: string; desc: string }> = {
   estimate:   { label: "見積書",         emoji: "📋", desc: "工事費用の見積提示" },
@@ -6,6 +6,7 @@ export const DOC_META: Record<DocType, { label: string; emoji: string; desc: str
   receipt:    { label: "領収書",         emoji: "🧾", desc: "代金受領の証明" },
   completion: { label: "工事完了報告書", emoji: "✅", desc: "工事完了の公式記録" },
   report:     { label: "作業報告書",     emoji: "📊", desc: "日々の現場作業記録" },
+  demolition: { label: "建物滅失証明書", emoji: "🏚", desc: "建物滅失登記申請用証明書" },
 };
 
 export interface LineItem {

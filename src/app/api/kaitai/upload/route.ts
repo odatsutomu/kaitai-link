@@ -6,6 +6,23 @@ import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 30; // Vercel function timeout
 
+// GET /api/kaitai/upload?siteId=xxx — list images for a site
+export async function GET(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+
+  const siteId = req.nextUrl.searchParams.get("siteId");
+  if (!siteId) return NextResponse.json({ error: "siteId が必要です" }, { status: 400 });
+
+  const images = await prisma.kaitaiImage.findMany({
+    where: { companyId: session.companyId, siteId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, url: true, reportType: true, uploadedBy: true, createdAt: true },
+  });
+
+  return NextResponse.json({ ok: true, images });
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 認証チェック
