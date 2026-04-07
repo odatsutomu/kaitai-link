@@ -5,7 +5,7 @@
  *
  * ログイン情報:
  *   メール: test@okayama-kaitai.jp
- *   作業員パスワード: test1234
+ *   ログインパスワード: 1111
  *   管理者PIN: 0000
  */
 
@@ -25,7 +25,7 @@ async function main() {
   }
 
   // ── 1. 企業 ──────────────────────────────────────────────
-  const password1Hash = await bcrypt.hash("test1234", 10);
+  const password1Hash = await bcrypt.hash("1111", 10);
   const password2Hash = await bcrypt.hash("0000", 10);
 
   const company = await prisma.kaitaiCompany.create({
@@ -384,7 +384,7 @@ async function main() {
   console.log("\n✅ テストデータ投入完了!");
   console.log("─────────────────────────────────");
   console.log(`メール:     test@okayama-kaitai.jp`);
-  console.log(`パスワード: test1234`);
+  console.log(`パスワード: 1111`);
   console.log(`管理者PIN:  0000`);
   console.log("─────────────────────────────────");
   console.log(`現場: ${sites.length}件（施工中3・着工前2・完工3）`);

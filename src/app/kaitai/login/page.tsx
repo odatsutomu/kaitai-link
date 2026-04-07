@@ -14,7 +14,7 @@ export default function LoginPage() {
   const { setAuthLevel, setCompany, addLog } = useAppContext();
 
   const [email,    setEmail]    = useState("test@okayama-kaitai.jp");
-  const [password, setPassword] = useState("0000");
+  const [password, setPassword] = useState("1111");
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
