@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Plus, Edit3, Trash2, X, MapPin, Truck } from "lucide-react";
 import { T } from "../lib/design-tokens";
+import type { LatLng } from "../lib/geocode";
+
+const MapPicker = dynamic(
+  () => import("../components/map-picker").then(m => m.MapPicker),
+  { ssr: false, loading: () => <div style={{ height: 280, background: T.bg, borderRadius: 12, border: `1.5px solid ${T.border}` }} /> }
+);
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -25,6 +32,8 @@ interface Processor {
   id:        string;
   name:      string;
   address:   string;
+  lat:       number | null;
+  lng:       number | null;
   notes:     string;
   createdAt: string;
   prices:    ProcessorPrice[];
@@ -53,11 +62,14 @@ function ProcessorModal({
   initial, onSave, onClose,
 }: {
   initial?: Processor | null;
-  onSave:   (data: { name: string; address: string; notes: string; prices: ProcessorPrice[] }) => void;
+  onSave:   (data: { name: string; address: string; lat: number | null; lng: number | null; notes: string; prices: ProcessorPrice[] }) => void;
   onClose:  () => void;
 }) {
   const [name,    setName]    = useState(initial?.name    ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
+  const [mapPos,  setMapPos]  = useState<LatLng | null>(
+    initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null
+  );
   const [notes,   setNotes]   = useState(initial?.notes   ?? "");
   const [prices,  setPrices]  = useState<ProcessorPrice[]>(
     initial?.prices?.length ? initial.prices : [EMPTY_PRICE()]
@@ -81,6 +93,8 @@ function ProcessorModal({
     onSave({
       name:    name.trim(),
       address: address.trim(),
+      lat:     mapPos?.lat ?? null,
+      lng:     mapPos?.lng ?? null,
       notes:   notes.trim(),
       prices:  prices.filter(p => p.wasteType.trim()),
     });
@@ -141,6 +155,16 @@ function ProcessorModal({
               placeholder="例：大阪府大阪市〇〇区〇〇1-2-3"
               value={address}
               onChange={e => setAddress(e.target.value)}
+            />
+          </div>
+
+          {/* 地図ピン */}
+          <div>
+            <label className={labelCls} style={{ color: C.muted }}>地図上の位置</label>
+            <MapPicker
+              address={address}
+              value={mapPos}
+              onChange={setMapPos}
             />
           </div>
 
@@ -329,7 +353,7 @@ export default function ProcessorsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function handleSave(data: { name: string; address: string; notes: string; prices: ProcessorPrice[] }) {
+  function handleSave(data: { name: string; address: string; lat: number | null; lng: number | null; notes: string; prices: ProcessorPrice[] }) {
     const target = modalTarget;
     if (target === "new") {
       fetch("/api/kaitai/processors", {
@@ -444,9 +468,14 @@ export default function ProcessorsPage() {
                   <div className="min-w-0">
                     <p className="font-bold truncate" style={{ color: C.text }}>{proc.name}</p>
                     {proc.address && (
-                      <p className="text-sm mt-0.5 flex items-center gap-1" style={{ color: C.sub }}>
+                      <p className="text-sm mt-0.5 flex items-center gap-1 flex-wrap" style={{ color: C.sub }}>
                         <MapPin size={11} />
                         {proc.address}
+                        {proc.lat != null && proc.lng != null && (
+                          <span className="text-xs font-mono" style={{ color: C.muted }}>
+                            ({proc.lat.toFixed(4)}, {proc.lng.toFixed(4)})
+                          </span>
+                        )}
                       </p>
                     )}
                     {proc.notes && (

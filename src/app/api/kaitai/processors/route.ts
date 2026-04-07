@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, address, notes, prices } = body;
+  const { name, address, lat, lng, notes, prices } = body;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "処理場名は必須です" }, { status: 400 });
@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
       companyId: session.companyId,
       name:      name.trim(),
       address:   address?.trim() ?? null,
+      lat:       lat != null ? Number(lat) : null,
+      lng:       lng != null ? Number(lng) : null,
       notes:     notes?.trim()   ?? null,
       prices: prices?.length
         ? {
@@ -62,7 +64,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { id, name, address, notes, prices } = body;
+  const { id, name, address, lat, lng, notes, prices } = body;
   if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
 
   const existing = await prisma.kaitaiProcessor.findFirst({
@@ -79,6 +81,8 @@ export async function PATCH(req: NextRequest) {
       data: {
         name:    name?.trim()    ?? existing.name,
         address: address?.trim() ?? null,
+        lat:     lat != null ? Number(lat) : null,
+        lng:     lng != null ? Number(lng) : null,
         notes:   notes?.trim()   ?? null,
         prices: prices?.length
           ? {
