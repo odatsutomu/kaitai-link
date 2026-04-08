@@ -3,103 +3,166 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * POST /api/kaitai/run-migration
- * One-time DB schema migration (safe: all statements use IF NOT EXISTS).
- *   1. Add `direction` column to KaitaiProcessorPrice (default 'cost')
- *   2. Create KaitaiWasteCategory table
+ * Idempotent DB migration — safe to call multiple times.
+ * Creates missing tables/columns for the processor & waste category features.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function POST(_req: NextRequest) {
-
   const results: string[] = [];
 
-  // 0. List all kaitai tables to diagnose naming
+  // ── 0. Diagnose existing tables ────────────────────────────────────────────
+  let existingTables: string[] = [];
   try {
-    const tables = await prisma.$queryRawUnsafe<{ table_name: string }[]>(`
+    const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(`
       SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public'
-      ORDER BY table_name
+      WHERE table_schema = 'public' ORDER BY table_name
     `);
-    results.push(`📋 既存テーブル: ${tables.map(t => t.table_name).join(", ")}`);
+    existingTables = rows.map(r => r.table_name);
+    results.push(`📋 既存テーブル: ${existingTables.join(", ")}`);
   } catch (e) {
-    results.push(`⚠️ テーブル一覧取得: ${(e as Error).message}`);
+    results.push(`⚠️ テーブル一覧取得失敗: ${(e as Error).message}`);
   }
 
-  // 1. Add direction column — try both possible table names
-  const priceTableCandidates = ["KaitaiProcessorPrice", "kaitai_processor_price"];
-  let directionAdded = false;
-  for (const tbl of priceTableCandidates) {
+  const has = (name: string) =>
+    existingTables.some(t => t === name || t.toLowerCase() === name.toLowerCase());
+
+  // ── 1. KaitaiProcessor ────────────────────────────────────────────────────
+  if (!has("KaitaiProcessor")) {
     try {
-      await prisma.$executeRawUnsafe(
-        `ALTER TABLE "${tbl}" ADD COLUMN IF NOT EXISTS direction TEXT NOT NULL DEFAULT 'cost'`
-      );
-      results.push(`✅ ${tbl}.direction カラム追加（または既存）`);
-      directionAdded = true;
-      break;
-    } catch {
-      // try next candidate
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE "KaitaiProcessor" (
+          id          TEXT        NOT NULL,
+          "companyId" TEXT        NOT NULL,
+          name        TEXT        NOT NULL,
+          address     TEXT,
+          lat         DOUBLE PRECISION,
+          lng         DOUBLE PRECISION,
+          notes       TEXT,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "KaitaiProcessor_pkey" PRIMARY KEY (id)
+        )
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "KaitaiProcessor_companyId_idx"
+        ON "KaitaiProcessor"("companyId")
+      `);
+      results.push("✅ KaitaiProcessor テーブル作成");
+    } catch (e) {
+      results.push(`⚠️ KaitaiProcessor 作成: ${(e as Error).message}`);
+    }
+  } else {
+    results.push("✅ KaitaiProcessor テーブル（既存）");
+  }
+
+  // ── 2. KaitaiProcessorPrice ───────────────────────────────────────────────
+  if (!has("KaitaiProcessorPrice")) {
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE "KaitaiProcessorPrice" (
+          id            TEXT        NOT NULL,
+          "companyId"   TEXT        NOT NULL,
+          "processorId" TEXT        NOT NULL,
+          "wasteType"   TEXT        NOT NULL,
+          unit          TEXT        NOT NULL DEFAULT 't',
+          "unitPrice"   INTEGER     NOT NULL DEFAULT 0,
+          direction     TEXT        NOT NULL DEFAULT 'cost',
+          "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "KaitaiProcessorPrice_pkey" PRIMARY KEY (id)
+        )
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "KaitaiProcessorPrice_processorId_wasteType_key"
+        ON "KaitaiProcessorPrice"("processorId", "wasteType")
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "KaitaiProcessorPrice_companyId_idx"
+        ON "KaitaiProcessorPrice"("companyId")
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "KaitaiProcessorPrice_processorId_idx"
+        ON "KaitaiProcessorPrice"("processorId")
+      `);
+      results.push("✅ KaitaiProcessorPrice テーブル作成");
+    } catch (e) {
+      results.push(`⚠️ KaitaiProcessorPrice 作成: ${(e as Error).message}`);
+    }
+  } else {
+    // Table exists — just ensure direction column is there
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "KaitaiProcessorPrice"
+        ADD COLUMN IF NOT EXISTS direction TEXT NOT NULL DEFAULT 'cost'
+      `);
+      results.push("✅ KaitaiProcessorPrice.direction カラム確認・追加");
+    } catch (e) {
+      results.push(`⚠️ direction カラム: ${(e as Error).message}`);
     }
   }
-  if (!directionAdded) {
-    results.push("⚠️ direction カラム: 対応するテーブルが見つかりませんでした（上のテーブル一覧を確認）");
-  }
 
-  // 2. Create KaitaiWasteCategory table
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "KaitaiWasteCategory" (
-        id          TEXT        NOT NULL,
-        "companyId" TEXT        NOT NULL,
-        name        TEXT        NOT NULL,
-        "sortOrder" INTEGER     NOT NULL DEFAULT 0,
-        "isDefault" BOOLEAN     NOT NULL DEFAULT false,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT "KaitaiWasteCategory_pkey" PRIMARY KEY (id)
-      )
-    `);
-    results.push("✅ KaitaiWasteCategory テーブル作成（または既存）");
-  } catch (e) {
-    results.push(`⚠️ KaitaiWasteCategory テーブル: ${(e as Error).message}`);
-  }
-
-  // 3. Foreign key constraint
-  try {
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "KaitaiWasteCategory"
-      ADD CONSTRAINT "KaitaiWasteCategory_companyId_fkey"
-      FOREIGN KEY ("companyId") REFERENCES "KaitaiCompany"(id)
-      ON DELETE CASCADE ON UPDATE CASCADE
-    `);
-    results.push("✅ 外部キー制約追加");
-  } catch (e) {
-    // Likely already exists — not critical
-    const msg = (e as Error).message;
-    if (msg.includes("already exists")) {
-      results.push("✅ 外部キー制約（既存）");
-    } else {
-      results.push(`⚠️ 外部キー: ${msg}`);
+  // ── 3. KaitaiWasteCategory ────────────────────────────────────────────────
+  if (!has("KaitaiWasteCategory")) {
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE "KaitaiWasteCategory" (
+          id          TEXT        NOT NULL,
+          "companyId" TEXT        NOT NULL,
+          name        TEXT        NOT NULL,
+          "sortOrder" INTEGER     NOT NULL DEFAULT 0,
+          "isDefault" BOOLEAN     NOT NULL DEFAULT false,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "KaitaiWasteCategory_pkey" PRIMARY KEY (id)
+        )
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "KaitaiWasteCategory_companyId_name_key"
+        ON "KaitaiWasteCategory"("companyId", name)
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "KaitaiWasteCategory_companyId_idx"
+        ON "KaitaiWasteCategory"("companyId")
+      `);
+      results.push("✅ KaitaiWasteCategory テーブル作成");
+    } catch (e) {
+      results.push(`⚠️ KaitaiWasteCategory 作成: ${(e as Error).message}`);
     }
+  } else {
+    results.push("✅ KaitaiWasteCategory テーブル（既存）");
   }
 
-  // 4. Unique index: companyId + name
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE UNIQUE INDEX IF NOT EXISTS "KaitaiWasteCategory_companyId_name_key"
-      ON "KaitaiWasteCategory"("companyId", name)
-    `);
-    results.push("✅ ユニークインデックス (companyId, name)");
-  } catch (e) {
-    results.push(`⚠️ ユニークインデックス: ${(e as Error).message}`);
-  }
+  // ── 4. Foreign keys (best-effort) ─────────────────────────────────────────
+  const fks: [string, string][] = [
+    [
+      `ALTER TABLE "KaitaiProcessor" ADD CONSTRAINT "KaitaiProcessor_companyId_fkey"
+       FOREIGN KEY ("companyId") REFERENCES "KaitaiCompany"(id) ON DELETE CASCADE`,
+      "KaitaiProcessor.companyId FK",
+    ],
+    [
+      `ALTER TABLE "KaitaiProcessorPrice" ADD CONSTRAINT "KaitaiProcessorPrice_companyId_fkey"
+       FOREIGN KEY ("companyId") REFERENCES "KaitaiCompany"(id) ON DELETE CASCADE`,
+      "KaitaiProcessorPrice.companyId FK",
+    ],
+    [
+      `ALTER TABLE "KaitaiProcessorPrice" ADD CONSTRAINT "KaitaiProcessorPrice_processorId_fkey"
+       FOREIGN KEY ("processorId") REFERENCES "KaitaiProcessor"(id) ON DELETE CASCADE`,
+      "KaitaiProcessorPrice.processorId FK",
+    ],
+    [
+      `ALTER TABLE "KaitaiWasteCategory" ADD CONSTRAINT "KaitaiWasteCategory_companyId_fkey"
+       FOREIGN KEY ("companyId") REFERENCES "KaitaiCompany"(id) ON DELETE CASCADE`,
+      "KaitaiWasteCategory.companyId FK",
+    ],
+  ];
 
-  // 5. Index: companyId
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "KaitaiWasteCategory_companyId_idx"
-      ON "KaitaiWasteCategory"("companyId")
-    `);
-    results.push("✅ インデックス (companyId)");
-  } catch (e) {
-    results.push(`⚠️ インデックス: ${(e as Error).message}`);
+  for (const [sql, label] of fks) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+      results.push(`✅ ${label} 追加`);
+    } catch (e) {
+      const msg = (e as Error).message;
+      results.push(msg.includes("already exists") ? `✅ ${label}（既存）` : `⚠️ ${label}: ${msg}`);
+    }
   }
 
   return NextResponse.json({ ok: true, results });
