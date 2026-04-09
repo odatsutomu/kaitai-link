@@ -9,14 +9,26 @@ import { getSessionFromRequest } from "@/lib/kaitai/session";
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
-    }
-
     const { pin } = await req.json();
     if (!pin || typeof pin !== "string") {
       return NextResponse.json({ error: "PINを入力してください" }, { status: 400 });
+    }
+
+    // テスト用PIN: "0000" で常にアクセス許可（デモ・開発用）
+    if (pin === "0000") {
+      const token = req.cookies.get("kaitai_session")?.value;
+      if (token) {
+        await prisma.kaitaiSession.updateMany({
+          where: { token },
+          data: { authLevel: "admin" },
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
     const company = await prisma.kaitaiCompany.findUnique({
@@ -28,15 +40,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 });
     }
 
-    // テスト用PIN: "0000" で常にアクセス許可（デモ用）
-    const isTestPin = pin === "0000";
-    const isValid = isTestPin || await bcrypt.compare(pin, company.password2Hash);
+    const isValid = await bcrypt.compare(pin, company.password2Hash);
     if (!isValid) {
       return NextResponse.json({ error: "パスワードが違います" }, { status: 401 });
     }
 
     // セッションの authLevel を admin に昇格
-    // (既存セッションのトークンで更新)
     const token = req.cookies.get("kaitai_session")?.value;
     if (token) {
       await prisma.kaitaiSession.updateMany({
