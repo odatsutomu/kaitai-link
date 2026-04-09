@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Plus, X, Save, Truck, MapPin, Check } from "lucide-react";
 import { T } from "../../lib/design-tokens";
@@ -62,6 +62,9 @@ interface Processor {
 export default function ProcessorDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const isAdmin = pathname.startsWith("/kaitai/admin");
+  const listPath = isAdmin ? "/kaitai/admin/processors" : "/kaitai/processors";
   const processorId = params.id as string;
 
   const [loading,    setLoading]    = useState(true);
@@ -194,7 +197,7 @@ export default function ProcessorDetailPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/kaitai/processors")}
+            onClick={() => router.push(listPath)}
             className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:opacity-80"
             style={{ background: T.bg, border: `1.5px solid ${C.border}`, color: C.sub }}
           >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Plus, Trash2, X, MapPin, Truck, Database, ChevronRight, Package } from "lucide-react";
 import { T } from "../lib/design-tokens";
@@ -195,6 +195,9 @@ function DeleteModal({ name, onConfirm, onClose }: { name: string; onConfirm: ()
 
 export default function ProcessorsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isAdmin = pathname.startsWith("/kaitai/admin");
+  const basePath = isAdmin ? "/kaitai/admin/processors" : "/kaitai/processors";
   const [processors,   setProcessors]   = useState<Processor[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -220,7 +223,7 @@ export default function ProcessorsPage() {
         if (res?.processor) {
           setProcessors(prev => [res.processor, ...prev]);
           // 登録後に詳細編集ページへ遷移
-          router.push(`/kaitai/processors/${res.processor.id}`);
+          router.push(`${basePath}/${res.processor.id}`);
         }
       })
       .catch(() => {});
@@ -385,7 +388,7 @@ export default function ProcessorsPage() {
                   {/* Right actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() => router.push(`/kaitai/processors/${proc.id}`)}
+                      onClick={() => router.push(`${basePath}/${proc.id}`)}
                       className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-80"
                       style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}` }}
                     >
