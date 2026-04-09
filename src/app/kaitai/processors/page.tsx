@@ -262,7 +262,7 @@ export default function ProcessorsPage() {
   const buybackPrices = allPrices.filter(p => p.direction === "buyback");
 
   return (
-    <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
+    <div className="py-4 flex flex-col gap-4 pb-4">
 
       {/* ── Page header ── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -292,18 +292,22 @@ export default function ProcessorsPage() {
         </div>
       </div>
 
-      {/* ── KPI strip ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* ── KPI badges (compact) ── */}
+      <div className="flex flex-wrap gap-2">
         {[
-          { label: "登録処理場数",   value: processors.length,   note: "総登録数" },
-          { label: "廃材品目数",     value: allPrices.length,    note: "単価設定済み" },
-          { label: "費用品目",       value: costPrices.length,   note: "処理費用（支出）" },
-          { label: "買取品目",       value: buybackPrices.length, note: "買取（収入）" },
-        ].map(({ label, value, note }) => (
-          <div key={label} className="rounded-xl p-5" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-            <p className="text-sm mb-1" style={{ color: C.sub }}>{label}</p>
-            <p className="text-2xl font-bold font-numeric" style={{ color: C.text }}>{value}</p>
-            <p className="text-xs mt-1" style={{ color: C.muted }}>{note}</p>
+          { label: "登録",   value: processors.length,    unit: "件" },
+          { label: "品目",   value: allPrices.length,     unit: "件" },
+          { label: "費用",   value: costPrices.length,    unit: "件", color: C.red },
+          { label: "買取",   value: buybackPrices.length, unit: "件", color: C.green },
+        ].map(({ label, value, unit, color }) => (
+          <div
+            key={label}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5"
+            style={{ background: C.card, border: `1px solid ${C.border}` }}
+          >
+            <span className="text-xs" style={{ color: C.muted }}>{label}</span>
+            <span className="text-sm font-bold font-numeric" style={{ color: color ?? C.text }}>{value}</span>
+            <span className="text-xs" style={{ color: C.muted }}>{unit}</span>
           </div>
         ))}
       </div>
@@ -343,64 +347,63 @@ export default function ProcessorsPage() {
                 className="rounded-xl overflow-hidden"
                 style={{ background: C.card, border: `1px solid ${C.border}` }}
               >
-                <div className="flex items-center justify-between gap-3 px-5 py-4">
-                  {/* Left info */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div
-                      className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center"
-                      style={{ background: T.primaryLt }}
-                    >
-                      <Truck size={18} style={{ color: C.amber }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold truncate" style={{ color: C.text }}>{proc.name}</p>
-                      {proc.address && (
-                        <p className="text-sm mt-0.5 flex items-center gap-1 truncate" style={{ color: C.sub }}>
-                          <MapPin size={11} className="flex-shrink-0" />
-                          {proc.address}
-                        </p>
-                      )}
-                      {/* 品目サマリー */}
-                      <div className="flex items-center gap-3 mt-1">
-                        {priceCount > 0 ? (
-                          <>
-                            <span className="flex items-center gap-1 text-xs" style={{ color: C.sub }}>
-                              <Package size={10} /> {priceCount}品目
-                            </span>
-                            {costCount > 0 && (
-                              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full" style={{ background: C.redLt, color: C.red }}>
-                                費用{costCount}
-                              </span>
-                            )}
-                            {buybackCount > 0 && (
-                              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full" style={{ background: C.greenLt, color: C.green }}>
-                                買取{buybackCount}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs" style={{ color: C.muted }}>品目未設定</span>
-                        )}
-                      </div>
-                    </div>
+                {/* 上段: 名前・住所 */}
+                <div className="flex items-start gap-3 px-4 pt-4 pb-2">
+                  <div
+                    className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
+                    style={{ background: T.primaryLt }}
+                  >
+                    <Truck size={15} style={{ color: C.amber }} />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-base" style={{ color: C.text }}>{proc.name}</p>
+                    {proc.address && (
+                      <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: C.sub }}>
+                        <MapPin size={10} className="flex-shrink-0" />
+                        {proc.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-                  {/* Right actions */}
+                {/* 下段: 品目サマリー + アクション */}
+                <div className="flex items-center justify-between gap-2 px-4 pb-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    {priceCount > 0 ? (
+                      <>
+                        <span className="flex items-center gap-1 text-xs" style={{ color: C.sub }}>
+                          <Package size={10} /> {priceCount}品目
+                        </span>
+                        {costCount > 0 && (
+                          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full" style={{ background: C.redLt, color: C.red }}>
+                            費用{costCount}
+                          </span>
+                        )}
+                        {buybackCount > 0 && (
+                          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full" style={{ background: C.greenLt, color: C.green }}>
+                            買取{buybackCount}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs" style={{ color: C.muted }}>品目未設定</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => router.push(`${basePath}/${proc.id}`)}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-80"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-xs transition-all hover:opacity-80"
                       style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}` }}
                     >
                       詳細編集
-                      <ChevronRight size={14} />
+                      <ChevronRight size={12} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(proc); }}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-red-50"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50"
                       style={{ border: "1.5px solid #E5E7EB", color: C.muted }}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
