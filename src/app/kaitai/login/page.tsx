@@ -143,6 +143,40 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* テストアカウント案内 */}
+      <div className="px-6 pb-4">
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0" }}>
+          <div className="px-4 py-2.5" style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#64748B" }}>🔑 テストアカウント</p>
+          </div>
+          <div className="px-4 py-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>メール</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#334155", fontFamily: "monospace" }}>test@kaitai-link.demo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>パスワード</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#334155", fontFamily: "monospace" }}>test1234</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>管理者PIN</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#334155", fontFamily: "monospace" }}>0000</span>
+            </div>
+            <button
+              onClick={() => { setEmail("test@kaitai-link.demo"); setPassword("test1234"); setError(""); }}
+              className="mt-1 w-full rounded-xl font-bold transition-all active:scale-[0.98]"
+              style={{
+                height: 40, fontSize: 13,
+                background: "#E2E8F0", color: "#475569",
+                border: "none", cursor: "pointer",
+              }}
+            >
+              テストアカウントで入力
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Footer */}
       <div className="px-6 pb-10 flex flex-col items-center gap-3">
         <Link href="/kaitai/lp">
