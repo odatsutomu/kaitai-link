@@ -200,33 +200,42 @@ export default function ProcessorsPage() {
   const basePath = isAdmin ? "/kaitai/admin/processors" : "/kaitai/processors";
   const [processors,   setProcessors]   = useState<Processor[]>([]);
   const [loading,      setLoading]      = useState(true);
+  const [fetchError,   setFetchError]   = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Processor | null>(null);
   const [seeding,      setSeeding]      = useState(false);
+  const [saving,       setSaving]       = useState(false);
 
   useEffect(() => {
     fetch("/api/kaitai/processors", { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (!r.ok) throw new Error(r.status === 401 ? "認証エラー：ログインし直してください" : "データ取得に失敗しました");
+        return r.json();
+      })
       .then(data => { if (data?.processors) setProcessors(data.processors); })
-      .catch(() => {})
+      .catch(e => setFetchError(e.message || "通信エラー"))
       .finally(() => setLoading(false));
   }, []);
 
   function handleAdd(data: { name: string; address: string; lat: number | null; lng: number | null }) {
+    setSaving(true);
     fetch("/api/kaitai/processors", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (!r.ok) throw new Error(r.status === 401 ? "認証エラー" : "保存に失敗しました");
+        return r.json();
+      })
       .then(res => {
         if (res?.processor) {
           setProcessors(prev => [res.processor, ...prev]);
-          // 登録後に詳細編集ページへ遷移
           router.push(`${basePath}/${res.processor.id}`);
         }
       })
-      .catch(() => {});
+      .catch(e => alert(e.message || "保存に失敗しました"))
+      .finally(() => setSaving(false));
     setShowAddModal(false);
   }
 
@@ -313,13 +322,24 @@ export default function ProcessorsPage() {
       </div>
 
       {/* ── Processor list ── */}
+      {fetchError && (
+        <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "#FEF2F2", color: "#EF4444", border: "1px solid #FECACA" }}>
+          {fetchError}
+          <button
+            onClick={() => window.location.reload()}
+            className="ml-3 underline font-bold"
+          >
+            再読み込み
+          </button>
+        </div>
+      )}
       {loading ? (
         <div className="flex flex-col gap-4">
           {[0, 1, 2].map(i => (
             <div key={i} className="rounded-xl h-28 animate-pulse" style={{ background: C.border }} />
           ))}
         </div>
-      ) : processors.length === 0 ? (
+      ) : !fetchError && processors.length === 0 ? (
         <div
           className="rounded-xl py-20 flex flex-col items-center justify-center gap-3"
           style={{ background: C.card, border: `1.5px dashed ${C.border}` }}

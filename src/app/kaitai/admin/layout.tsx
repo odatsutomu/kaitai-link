@@ -416,16 +416,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    const isAuth = typeof sessionStorage !== "undefined"
-      && sessionStorage.getItem("kaitai_auth_level") === "admin";
-    setAuthed(isAuth);
-    if (isAuth) setAdminMode(true);
-    setLoading(false);
+    // sessionStorageだけでなく、実際のAPIセッションも検証する
+    const checkAuth = async () => {
+      const isStorageAuth = typeof sessionStorage !== "undefined"
+        && sessionStorage.getItem("kaitai_auth_level") === "admin";
+
+      if (isStorageAuth) {
+        // 実際のセッションCookieが有効か確認
+        try {
+          const res = await fetch("/api/kaitai/auth/me", { credentials: "include" });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.authLevel === "admin") {
+              setAuthed(true);
+              setAdminMode(true);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch { /* ignore */ }
+        // セッション無効 → sessionStorageをクリアしてPIN画面へ
+        sessionStorage.removeItem("kaitai_auth_level");
+      }
+      setAuthed(false);
+      setLoading(false);
+    };
+    checkAuth();
   }, [setAdminMode]);
 
   const handleSuccess = useCallback(() => {
-    setAdminMode(true); // setAdminMode already writes kaitai_auth_level="admin" to sessionStorage
+    setAdminMode(true);
     setAuthed(true);
+    // ページをリロードして全コンポーネントを新しいセッションCookieで再マウント
+    window.location.reload();
   }, [setAdminMode]);
 
   const handleExit = useCallback(() => {
