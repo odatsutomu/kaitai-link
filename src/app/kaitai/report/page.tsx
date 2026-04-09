@@ -13,6 +13,13 @@ const C = {
   amber: T.primary, amberDk: T.primaryDk,
 };
 
+// ─── Feature toggles ─────────────────────────────────────────────────────────
+type FeatureToggles = {
+  clockIn: boolean; break: boolean; clockOut: boolean;
+  report: boolean; waste: boolean; finish: boolean;
+};
+const ALL_ON: FeatureToggles = { clockIn: true, break: true, clockOut: true, report: true, waste: true, finish: true };
+
 // ─── Mock sites ───────────────────────────────────────────────────────────────
 
 const SITES = [
@@ -73,11 +80,20 @@ export default function ReportPage() {
   const [shake, setShake] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [snackbar, setSnackbar] = useState("");
+  const [toggles, setToggles] = useState<FeatureToggles>(ALL_ON);
 
   const today = new Date().toISOString().slice(0, 10);
   const activeCount = selectedSite
     ? countActiveStaff(attendanceLogs, selectedSite.id, today)
     : 0;
+
+  // Feature toggles の読み込み
+  useEffect(() => {
+    fetch("/api/kaitai/company/toggles")
+      .then(r => r.json())
+      .then(d => { if (d.ok) setToggles(d.toggles); })
+      .catch(() => {});
+  }, []);
 
   // 前回の認証が有効なら PIN をスキップして直接アクション画面へ
   useEffect(() => {
@@ -122,13 +138,15 @@ export default function ReportPage() {
     }
   }
 
+  const siteQs = `site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`;
+
   // ── Step: site selection ─────────────────────────────────────────────────
   if (step === "site") {
     return (
       <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
 
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: C.text }}>作業報告</h1>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>報告</h1>
           <p style={{ fontSize: 14, marginTop: 4, color: C.sub }}>報告する現場を選択してください</p>
         </div>
 
@@ -325,70 +343,121 @@ export default function ReportPage() {
         </span>
       </div>
 
-      {/* Action grid */}
-      <div className="grid grid-cols-2 gap-5 max-w-2xl">
-        <ActionTile
-          emoji="🏁"
-          label="勤務開始"
-          sub="出勤を記録"
-          bg="#F0FDF4"
-          border="1.5px solid #BBF7D0"
-          textColor="#166534"
-          onClick={() => router.push(`/kaitai/report/start?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-        />
-        <ActionTile
-          emoji="☕️"
-          label="休憩"
-          sub="入り・戻り"
-          bg="#EFF6FF"
-          border="1.5px solid #BFDBFE"
-          textColor="#1E40AF"
-          disabled={activeCount === 0}
-          onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
-          onClick={() => router.push(`/kaitai/report/break?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-        />
-        <ActionTile
-          emoji="🚪"
-          label="退勤"
-          sub="退勤を記録"
-          bg={T.primaryLt}
-          border="1.5px solid #E5E7EB"
-          textColor={T.primaryDk}
-          disabled={activeCount === 0}
-          onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
-          onClick={() => router.push(`/kaitai/report/clockout?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-        />
-        <ActionTile
-          emoji="🚚"
-          label="終了報告"
-          sub="廃材・経費入力"
-          bg={T.bg}
-          border={`1.5px solid ${C.border}`}
-          textColor={C.text}
-          onClick={() => router.push(`/kaitai/report/finish?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-        />
+      {/* ── 出退勤セクション ── */}
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.06em", marginBottom: 10 }}>
+          出退勤
+        </p>
+        <div className="grid grid-cols-3 gap-4 max-w-2xl">
+          {toggles.clockIn && (
+            <ActionTile
+              emoji="🏁"
+              label="出勤"
+              sub="出勤を記録"
+              bg="#F0FDF4"
+              border="1.5px solid #BBF7D0"
+              textColor="#166534"
+              onClick={() => router.push(`/kaitai/report/start?${siteQs}`)}
+            />
+          )}
+          {toggles.break && (
+            <ActionTile
+              emoji="☕️"
+              label="休憩"
+              sub="入り・戻り"
+              bg="#EFF6FF"
+              border="1.5px solid #BFDBFE"
+              textColor="#1E40AF"
+              disabled={activeCount === 0}
+              onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
+              onClick={() => router.push(`/kaitai/report/break?${siteQs}`)}
+            />
+          )}
+          {toggles.clockOut && (
+            <ActionTile
+              emoji="🚪"
+              label="退勤"
+              sub="退勤を記録"
+              bg={T.primaryLt}
+              border="1.5px solid #E5E7EB"
+              textColor={T.primaryDk}
+              disabled={activeCount === 0}
+              onDisabledTap={() => showSnackbar("現在、出勤中のスタッフがいません")}
+              onClick={() => router.push(`/kaitai/report/clockout?${siteQs}`)}
+            />
+          )}
+        </div>
+      </div>
 
-        {/* Wide tiles */}
-        <ActionTile
-          emoji="⚠️"
-          label="イレギュラー報告"
-          sub="事故・設備破損・クレームなど"
-          bg="#FEF2F2"
-          border="1.5px solid #FECACA"
-          textColor="#991B1B"
-          onClick={() => router.push(`/kaitai/report/irregular?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-          wide
-        />
-        <ActionTile
-          emoji="💴"
-          label="経費報告"
-          sub="燃料・工具・資材・交通費などを報告"
-          bg="#F0FDF4"
-          border="1.5px solid #BBF7D0"
-          textColor="#166534"
-          onClick={() => router.push(`/kaitai/report/expense?site=${selectedSite?.id}&name=${encodeURIComponent(selectedSite?.name ?? "")}`)}
-          wide
-        />
+      {/* ── 現場報告セクション ── */}
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.06em", marginBottom: 10 }}>
+          現場報告
+        </p>
+        <div className="grid grid-cols-3 gap-4 max-w-2xl">
+          {toggles.report && (
+            <ActionTile
+              emoji="📋"
+              label="報告"
+              sub="機材チェック等"
+              bg="#FFF7ED"
+              border={`1.5px solid ${T.primaryMd}`}
+              textColor={T.primaryDk}
+              onClick={() => router.push(`/kaitai/report/daily?${siteQs}`)}
+            />
+          )}
+          {toggles.waste && (
+            <ActionTile
+              emoji="🚛"
+              label="廃材"
+              sub="処理場比較"
+              bg="#FEF3C7"
+              border="1.5px solid #FDE68A"
+              textColor="#92400E"
+              onClick={() => router.push(`/kaitai/report/waste?${siteQs}`)}
+            />
+          )}
+          {toggles.finish && (
+            <ActionTile
+              emoji="✅"
+              label="終了"
+              sub="終了報告"
+              bg={T.bg}
+              border={`1.5px solid ${C.border}`}
+              textColor={C.text}
+              onClick={() => router.push(`/kaitai/report/finish?${siteQs}`)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── その他 ── */}
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.06em", marginBottom: 10 }}>
+          その他
+        </p>
+        <div className="grid grid-cols-1 gap-4 max-w-2xl">
+          <ActionTile
+            emoji="⚠️"
+            label="イレギュラー報告"
+            sub="事故・設備破損・クレームなど"
+            bg="#FEF2F2"
+            border="1.5px solid #FECACA"
+            textColor="#991B1B"
+            onClick={() => router.push(`/kaitai/report/irregular?${siteQs}`)}
+            wide
+          />
+          <ActionTile
+            emoji="💴"
+            label="経費報告"
+            sub="燃料・工具・資材・交通費などを報告"
+            bg="#F0FDF4"
+            border="1.5px solid #BBF7D0"
+            textColor="#166534"
+            onClick={() => router.push(`/kaitai/report/expense?${siteQs}`)}
+            wide
+          />
+        </div>
       </div>
 
       {/* Snackbar */}

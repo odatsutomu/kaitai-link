@@ -21,6 +21,7 @@ model KaitaiCompany {
   password2Hash    String
   plan             String   @default("free")
   stripeCustomerId String?
+  featureToggles   Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -38,8 +39,9 @@ model KaitaiCompany {
   userSkills      KaitaiUserSkill[]
   processors      KaitaiProcessor[]
   processorPrices KaitaiProcessorPrice[]
-  contractData    KaitaiContractData[]
-  wasteCategories KaitaiWasteCategory[]
+  contractData     KaitaiContractData[]
+  wasteCategories  KaitaiWasteCategory[]
+  wasteDispatches  KaitaiWasteDispatch[]
 }
 
 model KaitaiSession {
@@ -309,6 +311,28 @@ model KaitaiWasteCategory {
   @@index([companyId])
 }
 
+model KaitaiWasteDispatch {
+  id          String   @id @default(cuid())
+  companyId   String
+  siteId      String
+  siteName    String
+  date        String
+  wasteType   String
+  quantity    Float
+  unit        String
+  processorId String?
+  processorName String?
+  cost        Int      @default(0)
+  direction   String   @default("cost")  // "cost" | "buyback"
+  reporter    String
+  createdAt   DateTime @default(now())
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([siteId, date])
+}
+
 model KaitaiOperationLog {
   id        String   @id @default(cuid())
   companyId String?
@@ -362,4 +386,336 @@ model KaitaiContractData {
   site    KaitaiSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+}
+
+// ─── 清掃LINK Models ──────────────────────────────────────────────────────────
+
+model SeisouCompany {
+  id               String   @id @default(cuid())
+  name             String
+  address          String
+  phone            String
+  adminName        String
+  adminEmail       String   @unique
+  password1Hash    String
+  password2Hash    String
+  password3Hash    String?
+  plan             String   @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sessions           SeisouSession[]
+  sites              SeisouSite[]
+  members            SeisouMember[]
+  clients            SeisouClient[]
+  equipment          SeisouEquipment[]
+  shifts             SeisouShift[]
+  workSessions       SeisouWorkSession[]
+  irregularReports   SeisouIrregularReport[]
+  expenseLogs        SeisouExpenseLog[]
+  images             SeisouImage[]
+  threads            SeisouThread[]
+  messages           SeisouMessage[]
+  checklistTemplates SeisouChecklistTemplate[]
+  operationLogs      SeisouOperationLog[]
+}
+
+model SeisouSession {
+  id        String   @id @default(cuid())
+  companyId String
+  authLevel String   @default("worker")
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  company SeisouCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([companyId])
+}
+
+model SeisouSite {
+  id             String   @id @default(cuid())
+  companyId      String
+  clientId       String?
+  name           String
+  address        String
+  status         String   @default("作業前")
+  startDate      String?
+  endDate        String?
+  contractAmount Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company          SeisouCompany           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client           SeisouClient?           @relation(fields: [clientId], references: [id])
+  shifts           SeisouShift[]
+  workSessions     SeisouWorkSession[]
+  irregularReports SeisouIrregularReport[]
+  expenseLogs      SeisouExpenseLog[]
+  images           SeisouImage[]
+
+  @@index([companyId])
+  @@index([clientId])
+}
+
+model SeisouMember {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  role      String   @default("worker")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company SeisouCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model SeisouClient {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  memo        String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company SeisouCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sites   SeisouSite[]
+
+  @@index([companyId])
+}
+
+model SeisouEquipment {
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String
+  category       String
+  type           String
+  supplier       String?
+  unitPrice      Int      @default(0)
+  status         String   @default("待機中")
+  returnDeadline String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company     SeisouCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expenseLogs SeisouExpenseLog[]
+
+  @@index([companyId])
+}
+
+model SeisouShift {
+  id        String   @id @default(cuid())
+  companyId String
+  staffName String
+  date      String
+  startTime String
+  endTime   String
+  siteId    String?
+  siteName  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company      SeisouCompany       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site         SeisouSite?         @relation(fields: [siteId], references: [id])
+  workSessions SeisouWorkSession[]
+
+  @@index([companyId])
+  @@index([date])
+  @@index([siteId])
+}
+
+model SeisouWorkSession {
+  id          String    @id @default(cuid())
+  companyId   String
+  staffName   String
+  shiftId     String?
+  siteId      String?
+  siteName    String?
+  date        String
+  status      String    @default("idle")
+  travelStartAt DateTime?
+  arrivedAt     DateTime?
+  workStartAt   DateTime?
+  workEndAt     DateTime?
+  notes       String?
+  imageUrls   String[]  @default([])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company            SeisouCompany             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  shift              SeisouShift?              @relation(fields: [shiftId], references: [id])
+  site               SeisouSite?               @relation(fields: [siteId], references: [id])
+  irregularReports   SeisouIrregularReport[]
+  checklistResponses SeisouChecklistResponse[]
+
+  @@index([companyId])
+  @@index([date])
+  @@index([staffName])
+  @@index([siteId])
+}
+
+model SeisouIrregularReport {
+  id          String   @id @default(cuid())
+  companyId   String
+  sessionId   String?
+  siteId      String?
+  siteName    String?
+  staffName   String
+  category    String
+  description String
+  severity    String   @default("low")
+  imageUrls   String[] @default([])
+  createdAt   DateTime @default(now())
+
+  company     SeisouCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workSession SeisouWorkSession? @relation(fields: [sessionId], references: [id])
+  site        SeisouSite?        @relation(fields: [siteId], references: [id])
+
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+model SeisouExpenseLog {
+  id            String  @id @default(cuid())
+  companyId     String
+  siteId        String?
+  siteName      String?
+  equipmentId   String?
+  equipmentName String?
+  category      String
+  amount        Int     @default(0)
+  description   String?
+  reporter      String
+  date          String
+  memo          String?
+  liters        Float?
+  pricePerLiter Float?
+  createdAt     DateTime @default(now())
+
+  company   SeisouCompany    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site      SeisouSite?      @relation(fields: [siteId], references: [id])
+  equipment SeisouEquipment? @relation(fields: [equipmentId], references: [id])
+
+  @@index([companyId])
+  @@index([siteId])
+  @@index([createdAt])
+}
+
+model SeisouImage {
+  id         String    @id @default(cuid())
+  companyId  String
+  siteId     String?
+  reportType String?
+  r2Key      String
+  url        String
+  expiresAt  DateTime?
+  uploadedBy String
+  createdAt  DateTime  @default(now())
+
+  company SeisouCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  site    SeisouSite?   @relation(fields: [siteId], references: [id])
+
+  @@index([companyId])
+  @@index([expiresAt])
+}
+
+model SeisouThread {
+  id          String   @id @default(cuid())
+  companyId   String
+  title       String
+  description String?
+  createdBy   String
+  pinned      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company  SeisouCompany   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  messages SeisouMessage[]
+
+  @@index([companyId])
+}
+
+model SeisouMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  companyId String
+  staffName String
+  body      String
+  createdAt DateTime @default(now())
+
+  company SeisouCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  thread  SeisouThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+model SeisouChecklistTemplate {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company SeisouCompany       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items   SeisouChecklistItem[]
+
+  @@index([companyId])
+}
+
+model SeisouChecklistItem {
+  id         String   @id @default(cuid())
+  templateId String
+  label      String
+  required   Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  template  SeisouChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  responses SeisouChecklistResponse[]
+
+  @@index([templateId])
+}
+
+model SeisouChecklistResponse {
+  id        String  @id @default(cuid())
+  sessionId String
+  itemId    String
+  checked   Boolean @default(false)
+  note      String?
+  createdAt DateTime @default(now())
+
+  workSession SeisouWorkSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  item        SeisouChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([itemId])
+}
+
+model SeisouOperationLog {
+  id        String   @id @default(cuid())
+  companyId String?
+  action    String
+  user      String
+  siteId    String?
+  device    String?
+  createdAt DateTime @default(now())
+
+  company SeisouCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([createdAt])
 }

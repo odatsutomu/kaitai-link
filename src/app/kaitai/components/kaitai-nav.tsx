@@ -43,7 +43,7 @@ const SUPPRESS_ROUTES = [
 const WORKER_TABS = [
   { href: "/kaitai",              label: "現場状況",  icon: Home },
   { href: "/kaitai/schedule",     label: "全体予定",  icon: Calendar },
-  { href: "/kaitai/report",       label: "作業報告",  icon: ClipboardList },
+  { href: "/kaitai/report",       label: "報告",      icon: ClipboardList },
   { href: "/kaitai/skill-matrix", label: "スキル",    icon: ClipboardCheck },
   { href: "/kaitai/members",      label: "メンバー",  icon: Users },
   { href: "/kaitai/menu",         label: "メニュー",  icon: MoreHorizontal },

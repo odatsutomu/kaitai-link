@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
   LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2, Building2, CalendarDays,
-  Wrench, Activity, Factory,
+  Wrench, Activity, Factory, Smartphone,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -30,6 +30,7 @@ const EXTERNAL_NAV = [
   { href: "/kaitai/admin/processors", label: "処理場管理",     icon: Factory        },
   { href: "/kaitai/admin/docs",       label: "帳票出力",       icon: LayoutDashboard },
   { href: "/kaitai/admin/clients",    label: "元請け管理",     icon: Settings       },
+  { href: "/kaitai/admin/app-config", label: "アプリ機能設定", icon: Smartphone     },
   { href: "/kaitai/admin/master",     label: "設定・権限",     icon: Settings       },
 ] as const;
 
