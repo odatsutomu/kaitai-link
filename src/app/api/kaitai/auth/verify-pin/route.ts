@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { getSessionFromRequest } from "@/lib/kaitai/session";
+import { getSessionFromRequest, createSession, sessionCookieOptions } from "@/lib/kaitai/session";
 
 /**
  * 管理者PINを検証する。
@@ -16,16 +16,46 @@ export async function POST(req: NextRequest) {
 
     // テスト用PIN: "0000" で常にアクセス許可（デモ・開発用）
     if (pin === "0000") {
-      const token = req.cookies.get("kaitai_session")?.value;
-      if (token) {
-        await prisma.kaitaiSession.updateMany({
-          where: { token },
+      const existingToken = req.cookies.get("kaitai_session")?.value;
+
+      if (existingToken) {
+        // 既存セッションがあればadminに昇格
+        const updated = await prisma.kaitaiSession.updateMany({
+          where: { token: existingToken },
           data: { authLevel: "admin" },
         });
+        if (updated.count > 0) {
+          return NextResponse.json({ ok: true });
+        }
       }
-      return NextResponse.json({ ok: true });
+
+      // セッションが無い or 無効 → テスト会社を探すか作成してセッション発行
+      let testCompany = await prisma.kaitaiCompany.findFirst({
+        where: { adminEmail: "test@kaitai-link.demo" },
+      });
+
+      if (!testCompany) {
+        testCompany = await prisma.kaitaiCompany.create({
+          data: {
+            name:          "テスト解体工業",
+            adminName:     "テスト管理者",
+            adminEmail:    "test@kaitai-link.demo",
+            address:       "岡山県岡山市北区1-1-1",
+            phone:         "086-000-0000",
+            password1Hash: await bcrypt.hash("test1234", 10),
+            password2Hash: await bcrypt.hash("0000", 10),
+            plan:          "pro",
+          },
+        });
+      }
+
+      const token = await createSession(testCompany.id, "admin");
+      const res = NextResponse.json({ ok: true });
+      res.cookies.set(sessionCookieOptions(token));
+      return res;
     }
 
+    // 通常のPIN検証フロー
     const session = await getSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });

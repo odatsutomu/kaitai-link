@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Plus, Trash2, X, MapPin, Truck, Database, ChevronRight, Package } from "lucide-react";
 import { T } from "../lib/design-tokens";
+import type { LatLng } from "../lib/geocode";
+
+const MapPicker = dynamic(
+  () => import("../components/map-picker").then(m => m.MapPicker),
+  { ssr: false, loading: () => <div style={{ height: 280, background: T.bg, borderRadius: 12, border: `1.5px solid ${T.border}` }} /> }
+);
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -47,16 +54,22 @@ function AddProcessorModal({
   onSave,
   onClose,
 }: {
-  onSave: (data: { name: string; address: string }) => void;
+  onSave: (data: { name: string; address: string; lat: number | null; lng: number | null }) => void;
   onClose: () => void;
 }) {
   const [name,    setName]    = useState("");
   const [address, setAddress] = useState("");
+  const [mapPos,  setMapPos]  = useState<LatLng | null>(null);
   const [error,   setError]   = useState("");
 
   function submit() {
     if (!name.trim()) { setError("処理場名は必須です"); return; }
-    onSave({ name: name.trim(), address: address.trim() });
+    onSave({
+      name:    name.trim(),
+      address: address.trim(),
+      lat:     mapPos?.lat ?? null,
+      lng:     mapPos?.lng ?? null,
+    });
   }
 
   return (
@@ -67,7 +80,7 @@ function AddProcessorModal({
     >
       <div
         className="w-full rounded-2xl flex flex-col"
-        style={{ maxWidth: 480, background: C.card }}
+        style={{ maxWidth: 600, background: C.card, maxHeight: "92dvh" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -79,7 +92,7 @@ function AddProcessorModal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-6 flex flex-col gap-5">
+        <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-5">
           <div>
             <label className="block text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: C.muted }}>
               処理場名 <span style={{ color: C.red }}>*</span>
@@ -104,6 +117,12 @@ function AddProcessorModal({
               value={address}
               onChange={e => setAddress(e.target.value)}
             />
+          </div>
+
+          {/* 地図ピン */}
+          <div>
+            <label className="block text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: C.muted }}>地図上の位置</label>
+            <MapPicker address={address} value={mapPos} onChange={setMapPos} />
           </div>
 
           <p className="text-xs" style={{ color: C.muted }}>
@@ -190,7 +209,7 @@ export default function ProcessorsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function handleAdd(data: { name: string; address: string }) {
+  function handleAdd(data: { name: string; address: string; lat: number | null; lng: number | null }) {
     fetch("/api/kaitai/processors", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
