@@ -6,17 +6,21 @@ import { ChevronLeft, CheckCircle, ChevronDown, MapPin } from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
-// ─── 廃材品目 ─────────────────────────────────────────────────────────────────
-const WASTE_ITEMS = [
-  { id: "concrete", label: "コンクリートガラ", unit: "t",  emoji: "🪨" },
-  { id: "wood",     label: "木くず",           unit: "t",  emoji: "🪵" },
-  { id: "metal",    label: "金属スクラップ",   unit: "kg", emoji: "🔩" },
-  { id: "gypsum",   label: "石膏ボード",       unit: "t",  emoji: "📦" },
-  { id: "plastic",  label: "廃プラスチック",   unit: "t",  emoji: "♻️" },
-  { id: "mixed",    label: "混合廃棄物",       unit: "t",  emoji: "🗑️" },
-  { id: "asbestos", label: "アスベスト含有",   unit: "袋", emoji: "⚠️" },
-  { id: "tile",     label: "瓦・タイル",       unit: "t",  emoji: "🏗" },
-];
+// ─── 廃材品目の絵文字マッピング（既知の品目用） ──────────────────────────────
+const EMOJI_MAP: Record<string, string> = {
+  "コンクリートガラ": "🪨", "コンクリート": "🪨",
+  "木くず": "🪵", "木材": "🪵",
+  "金属スクラップ": "🔩", "金属": "🔩", "鉄くず": "🔩",
+  "石膏ボード": "📦", "石膏": "📦",
+  "廃プラスチック": "♻️", "プラスチック": "♻️",
+  "混合廃棄物": "🗑️", "混合": "🗑️",
+  "アスベスト含有": "⚠️", "アスベスト": "⚠️",
+  "瓦・タイル": "🏗", "瓦": "🏗", "タイル": "🏗",
+  "ガラス": "🪟", "土砂": "⛰️", "繊維くず": "🧵",
+};
+const DEFAULT_EMOJI = "📦";
+
+type WasteItem = { id: string; label: string; unit: string; emoji: string };
 
 type Processor = {
   id: string;
@@ -37,21 +41,46 @@ function WastePageInner() {
   const siteName = params.get("name") ?? "現場";
   const { company, addLog } = useAppContext();
 
-  const [quantities, setQuantities] = useState<Record<string, string>>(
-    Object.fromEntries(WASTE_ITEMS.map(w => [w.id, ""]))
-  );
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [processors, setProcessors] = useState<Processor[]>([]);
+  const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
   const [selections, setSelections] = useState<Record<string, Selection>>({});
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(true);
 
-  // 処理場マスター読み込み
+  // 処理場マスター読み込み → 廃材品目を動的に構築
   useEffect(() => {
     fetch("/api/kaitai/processors")
       .then(r => r.json())
-      .then(d => { if (d.ok) setProcessors(d.processors ?? []); })
-      .catch(() => {});
+      .then(d => {
+        if (!d.ok) return;
+        const procs: Processor[] = d.processors ?? [];
+        setProcessors(procs);
+
+        // 全処理場の prices から一意の wasteType を抽出
+        const seen = new Map<string, { unit: string }>();
+        for (const proc of procs) {
+          for (const p of proc.prices) {
+            if (!seen.has(p.wasteType)) {
+              seen.set(p.wasteType, { unit: p.unit });
+            }
+          }
+        }
+
+        const items: WasteItem[] = Array.from(seen.entries()).map(([wasteType, info]) => ({
+          id: wasteType,
+          label: wasteType,
+          unit: info.unit,
+          emoji: EMOJI_MAP[wasteType] ?? DEFAULT_EMOJI,
+        }));
+
+        setWasteItems(items);
+        setQuantities(Object.fromEntries(items.map(w => [w.id, ""])));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingItems(false));
   }, []);
 
   function handleInput(id: string, val: string) {
@@ -62,11 +91,11 @@ function WastePageInner() {
 
   // 入力された廃材のみ
   const activeWaste = useMemo(() =>
-    WASTE_ITEMS.filter(w => {
+    wasteItems.filter(w => {
       const q = parseFloat(quantities[w.id] || "0");
       return q > 0;
     }).map(w => ({ ...w, qty: parseFloat(quantities[w.id]) })),
-    [quantities]
+    [quantities, wasteItems]
   );
 
   // 品目ごとの処理場オプション（単価付き）
@@ -230,8 +259,23 @@ function WastePageInner() {
       )}
 
       {/* ── 廃材入力リスト ── */}
+      {loadingItems && (
+        <div className="flex items-center justify-center py-12">
+          <span style={{ fontSize: 14, color: "#999" }}>廃材品目を読み込み中...</span>
+        </div>
+      )}
+      {!loadingItems && wasteItems.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 gap-3"
+          style={{ background: "#F9FAFB", borderRadius: 16, border: "1.5px dashed #D1D5DB" }}>
+          <span style={{ fontSize: 36 }}>📋</span>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "#666" }}>廃材品目が未登録です</p>
+          <p style={{ fontSize: 13, color: "#999", textAlign: "center", lineHeight: 1.6 }}>
+            管理者画面の「処理場管理」で処理場と<br />対応する廃材品目を登録してください
+          </p>
+        </div>
+      )}
       <div className="flex flex-col gap-3">
-        {WASTE_ITEMS.map(w => {
+        {wasteItems.map(w => {
           const qty = parseFloat(quantities[w.id] || "0");
           const isActive = qty > 0;
           const sel = selections[w.id];
@@ -380,13 +424,13 @@ function WastePageInner() {
       <div className="pt-2">
         <button
           onClick={submit}
-          disabled={!allSelected || submitting}
+          disabled={!allSelected || submitting || wasteItems.length === 0}
           className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"
           style={{
             height: 68, fontSize: 20,
-            background: allSelected ? "#212121" : "#D1D5DB",
+            background: allSelected && wasteItems.length > 0 ? "#212121" : "#D1D5DB",
             color: "#FFF",
-            cursor: allSelected ? "pointer" : "not-allowed",
+            cursor: allSelected && wasteItems.length > 0 ? "pointer" : "not-allowed",
           }}
         >
           {submitting ? "送信中..." : activeWaste.length === 0 ? "廃材を入力してください" : !allSelected ? "各廃材の処理場を選択してください" : "廃材記録を送信"}
