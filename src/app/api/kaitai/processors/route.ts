@@ -6,6 +6,20 @@ export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  // 単一処理場取得
+  if (id) {
+    const processor = await prisma.kaitaiProcessor.findFirst({
+      where:   { id, companyId: session.companyId },
+      include: { prices: { orderBy: { wasteType: "asc" } } },
+    });
+    if (!processor) return NextResponse.json({ error: "処理場が見つかりません" }, { status: 404 });
+    return NextResponse.json({ ok: true, processor });
+  }
+
+  // 全件取得
   const processors = await prisma.kaitaiProcessor.findMany({
     where:   { companyId: session.companyId },
     include: { prices: { orderBy: { wasteType: "asc" } } },
