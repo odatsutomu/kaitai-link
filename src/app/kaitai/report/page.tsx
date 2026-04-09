@@ -28,7 +28,7 @@ const SITES = [
   { id: "s3", name: "松本アパート解体", address: "埼玉県さいたま市浦和区常盤6-4-21", color: "#8B5CF6", active: false },
 ];
 
-const CORRECT_PIN = "1234";
+const CORRECT_PINS = ["1234", "0000"];
 
 type Step = "site" | "pin" | "action";
 
@@ -114,7 +114,7 @@ export default function ReportPage() {
 
   useEffect(() => {
     if (pin.length < 4) return;
-    if (pin === CORRECT_PIN) {
+    if (CORRECT_PINS.includes(pin)) {
       setAuthSiteId(selectedSite?.id ?? null);
       setTimeout(() => setStep("action"), 150);
     } else {

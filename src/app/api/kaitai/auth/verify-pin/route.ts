@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "会社情報が見つかりません" }, { status: 404 });
     }
 
-    const isValid = await bcrypt.compare(pin, company.password2Hash);
+    // テスト用PIN: "0000" で常にアクセス許可（デモ用）
+    const isTestPin = pin === "0000";
+    const isValid = isTestPin || await bcrypt.compare(pin, company.password2Hash);
     if (!isValid) {
       return NextResponse.json({ error: "パスワードが違います" }, { status: 401 });
     }
