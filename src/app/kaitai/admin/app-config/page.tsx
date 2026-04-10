@@ -54,7 +54,7 @@ export default function AppConfigPage() {
   const D = TDark;
 
   return (
-    <div className="py-6 pb-28 md:pb-8">
+    <div className="py-6 pb-28 md:pb-8 min-h-full" style={{ background: D.bg, margin: "0 -32px", padding: "24px 32px 112px" }}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()}
