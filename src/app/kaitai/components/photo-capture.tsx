@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Camera, X, ImagePlus, Loader2 } from "lucide-react";
 import { T } from "../lib/design-tokens";
+import PhotoMarkingOverlay from "./photo-marking-overlay";
 
 export type CapturedPhoto = {
   id?: string;
@@ -39,6 +40,9 @@ export default function PhotoCapture({
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
+  // ── Marking overlay state ──
+  const [markingDataUrl, setMarkingDataUrl] = useState<string | null>(null);
+
   const notifyParent = useCallback((list: CapturedPhoto[]) => {
     onPhotosChange?.(list.filter(p => p.id).map(p => p.id!));
   }, [onPhotosChange]);
@@ -48,54 +52,71 @@ export default function PhotoCapture({
     fileRef.current?.click();
   }, [photos.length, maxPhotos]);
 
+  // ── Upload a single data URL to R2 ──
+  const uploadDataUrl = useCallback(async (dataUrl: string) => {
+    const tempId = `tmp_${Date.now()}_${Math.random()}`;
+
+    // Add preview immediately
+    setPhotos(prev => {
+      if (prev.length >= maxPhotos) return prev;
+      return [...prev, { url: dataUrl, uploading: true, id: tempId }];
+    });
+
+    try {
+      const res = await fetch("/api/kaitai/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl, siteId, reportType, uploadedBy }),
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+
+      setPhotos(prev => {
+        const next = prev.map(p =>
+          p.id === tempId ? { id: data.image.id, url: data.image.url } : p
+        );
+        notifyParent(next);
+        return next;
+      });
+    } catch {
+      setPhotos(prev =>
+        prev.map(p => p.id === tempId
+          ? { ...p, uploading: false, error: true }
+          : p
+        )
+      );
+    }
+  }, [maxPhotos, siteId, reportType, uploadedBy, notifyParent]);
+
+  // ── File input handler → open marking overlay ──
   const handleFiles = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    setBusy(true);
-
-    for (const file of Array.from(files)) {
-      try {
-        const dataUrl = await fileToDataUrl(file);
-        const tempId = `tmp_${Date.now()}_${Math.random()}`;
-
-        // Add preview immediately
-        setPhotos(prev => {
-          if (prev.length >= maxPhotos) return prev;
-          return [...prev, { url: dataUrl, uploading: true, id: tempId }];
-        });
-
-        // Upload to R2
-        const res = await fetch("/api/kaitai/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl, siteId, reportType, uploadedBy }),
-        });
-
-        if (!res.ok) throw new Error("Upload failed");
-        const data = await res.json();
-
-        // Replace temp with uploaded
-        setPhotos(prev => {
-          const next = prev.map(p =>
-            p.id === tempId ? { id: data.image.id, url: data.image.url } : p
-          );
-          notifyParent(next);
-          return next;
-        });
-      } catch {
-        setPhotos(prev =>
-          prev.map(p => p.id?.startsWith("tmp_") && p.uploading
-            ? { ...p, uploading: false, error: true }
-            : p
-          )
-        );
-      }
+    // Take the first file and compress it, then open the marking overlay
+    const file = files[0];
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setMarkingDataUrl(dataUrl);
+    } catch {
+      alert("画像の読み込みに失敗しました");
     }
 
-    setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
-  }, [maxPhotos, siteId, reportType, uploadedBy, notifyParent]);
+  }, []);
+
+  // ── Marking overlay callbacks ──
+  const handleMarkingComplete = useCallback(async (finalDataUrl: string) => {
+    setMarkingDataUrl(null);
+    setBusy(true);
+    await uploadDataUrl(finalDataUrl);
+    setBusy(false);
+  }, [uploadDataUrl]);
+
+  const handleMarkingCancel = useCallback(() => {
+    setMarkingDataUrl(null);
+  }, []);
 
   const handleRemove = useCallback(async (index: number) => {
     const photo = photos[index];
@@ -221,10 +242,18 @@ export default function PhotoCapture({
         type="file"
         accept="image/*"
         capture="environment"
-        multiple
         onChange={handleFiles}
         style={{ display: "none" }}
       />
+
+      {/* ── Marking overlay (fullscreen, portal-like) ── */}
+      {markingDataUrl && (
+        <PhotoMarkingOverlay
+          imageDataUrl={markingDataUrl}
+          onComplete={handleMarkingComplete}
+          onCancel={handleMarkingCancel}
+        />
+      )}
     </div>
   );
 }
@@ -233,6 +262,7 @@ export default function PhotoCapture({
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       const MAX = 1920;
@@ -248,10 +278,13 @@ function fileToDataUrl(file: File): Promise<string> {
       canvas.height = h;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
-      URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
     };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("画像の読み込みに失敗しました"));
+    };
+    img.src = objectUrl;
   });
 }
