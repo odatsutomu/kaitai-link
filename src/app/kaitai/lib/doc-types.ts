@@ -38,7 +38,22 @@ export interface DocSite {
 
 export const MOCK_DOC_SITES: DocSite[] = [];
 
-export const SELF_COMPANY = {
+export interface CompanyInfo {
+  name: string;
+  zip: string;
+  address: string;
+  tel: string;
+  fax: string;
+  email: string;
+  rep: string;
+  invoiceNo: string;
+  bank: string;
+  bankType: string;
+  bankNo: string;
+  bankHolder: string;
+}
+
+export const SELF_COMPANY: CompanyInfo = {
   name: "",
   zip: "",
   address: "",

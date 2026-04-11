@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ChevronLeft, Printer, Plus, X, Trash2 } from "lucide-react";
-import { DOC_META, genDocNo, todayStr, DocType } from "../../lib/doc-types";
-import type { DocSite, LineItem } from "../../lib/doc-types";
+import { ChevronLeft, Printer, Plus, X, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { DOC_META, genDocNo, todayStr, DocType, SELF_COMPANY } from "../../lib/doc-types";
+import type { DocSite, LineItem, CompanyInfo } from "../../lib/doc-types";
 import { EstimateDoc }       from "../templates/estimate";
 import { InvoiceDoc }        from "../templates/invoice";
 import { ReceiptDoc }        from "../templates/receipt";
@@ -41,6 +41,182 @@ const C = {
   red: "#EF4444",
 };
 
+const inputCls  = "w-full px-2.5 py-1.5 rounded-lg text-sm outline-none";
+const inputStyle = { border: `1.5px solid ${C.border}`, background: T.bg, color: C.text };
+
+// ─── Collapsible Section ──────────────────────────────────────────────────────
+
+function EditSection({
+  title,
+  emoji,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  emoji: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div
+      className="no-print rounded-xl overflow-hidden"
+      style={{ background: C.card, border: `1px solid ${C.border}`, marginBottom: 12 }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-3"
+        style={{ background: T.bg, border: "none", cursor: "pointer", borderBottom: open ? `1px solid ${C.border}` : "none" }}
+      >
+        <span className="flex items-center gap-2 text-sm font-bold" style={{ color: C.text }}>
+          {emoji} {title}
+        </span>
+        {open ? <ChevronUp size={16} color={C.muted} /> : <ChevronDown size={16} color={C.muted} />}
+      </button>
+      {open && <div style={{ padding: "16px 20px" }}>{children}</div>}
+    </div>
+  );
+}
+
+// ─── Editable Field Row ──────────────────────────────────────────────────────
+
+function FieldRow({ label, value, onChange, placeholder }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-2">
+      <label className="text-sm font-semibold flex-shrink-0" style={{ color: C.sub, width: 100 }}>{label}</label>
+      <input
+        className={inputCls}
+        style={inputStyle}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder ?? label}
+      />
+    </div>
+  );
+}
+
+// ─── Company Edit Panel ───────────────────────────────────────────────────────
+
+function CompanyEditPanel({
+  company,
+  setCompany,
+}: {
+  company: CompanyInfo;
+  setCompany: (c: CompanyInfo) => void;
+}) {
+  function set<K extends keyof CompanyInfo>(k: K, v: string) {
+    setCompany({ ...company, [k]: v });
+  }
+  return (
+    <EditSection title="発行者情報（自社）" emoji="🏢" defaultOpen={!company.name}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        <FieldRow label="会社名" value={company.name} onChange={v => set("name", v)} />
+        <FieldRow label="代表者" value={company.rep} onChange={v => set("rep", v)} />
+        <FieldRow label="郵便番号" value={company.zip} onChange={v => set("zip", v)} placeholder="〒000-0000" />
+        <FieldRow label="住所" value={company.address} onChange={v => set("address", v)} />
+        <FieldRow label="TEL" value={company.tel} onChange={v => set("tel", v)} />
+        <FieldRow label="FAX" value={company.fax} onChange={v => set("fax", v)} />
+        <FieldRow label="メール" value={company.email} onChange={v => set("email", v)} />
+        <FieldRow label="登録番号" value={company.invoiceNo} onChange={v => set("invoiceNo", v)} placeholder="T0000000000000" />
+        <FieldRow label="振込先銀行" value={company.bank} onChange={v => set("bank", v)} placeholder="〇〇銀行 △△支店" />
+        <FieldRow label="口座種別" value={company.bankType} onChange={v => set("bankType", v)} placeholder="普通" />
+        <FieldRow label="口座番号" value={company.bankNo} onChange={v => set("bankNo", v)} />
+        <FieldRow label="口座名義" value={company.bankHolder} onChange={v => set("bankHolder", v)} />
+      </div>
+    </EditSection>
+  );
+}
+
+// ─── Client Edit Panel ───────────────────────────────────────────────────────
+
+function ClientEditPanel({
+  site,
+  setSite,
+}: {
+  site: DocSite;
+  setSite: (s: DocSite) => void;
+}) {
+  return (
+    <EditSection title="宛先情報（発注者）" emoji="👤">
+      <FieldRow label="会社名" value={site.clientName ?? ""} onChange={v => setSite({ ...site, clientName: v })} />
+      <FieldRow label="郵便番号" value={site.clientZip ?? ""} onChange={v => setSite({ ...site, clientZip: v })} placeholder="〒000-0000" />
+      <FieldRow label="住所" value={site.clientAddress ?? ""} onChange={v => setSite({ ...site, clientAddress: v })} />
+      <FieldRow label="担当者" value={site.clientContact ?? ""} onChange={v => setSite({ ...site, clientContact: v })} />
+    </EditSection>
+  );
+}
+
+// ─── Line Items Edit Panel ───────────────────────────────────────────────────
+
+function LineItemsEditPanel({
+  items,
+  setItems,
+}: {
+  items: LineItem[];
+  setItems: (items: LineItem[]) => void;
+}) {
+  function addItem() {
+    setItems([...items, { name: "", spec: "", qty: 1, unit: "式", unitPrice: 0 }]);
+  }
+  function removeItem(i: number) {
+    setItems(items.filter((_, idx) => idx !== i));
+  }
+  function setField<K extends keyof LineItem>(i: number, k: K, v: LineItem[K]) {
+    setItems(items.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
+  }
+
+  return (
+    <EditSection title="明細項目" emoji="📝">
+      {items.length > 0 && (
+        <div
+          className="grid px-1 pb-2 text-xs font-bold"
+          style={{ gridTemplateColumns: "2fr 2fr 70px 50px 90px 36px", color: C.muted }}
+        >
+          <span>工事項目</span>
+          <span>仕様・内訳</span>
+          <span className="text-right">数量</span>
+          <span className="text-center">単位</span>
+          <span className="text-right">単価</span>
+          <span />
+        </div>
+      )}
+      {items.map((it, i) => (
+        <div
+          key={i}
+          className="grid items-center gap-2 mb-2"
+          style={{ gridTemplateColumns: "2fr 2fr 70px 50px 90px 36px" }}
+        >
+          <input className={inputCls} style={inputStyle} placeholder="工事項目" value={it.name} onChange={e => setField(i, "name", e.target.value)} />
+          <input className={inputCls} style={inputStyle} placeholder="仕様" value={it.spec} onChange={e => setField(i, "spec", e.target.value)} />
+          <input type="number" className={`${inputCls} text-right`} style={inputStyle} value={it.qty || ""} onChange={e => setField(i, "qty", Number(e.target.value))} />
+          <input className={`${inputCls} text-center`} style={inputStyle} value={it.unit} onChange={e => setField(i, "unit", e.target.value)} />
+          <input type="number" className={`${inputCls} text-right`} style={inputStyle} value={it.unitPrice || ""} onChange={e => setField(i, "unitPrice", Number(e.target.value))} />
+          <button onClick={() => removeItem(i)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto" style={{ color: C.muted, background: "none", border: "none", cursor: "pointer" }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ))}
+      {items.length === 0 && (
+        <div className="py-4 text-center text-sm" style={{ color: C.muted }}>
+          明細項目がありません。「行を追加」で項目を追加してください。
+        </div>
+      )}
+      <button
+        onClick={addItem}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold mt-2"
+        style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}`, cursor: "pointer" }}
+      >
+        <Plus size={12} /> 行を追加
+      </button>
+    </EditSection>
+  );
+}
+
 // ─── Waste Disposal Panel ─────────────────────────────────────────────────────
 
 function WasteDisposalPanel({
@@ -52,9 +228,6 @@ function WasteDisposalPanel({
   rows:       WasteRow[];
   setRows:    (rows: WasteRow[]) => void;
 }) {
-  const inputCls  = "w-full px-2.5 py-1.5 rounded-lg text-sm outline-none";
-  const inputStyle = { border: `1.5px solid ${C.border}`, background: T.bg, color: C.text };
-
   function addRow() {
     setRows([...rows, { wasteType: "", processorId: "", quantity: 0 }]);
   }
@@ -75,31 +248,12 @@ function WasteDisposalPanel({
   const total = resolved.reduce((s, r) => s + r.quantity * r.unitPrice, 0);
 
   return (
-    <div
-      className="no-print rounded-xl overflow-hidden"
-      style={{ background: C.card, border: `1px solid ${C.border}`, marginBottom: 24 }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: `1px solid ${C.border}`, background: T.bg }}
-      >
-        <div>
-          <p className="font-bold text-sm" style={{ color: C.text }}>🗑️ 廃材処理明細を入力</p>
-          <p className="text-sm mt-0.5" style={{ color: C.muted }}>印刷時に完了報告書へ反映されます</p>
-        </div>
-        <button
-          onClick={addRow}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold"
-          style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}` }}
-        >
-          <Plus size={12} /> 行を追加
-        </button>
-      </div>
-
+    <EditSection title="廃材処理明細" emoji="🗑️" defaultOpen>
+      <p className="text-sm mb-3" style={{ color: C.muted }}>印刷時に完了報告書へ反映されます</p>
       {rows.length > 0 && (
         <div
-          className="grid px-5 py-2.5 text-sm font-bold uppercase tracking-wide"
-          style={{ gridTemplateColumns: "2fr 2fr 100px 80px 90px 36px", color: C.muted, borderBottom: `1px solid ${C.border}` }}
+          className="grid px-1 pb-2 text-xs font-bold"
+          style={{ gridTemplateColumns: "2fr 2fr 100px 80px 90px 36px", color: C.muted }}
         >
           <span>廃材の種類</span>
           <span>処理場</span>
@@ -111,7 +265,7 @@ function WasteDisposalPanel({
       )}
 
       {rows.length === 0 && (
-        <div className="py-8 text-center text-sm" style={{ color: C.muted }}>
+        <div className="py-4 text-center text-sm" style={{ color: C.muted }}>
           「行を追加」ボタンで廃材処理を記入
         </div>
       )}
@@ -123,8 +277,8 @@ function WasteDisposalPanel({
         return (
           <div
             key={i}
-            className="grid items-center gap-2 px-5 py-3"
-            style={{ gridTemplateColumns: "2fr 2fr 100px 80px 90px 36px", borderTop: `1px solid #F1F5F9` }}
+            className="grid items-center gap-2 mb-2"
+            style={{ gridTemplateColumns: "2fr 2fr 100px 80px 90px 36px" }}
           >
             <div className="relative">
               <input
@@ -166,14 +320,14 @@ function WasteDisposalPanel({
               {price ? `¥${price.unitPrice.toLocaleString()}/${price.unit}` : "—"}
             </div>
 
-            <div className="text-right text-sm font-bold font-numeric" style={{ color: C.text }}>
+            <div className="text-right text-sm font-bold" style={{ color: C.text }}>
               {price && row.quantity > 0 ? `¥${(row.quantity * price.unitPrice).toLocaleString()}` : "—"}
             </div>
 
             <button
               onClick={() => removeRow(i)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 mx-auto"
-              style={{ color: C.muted }}
+              style={{ color: C.muted, background: "none", border: "none", cursor: "pointer" }}
             >
               <Trash2 size={13} />
             </button>
@@ -181,18 +335,23 @@ function WasteDisposalPanel({
         );
       })}
 
+      <button
+        onClick={addRow}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold mt-2"
+        style={{ background: T.primaryLt, color: C.amberDk, border: `1px solid ${T.primaryMd}`, cursor: "pointer" }}
+      >
+        <Plus size={12} /> 行を追加
+      </button>
+
       {rows.length > 0 && (
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderTop: `1px solid ${C.border}`, background: T.bg }}
-        >
-          <p className="text-sm font-bold" style={{ color: C.sub }}>廃材処理費合計</p>
-          <p className="text-lg font-bold font-numeric" style={{ color: C.amberDk }}>
+        <div className="flex items-center justify-end mt-3 pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
+          <p className="text-sm font-bold mr-4" style={{ color: C.sub }}>廃材処理費合計</p>
+          <p className="text-lg font-bold" style={{ color: C.amberDk }}>
             ¥{total.toLocaleString()}
           </p>
         </div>
       )}
-    </div>
+    </EditSection>
   );
 }
 
@@ -207,19 +366,21 @@ export default function PreviewClient({ type, siteId }: Props) {
 
   // Site + contract data from API
   const [site,         setSite]         = useState<DocSite | null>(null);
+  const [company,      setCompany]      = useState<CompanyInfo>({ ...SELF_COMPANY });
   const [certData,     setCertData]     = useState<DemolitionCertData>({
     landAddress: "", houseNo: "", structureKind: "",
     floor1Area: "", floor2Area: "", floor3Area: "",
   });
   const [photoUrls,    setPhotoUrls]    = useState<string[]>([]);
   const [loading,      setLoading]      = useState(true);
+  const [issueDate,    setIssueDate]    = useState(todayStr());
+  const [showEdit,     setShowEdit]     = useState(true);
 
   // Waste disposal state (completion doc only)
   const [processors, setProcessors] = useState<Processor[]>([]);
   const [wasteRows,  setWasteRows]  = useState<WasteRow[]>([]);
 
-  const docNo     = genDocNo(docType, siteId);
-  const issueDate = todayStr();
+  const docNo = genDocNo(docType, siteId);
 
   // Load site data + contract data
   useEffect(() => {
@@ -313,13 +474,18 @@ export default function PreviewClient({ type, siteId }: Props) {
     document.title = prev;
   }
 
+  // Helper to update site fields
+  function updateSite(partial: Partial<DocSite>) {
+    if (site) setSite({ ...site, ...partial });
+  }
+
   const DocComponent = site ? {
-    estimate:   <EstimateDoc   site={site} docNo={docNo} issueDate={issueDate} />,
-    invoice:    <InvoiceDoc    site={site} docNo={docNo} issueDate={issueDate} />,
-    receipt:    <ReceiptDoc    site={site} docNo={docNo} issueDate={issueDate} />,
-    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} photoUrls={photoUrls} />,
-    report:     <ReportDoc     site={site} docNo={docNo} issueDate={issueDate} />,
-    demolition: <DemolitionCertDoc site={site} certData={certData} docNo={docNo} issueDate={issueDate} />,
+    estimate:   <EstimateDoc   site={site} docNo={docNo} issueDate={issueDate} company={company} />,
+    invoice:    <InvoiceDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} />,
+    receipt:    <ReceiptDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} />,
+    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} photoUrls={photoUrls} company={company} />,
+    report:     <ReportDoc     site={site} docNo={docNo} issueDate={issueDate} company={company} />,
+    demolition: <DemolitionCertDoc site={site} certData={certData} docNo={docNo} issueDate={issueDate} company={company} />,
   }[docType] : null;
 
   if (loading) {
@@ -366,6 +532,21 @@ export default function PreviewClient({ type, siteId }: Props) {
         </div>
 
         <button
+          onClick={() => setShowEdit(!showEdit)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: showEdit ? "#334155" : "transparent",
+            color: showEdit ? T.bg : T.muted,
+            border: `1px solid ${showEdit ? "#475569" : "#475569"}`,
+            borderRadius: 8, padding: "8px 14px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          <Pencil size={14} />
+          編集
+        </button>
+
+        <button
           onClick={handlePrint}
           style={{
             display: "flex", alignItems: "center", gap: 6,
@@ -379,14 +560,82 @@ export default function PreviewClient({ type, siteId }: Props) {
         </button>
       </div>
 
-      {/* ── Waste disposal panel (completion only) ── */}
-      {docType === "completion" && (
-        <div className="no-print" style={{ maxWidth: 794, margin: "0 auto", paddingTop: 24 }}>
-          <WasteDisposalPanel processors={processors} rows={wasteRows} setRows={setWasteRows} />
+      {/* ── Edit panels (hidden on print) ── */}
+      {showEdit && site && (
+        <div className="no-print" style={{ maxWidth: 794, margin: "0 auto", paddingTop: 20, paddingLeft: 16, paddingRight: 16 }}>
+
+          {/* Issue date */}
+          <EditSection title="発行日" emoji="📅" defaultOpen>
+            <FieldRow
+              label="発行日"
+              value={issueDate}
+              onChange={v => setIssueDate(v)}
+              placeholder="2024年1月1日"
+            />
+          </EditSection>
+
+          {/* Company info */}
+          <CompanyEditPanel company={company} setCompany={setCompany} />
+
+          {/* Client info */}
+          <ClientEditPanel site={site} setSite={setSite} />
+
+          {/* Site/project info */}
+          <EditSection title="工事情報" emoji="🏗️">
+            <FieldRow label="現場名" value={site.name} onChange={v => updateSite({ name: v })} />
+            <FieldRow label="住所" value={site.address} onChange={v => updateSite({ address: v })} />
+            <FieldRow label="構造" value={site.structureType ?? ""} onChange={v => updateSite({ structureType: v })} placeholder="木造・鉄骨造 等" />
+            <div className="flex items-center gap-3 mb-2">
+              <label className="text-sm font-semibold flex-shrink-0" style={{ color: C.sub, width: 100 }}>契約金額</label>
+              <input
+                type="number"
+                className={inputCls}
+                style={inputStyle}
+                value={site.contractAmount || ""}
+                onChange={e => updateSite({ contractAmount: Number(e.target.value) })}
+                placeholder="税抜金額"
+              />
+            </div>
+            <div className="flex items-center gap-3 mb-2">
+              <label className="text-sm font-semibold flex-shrink-0" style={{ color: C.sub, width: 100 }}>備考</label>
+              <textarea
+                className="w-full px-2.5 py-1.5 rounded-lg text-sm outline-none"
+                style={{ ...inputStyle, minHeight: 60, resize: "vertical" as const }}
+                value={site.memo ?? ""}
+                onChange={e => updateSite({ memo: e.target.value })}
+                placeholder="備考・注記"
+              />
+            </div>
+          </EditSection>
+
+          {/* Line items (estimate/invoice only) */}
+          {(docType === "estimate" || docType === "invoice") && (
+            <LineItemsEditPanel
+              items={site.items}
+              setItems={items => updateSite({ items })}
+            />
+          )}
+
+          {/* Waste disposal (completion only) */}
+          {docType === "completion" && (
+            <WasteDisposalPanel processors={processors} rows={wasteRows} setRows={setWasteRows} />
+          )}
+
+          {/* Demolition cert fields */}
+          {docType === "demolition" && (
+            <EditSection title="建物の表示" emoji="🏚️" defaultOpen>
+              <FieldRow label="所在" value={certData.landAddress} onChange={v => setCertData({ ...certData, landAddress: v })} />
+              <FieldRow label="家屋番号" value={certData.houseNo} onChange={v => setCertData({ ...certData, houseNo: v })} />
+              <FieldRow label="種類" value={certData.structureKind} onChange={v => setCertData({ ...certData, structureKind: v })} placeholder="居宅・店舗 等" />
+              <FieldRow label="1階面積(㎡)" value={certData.floor1Area} onChange={v => setCertData({ ...certData, floor1Area: v })} />
+              <FieldRow label="2階面積(㎡)" value={certData.floor2Area} onChange={v => setCertData({ ...certData, floor2Area: v })} />
+              <FieldRow label="3階面積(㎡)" value={certData.floor3Area} onChange={v => setCertData({ ...certData, floor3Area: v })} />
+            </EditSection>
+          )}
         </div>
       )}
 
-      {/* ── Document ── */}
+      {/* ── Document preview ── */}
       <div style={{ padding: "24px 16px", display: "flex", justifyContent: "center" }}>
         {DocComponent ?? (
           <div style={{ color: T.sub, fontSize: 14, padding: 40 }}>

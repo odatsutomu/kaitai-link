@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, calcTotals, yen, todayStr, fmtDate } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import {
   DocPaper, DocTitle, HR, ClientIssuerRow, ProjectInfo,
   TotalHighlight, ItemsTable, NotesBox, BankInfo, DocFooter, PrintStyles,
@@ -9,9 +10,10 @@ interface Props {
   site: DocSite;
   docNo: string;
   issueDate?: string;
+  company?: CompanyInfo;
 }
 
-export function InvoiceDoc({ site, docNo, issueDate = todayStr() }: Props) {
+export function InvoiceDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
   // Payment due: end of next month
   const dueDate = (() => {
     const d = new Date();
@@ -28,7 +30,7 @@ export function InvoiceDoc({ site, docNo, issueDate = todayStr() }: Props) {
         <DocTitle title="請　求　書" docNo={docNo} issueDate={issueDate} />
         <HR thick />
 
-        <ClientIssuerRow site={site} />
+        <ClientIssuerRow site={site} company={company} />
 
         <div style={{ fontSize: 11, color: "#444", marginBottom: 14 }}>
           下記の通り御請求申し上げます。何卒よろしくお願いいたします。
@@ -51,7 +53,7 @@ export function InvoiceDoc({ site, docNo, issueDate = todayStr() }: Props) {
 
         <ItemsTable items={site.items} />
 
-        <BankInfo />
+        <BankInfo company={company} />
 
         <NotesBox memo={site.memo ? site.memo + "\n\n※ お振込手数料はご負担をお願いいたします。" : "※ お振込手数料はご負担をお願いいたします。"} />
 

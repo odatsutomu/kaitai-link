@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, FOOTER_BRANDING, todayStr, fmtDate, yen } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, ProjectInfo, NotesBox, DocFooter, PrintStyles } from "./shared";
 import { T } from "../../lib/design-tokens";
 
@@ -7,6 +8,7 @@ interface Props {
   site: DocSite;
   docNo: string;
   issueDate?: string;
+  company?: CompanyInfo;
 }
 
 const WASTE_RECORDS = [
@@ -26,7 +28,8 @@ const DAILY_WORK = [
   { date: "3/26", work: "残土処分・清掃・完了確認",        crew: 3 },
 ];
 
-export function ReportDoc({ site, docNo, issueDate = todayStr() }: Props) {
+export function ReportDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
+  const co = company ?? SELF_COMPANY;
   return (
     <>
       <PrintStyles />
@@ -43,9 +46,9 @@ export function ReportDoc({ site, docNo, issueDate = todayStr() }: Props) {
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 10, color: "#444", lineHeight: 1.9 }}>
-            <div style={{ fontWeight: 700 }}>{SELF_COMPANY.name}</div>
-            <div>{SELF_COMPANY.rep}</div>
-            <div>TEL：{SELF_COMPANY.tel}</div>
+            <div style={{ fontWeight: 700 }}>{co.name}</div>
+            <div>{co.rep}</div>
+            <div>TEL：{co.tel}</div>
           </div>
         </div>
 

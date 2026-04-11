@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, todayStr, fmtDate } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, ProjectInfo, NotesBox, DocFooter, PrintStyles } from "./shared";
 import { T } from "../../lib/design-tokens";
 
@@ -9,6 +10,7 @@ interface Props {
   issueDate?:      string;
   wasteDisposals?: WasteDisposalItem[];
   photoUrls?:      string[];
+  company?:        CompanyInfo;
 }
 
 export interface WasteDisposalItem {
@@ -30,7 +32,8 @@ const WORK_ITEMS = [
   "清掃・後片付け",
 ];
 
-export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDisposals = [], photoUrls = [] }: Props) {
+export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDisposals = [], photoUrls = [], company }: Props) {
+  const co = company ?? SELF_COMPANY;
   const totalWasteCost = wasteDisposals.reduce((s, w) => s + w.quantity * w.unitPrice, 0);
 
   return (
@@ -52,9 +55,9 @@ export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDispos
             )}
           </div>
           <div style={{ textAlign: "right", fontSize: 10, color: "#444", lineHeight: 1.9 }}>
-            <div style={{ fontWeight: 700 }}>{SELF_COMPANY.name}</div>
-            <div>{SELF_COMPANY.rep}</div>
-            <div>{SELF_COMPANY.tel}</div>
+            <div style={{ fontWeight: 700 }}>{co.name}</div>
+            <div>{co.rep}</div>
+            <div>{co.tel}</div>
           </div>
         </div>
 

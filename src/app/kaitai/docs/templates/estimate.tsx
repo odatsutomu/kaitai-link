@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, calcTotals, yen, todayStr, fmtDate } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import {
   DocPaper, DocTitle, HR, ClientIssuerRow, ProjectInfo,
   TotalHighlight, ItemsTable, NotesBox, DocFooter, PrintStyles,
@@ -9,9 +10,10 @@ interface Props {
   site: DocSite;
   docNo: string;
   issueDate?: string;
+  company?: CompanyInfo;
 }
 
-export function EstimateDoc({ site, docNo, issueDate = todayStr() }: Props) {
+export function EstimateDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
   const { subtotal } = calcTotals(site.contractAmount);
   // Expiry: 30 days from today
   const expiry = (() => {
@@ -27,7 +29,7 @@ export function EstimateDoc({ site, docNo, issueDate = todayStr() }: Props) {
         <DocTitle title="見　積　書" docNo={docNo} issueDate={issueDate} />
         <HR thick />
 
-        <ClientIssuerRow site={site} />
+        <ClientIssuerRow site={site} company={company} />
 
         <div style={{ fontSize: 11, color: "#444", marginBottom: 14 }}>
           下記の通り御見積申し上げます。

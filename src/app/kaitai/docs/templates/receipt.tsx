@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, calcTotals, yen, todayStr, SELF_COMPANY, FOOTER_BRANDING } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import { PrintStyles } from "./shared";
 import { T } from "../../lib/design-tokens";
 
@@ -7,9 +8,11 @@ interface Props {
   site: DocSite;
   docNo: string;
   issueDate?: string;
+  company?: CompanyInfo;
 }
 
-export function ReceiptDoc({ site, docNo, issueDate = todayStr() }: Props) {
+export function ReceiptDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
+  const co = company ?? SELF_COMPANY;
   const { subtotal, tax, total } = calcTotals(site.contractAmount);
 
   return (
@@ -97,13 +100,13 @@ export function ReceiptDoc({ site, docNo, issueDate = todayStr() }: Props) {
         {/* Issuer */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ width: 240 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{SELF_COMPANY.name}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{co.name}</div>
             <div style={{ fontSize: 10, color: "#444", lineHeight: 1.9 }}>
-              <div>{SELF_COMPANY.zip}　{SELF_COMPANY.address}</div>
-              <div>TEL：{SELF_COMPANY.tel}</div>
-              <div>{SELF_COMPANY.email}</div>
-              <div style={{ marginTop: 3, fontWeight: 600 }}>{SELF_COMPANY.rep}</div>
-              <div style={{ fontSize: 9, color: "#888" }}>登録番号：{SELF_COMPANY.invoiceNo}</div>
+              <div>{co.zip}　{co.address}</div>
+              <div>TEL：{co.tel}</div>
+              <div>{co.email}</div>
+              <div style={{ marginTop: 3, fontWeight: 600 }}>{co.rep}</div>
+              <div style={{ fontSize: 9, color: "#888" }}>登録番号：{co.invoiceNo}</div>
             </div>
             <div style={{
               width: 56, height: 56, border: "1.5px solid #aaa", borderRadius: 4,

@@ -1,5 +1,6 @@
 import React from "react";
-import { SELF_COMPANY, FOOTER_BRANDING, LineItem, DocSite, yen, calcTotals, fmtDate } from "../../lib/doc-types";
+import { SELF_COMPANY as DEFAULT_COMPANY, FOOTER_BRANDING, LineItem, DocSite, yen, calcTotals, fmtDate } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import { T } from "../../lib/design-tokens";
 
 // ─── Print CSS (injected in every document) ───────────────────────────────────
@@ -72,7 +73,8 @@ export function HR({ thick }: { thick?: boolean }) {
 
 // ─── Client + Issuer two-column ───────────────────────────────────────────────
 
-export function ClientIssuerRow({ site }: { site: DocSite }) {
+export function ClientIssuerRow({ site, company }: { site: DocSite; company?: CompanyInfo }) {
+  const co = company ?? DEFAULT_COMPANY;
   return (
     <div style={{ display: "flex", gap: 20, marginBottom: 18 }}>
       {/* 宛先 */}
@@ -91,14 +93,14 @@ export function ClientIssuerRow({ site }: { site: DocSite }) {
       {/* 発行者 */}
       <div style={{ width: 220, borderLeft: "1px solid #ddd", paddingLeft: 18 }}>
         <div style={{ fontSize: 9, color: "#777", marginBottom: 3, letterSpacing: 1 }}>発行者</div>
-        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{SELF_COMPANY.name}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{co.name}</div>
         <div style={{ fontSize: 10, color: "#444", lineHeight: 1.85 }}>
-          <div>{SELF_COMPANY.zip}</div>
-          <div>{SELF_COMPANY.address}</div>
-          <div>TEL：{SELF_COMPANY.tel}　FAX：{SELF_COMPANY.fax}</div>
-          <div>{SELF_COMPANY.email}</div>
-          <div style={{ marginTop: 3, fontWeight: 600 }}>{SELF_COMPANY.rep}</div>
-          <div style={{ fontSize: 9, color: "#888" }}>適格請求書 登録番号：{SELF_COMPANY.invoiceNo}</div>
+          <div>{co.zip}</div>
+          <div>{co.address}</div>
+          <div>TEL：{co.tel}　FAX：{co.fax}</div>
+          <div>{co.email}</div>
+          <div style={{ marginTop: 3, fontWeight: 600 }}>{co.rep}</div>
+          <div style={{ fontSize: 9, color: "#888" }}>適格請求書 登録番号：{co.invoiceNo}</div>
         </div>
         <div style={{
           width: 44, height: 44, border: "1.5px solid #aaa", borderRadius: 3,
@@ -258,7 +260,8 @@ export function NotesBox({ memo }: { memo?: string }) {
 
 // ─── Bank transfer info ───────────────────────────────────────────────────────
 
-export function BankInfo() {
+export function BankInfo({ company }: { company?: CompanyInfo }) {
+  const co = company ?? DEFAULT_COMPANY;
   return (
     <div style={{
       border: "1px solid #D1D5DB", borderRadius: 3, padding: "10px 14px",
@@ -267,11 +270,11 @@ export function BankInfo() {
       <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 5, color: "#333" }}>お振込先</div>
       <div style={{ fontSize: 11, lineHeight: 1.9 }}>
         <div>
-          <span style={{ fontWeight: 600 }}>{SELF_COMPANY.bank}</span>
-          &ensp;{SELF_COMPANY.bankType}預金&ensp;
-          <span style={{ fontFeatureSettings: "'tnum'", fontWeight: 600 }}>{SELF_COMPANY.bankNo}</span>
+          <span style={{ fontWeight: 600 }}>{co.bank}</span>
+          &ensp;{co.bankType}預金&ensp;
+          <span style={{ fontFeatureSettings: "'tnum'", fontWeight: 600 }}>{co.bankNo}</span>
         </div>
-        <div>口座名義：<span style={{ fontWeight: 600 }}>{SELF_COMPANY.bankHolder}</span></div>
+        <div>口座名義：<span style={{ fontWeight: 600 }}>{co.bankHolder}</span></div>
       </div>
     </div>
   );

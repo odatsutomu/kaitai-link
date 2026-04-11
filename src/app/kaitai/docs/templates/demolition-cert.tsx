@@ -1,5 +1,6 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, todayStr } from "../../lib/doc-types";
+import type { CompanyInfo } from "../../lib/doc-types";
 import { DocPaper, DocTitle, HR, DocFooter, PrintStyles } from "./shared";
 
 export interface DemolitionCertData {
@@ -16,6 +17,7 @@ interface Props {
   certData:    DemolitionCertData;
   docNo:       string;
   issueDate?:  string;
+  company?:    CompanyInfo;
 }
 
 const ROW_STYLE: React.CSSProperties = {
@@ -39,7 +41,8 @@ const VALUE_STYLE: React.CSSProperties = {
   color: "#111",
 };
 
-export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr() }: Props) {
+export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr(), company }: Props) {
+  const co = company ?? SELF_COMPANY;
   const totalArea = [certData.floor1Area, certData.floor2Area, certData.floor3Area]
     .filter(Boolean)
     .map(v => parseFloat(v) || 0)
@@ -149,11 +152,11 @@ export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr(
                 <span style={{ marginRight: 24 }}>証明者（施工業者）</span>
               </div>
               <div style={{ marginLeft: 120 }}>
-                <div>所在地　{SELF_COMPANY.address || "　　　　　　　　　　　　　　"}</div>
+                <div>所在地　{co.address || "　　　　　　　　　　　　　　"}</div>
                 <div style={{ fontWeight: 700, fontSize: 13, marginTop: 4 }}>
-                  {SELF_COMPANY.name || "　　　　　　　　　　　　"}
+                  {co.name || "　　　　　　　　　　　　"}
                 </div>
-                <div>代表者　{SELF_COMPANY.rep || "　　　　　　　　"}&ensp;㊞</div>
+                <div>代表者　{co.rep || "　　　　　　　　"}&ensp;㊞</div>
               </div>
             </div>
           </div>
