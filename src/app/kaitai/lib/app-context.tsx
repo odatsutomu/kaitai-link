@@ -443,10 +443,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addFuelLog = useCallback((data: Omit<FuelLog, "id">) => {
     setFuelLogs(prev => [{ ...data, id: `fuel${Date.now().toString(36)}` }, ...prev]);
+
+    // Persist to DB as expense (fuel_log operation log is created by the expense API)
+    fetch("/api/kaitai/expense", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "燃料費",
+        siteId: data.siteId,
+        siteName: null,
+        amount: Math.round((data.liters ?? 0) * (data.pricePerLiter ?? 155)),
+        description: `${data.equipmentName ?? ""}への給油 ${data.liters ?? 0}L`,
+        reporter: data.reporter ?? "作業員",
+        date: data.date,
+        memo: data.memo ?? null,
+        equipmentId: data.equipmentId ?? null,
+        equipmentName: data.equipmentName ?? null,
+        liters: data.liters,
+        pricePerLiter: data.pricePerLiter,
+      }),
+    }).catch(() => {});
   }, []);
 
   const addExpenseLog = useCallback((data: Omit<ExpenseLog, "id">) => {
-    setExpenseLogs(prev => [{ ...data, id: `exp${Date.now().toString(36)}` }, ...prev]);
+    const tempId = `exp${Date.now().toString(36)}`;
+    setExpenseLogs(prev => [{ ...data, id: tempId }, ...prev]);
+
+    // Persist to DB (creates KaitaiExpenseLog + KaitaiOperationLog)
+    fetch("/api/kaitai/expense", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.ok ? r.json() : null).then(res => {
+      if (res?.log) {
+        setExpenseLogs(prev => prev.map(e => e.id === tempId ? { ...e, id: res.log.id } : e));
+      }
+    }).catch(() => {});
   }, []);
 
   const addEvaluation = useCallback((data: WorkerEval) => {
@@ -481,6 +513,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       device,
       timestamp: new Date().toISOString(),
     }, ...prev].slice(0, 200)); // keep last 200
+
+    // Persist to DB
+    fetch("/api/kaitai/operation-logs", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, user, device }),
+    }).catch(() => {});
   }, []);
 
   return (

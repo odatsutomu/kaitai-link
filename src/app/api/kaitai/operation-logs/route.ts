@@ -42,3 +42,27 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ ok: true, logs }, { headers: { "Cache-Control": "no-store" } });
 }
+
+export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+
+  const body = await req.json();
+  const { action, user, device, siteId } = body;
+
+  if (!action) {
+    return NextResponse.json({ error: "actionは必須です" }, { status: 400 });
+  }
+
+  const log = await prisma.kaitaiOperationLog.create({
+    data: {
+      companyId: session.companyId,
+      action,
+      user: user ?? "system",
+      device: device ?? "",
+      siteId: siteId ?? null,
+    },
+  });
+
+  return NextResponse.json({ ok: true, log }, { status: 201 });
+}

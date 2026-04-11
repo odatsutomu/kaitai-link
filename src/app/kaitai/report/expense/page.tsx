@@ -90,7 +90,7 @@ const CATEGORIES: {
 function ExpenseContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { equipment, assignments, addExpenseLog, addFuelLog, company } = useAppContext();
+  const { equipment, assignments, addExpenseLog, company } = useAppContext();
 
   const siteId   = params.get("site") ?? "s1";
   const siteName = params.get("name") ?? "現場";
@@ -130,20 +130,7 @@ function ExpenseContent() {
   function handleSubmit() {
     if (!canSubmit || !category) return;
 
-    if (category === "燃料費") {
-      const eq = equipment.find(e => e.id === selectedEqId);
-      addFuelLog({
-        equipmentId: selectedEqId,
-        equipmentName: eq?.name ?? "",
-        siteId,
-        date: new Date().toISOString().slice(0, 10),
-        liters: litersNum,
-        pricePerLiter: priceNum,
-        reporter: company?.adminName ?? "作業員",
-        memo,
-      });
-    }
-
+    // addExpenseLog handles all categories including fuel (persists to DB)
     addExpenseLog({
       category,
       siteId,
