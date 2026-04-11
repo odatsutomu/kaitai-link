@@ -361,7 +361,7 @@ export default function AdminReportsPage() {
     Promise.all([
       fetch("/api/kaitai/operation-logs?type=reports&limit=1000", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/expense", { credentials: "include" }).then(r => r.ok ? r.json() : null),
-      fetch("/api/kaitai/waste-dispatch", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch("/api/kaitai/waste-dispatch?all=1", { credentials: "include" }).then(r => r.ok ? r.json() : null),
     ])
       .then(([logData, expData, wasteData]) => {
         if (logData?.logs) setLogs(logData.logs);
@@ -372,9 +372,73 @@ export default function AdminReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Find orphaned waste dispatches (no matching operation log)
+  const orphanedWasteLogs = useMemo(() => {
+    const matchedWasteIds = new Set<string>();
+    for (const log of logs) {
+      if (!log.action.startsWith("waste_dispatch:")) continue;
+      const logTime = new Date(log.createdAt).getTime();
+      for (const w of wastes) {
+        const wTime = new Date(w.createdAt).getTime();
+        if (Math.abs(wTime - logTime) < 120000 && w.reporter === log.user) {
+          matchedWasteIds.add(w.id);
+        }
+      }
+    }
+    // Create virtual operation logs for unmatched waste dispatches
+    return wastes
+      .filter(w => !matchedWasteIds.has(w.id))
+      .map(w => ({
+        id: `orphan_waste_${w.id}`,
+        action: `waste_dispatch:${w.wasteType} ${w.quantity}${w.unit}${w.processorName ? " → " + w.processorName : ""}`,
+        user: w.reporter || "不明",
+        siteId: w.siteId,
+        device: "",
+        createdAt: w.createdAt,
+        _orphanWasteId: w.id,
+      }));
+  }, [logs, wastes]);
+
+  // Find orphaned expense logs (no matching operation log)
+  const orphanedExpenseLogs = useMemo(() => {
+    const matchedExpIds = new Set<string>();
+    for (const log of logs) {
+      if (!log.action.startsWith("expense_log:") && !log.action.startsWith("fuel_log:")) continue;
+      const logTime = new Date(log.createdAt).getTime();
+      for (const e of expenses) {
+        const eTime = new Date(e.createdAt).getTime();
+        if (Math.abs(eTime - logTime) < 120000 && e.reporter === log.user) {
+          matchedExpIds.add(e.id);
+        }
+      }
+    }
+    return expenses
+      .filter(e => !matchedExpIds.has(e.id))
+      .map(e => ({
+        id: `orphan_exp_${e.id}`,
+        action: `expense_log:${e.category}:¥${e.amount}`,
+        user: e.reporter || "不明",
+        siteId: e.siteId,
+        device: "",
+        createdAt: e.createdAt,
+        _orphanExpenseId: e.id,
+      }));
+  }, [logs, expenses]);
+
+  // Merge real logs + orphaned virtual logs
+  const allLogs = useMemo(() => {
+    const merged = [
+      ...logs,
+      ...orphanedWasteLogs,
+      ...orphanedExpenseLogs,
+    ];
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return merged;
+  }, [logs, orphanedWasteLogs, orphanedExpenseLogs]);
+
   // Filter logs
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    return allLogs.filter(log => {
       // Date filter
       const logDate = log.createdAt.slice(0, 10);
       if (logDate < dateFrom || logDate > dateTo) return false;
@@ -395,12 +459,12 @@ export default function AdminReportsPage() {
 
       return true;
     });
-  }, [logs, category, searchQuery, dateFrom, dateTo]);
+  }, [allLogs, category, searchQuery, dateFrom, dateTo]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<ReportCategory, number> = { all: 0, attendance: 0, expense: 0, waste: 0, irregular: 0, daily: 0, finish: 0 };
-    for (const log of logs) {
+    for (const log of allLogs) {
       const logDate = log.createdAt.slice(0, 10);
       if (logDate < dateFrom || logDate > dateTo) continue;
       counts.all++;
@@ -408,7 +472,7 @@ export default function AdminReportsPage() {
       if (parsed.category in counts) counts[parsed.category as ReportCategory]++;
     }
     return counts;
-  }, [logs, dateFrom, dateTo]);
+  }, [allLogs, dateFrom, dateTo]);
 
   // Group by date
   const groupedByDate = useMemo(() => {
@@ -434,11 +498,21 @@ export default function AdminReportsPage() {
     return groups;
   }, [filteredLogs]);
 
-  // Compute waste cost for each waste_dispatch log
+  // Compute waste cost for each waste_dispatch log (including orphaned)
   const wasteLogCostMap = useMemo(() => {
     const map = new Map<string, { total: number; items: WasteDispatch[] }>();
-    for (const log of logs) {
+    for (const log of allLogs) {
       if (!log.action.startsWith("waste_dispatch:")) continue;
+      // Orphaned waste log — directly reference its waste record
+      const orphanId = (log as typeof log & { _orphanWasteId?: string })._orphanWasteId;
+      if (orphanId) {
+        const w = wastes.find(w2 => w2.id === orphanId);
+        if (w) {
+          const total = w.direction === "buyback" ? -w.cost : w.cost;
+          map.set(log.id, { total, items: [w] });
+        }
+        continue;
+      }
       const logTime = new Date(log.createdAt).getTime();
       const related = wastes.filter(w => {
         const wTime = new Date(w.createdAt).getTime();
@@ -450,7 +524,7 @@ export default function AdminReportsPage() {
       }
     }
     return map;
-  }, [logs, wastes]);
+  }, [allLogs, wastes]);
 
   // Total waste cost in date range
   const wasteTotalCost = useMemo(() => {
@@ -644,6 +718,11 @@ export default function AdminReportsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{parsed.title}</span>
+                      {(log.id.startsWith("orphan_waste_") || log.id.startsWith("orphan_exp_")) && (
+                        <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: C.red }}>
+                          ログ欠損
+                        </span>
+                      )}
                       {parsed.urgency && (
                         <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{
                           background: parsed.urgency === "緊急" ? "rgba(239,68,68,0.1)" : parsed.urgency === "要対応" ? "rgba(249,115,22,0.1)" : C.bg,
@@ -698,8 +777,43 @@ export default function AdminReportsPage() {
           wastes={wastes}
           onClose={() => setSelectedLog(null)}
           onDelete={async (id) => {
-            if (!confirm("この報告を削除しますか？この操作は取り消せません。")) return;
+            if (!confirm("この報告を削除しますか？関連する経費・廃材データも削除されます。")) return;
             try {
+              // Orphaned waste dispatch — delete directly via waste-dispatch API
+              if (id.startsWith("orphan_waste_")) {
+                const realId = id.replace("orphan_waste_", "");
+                const res = await fetch("/api/kaitai/waste-dispatch", {
+                  method: "DELETE", credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: realId }),
+                });
+                if (res.ok) {
+                  setWastes(prev => prev.filter(w => w.id !== realId));
+                  setSelectedLog(null);
+                } else {
+                  const data = await res.json().catch(() => ({}));
+                  alert(data.error || "削除に失敗しました");
+                }
+                return;
+              }
+              // Orphaned expense — delete directly via expense API
+              if (id.startsWith("orphan_exp_")) {
+                const realId = id.replace("orphan_exp_", "");
+                const res = await fetch("/api/kaitai/expense", {
+                  method: "DELETE", credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: realId }),
+                });
+                if (res.ok) {
+                  setExpenses(prev => prev.filter(e => e.id !== realId));
+                  setSelectedLog(null);
+                } else {
+                  const data = await res.json().catch(() => ({}));
+                  alert(data.error || "削除に失敗しました");
+                }
+                return;
+              }
+              // Normal operation log — cascade delete via operation-logs API
               const res = await fetch("/api/kaitai/operation-logs", {
                 method: "DELETE", credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -707,6 +821,22 @@ export default function AdminReportsPage() {
               });
               if (res.ok) {
                 setLogs(prev => prev.filter(l => l.id !== id));
+                // Also remove related local expense/waste state
+                const deletedLog = logs.find(l => l.id === id);
+                if (deletedLog) {
+                  const logTime = new Date(deletedLog.createdAt).getTime();
+                  if (deletedLog.action.startsWith("expense_log:") || deletedLog.action.startsWith("fuel_log:")) {
+                    setExpenses(prev => prev.filter(e => {
+                      const eTime = new Date(e.createdAt).getTime();
+                      return !(Math.abs(eTime - logTime) < 120000 && e.reporter === deletedLog.user);
+                    }));
+                  } else if (deletedLog.action.startsWith("waste_dispatch:")) {
+                    setWastes(prev => prev.filter(w => {
+                      const wTime = new Date(w.createdAt).getTime();
+                      return !(Math.abs(wTime - logTime) < 120000 && w.reporter === deletedLog.user);
+                    }));
+                  }
+                }
                 setSelectedLog(null);
               } else {
                 const data = await res.json().catch(() => ({}));

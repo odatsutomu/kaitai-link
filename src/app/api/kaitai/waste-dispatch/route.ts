@@ -8,11 +8,17 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
   const siteId = req.nextUrl.searchParams.get("siteId");
-  const date = req.nextUrl.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  const date = req.nextUrl.searchParams.get("date");
+  const all = req.nextUrl.searchParams.get("all");
 
   const where: Record<string, unknown> = { companyId: session.companyId };
   if (siteId) where.siteId = siteId;
-  if (date) where.date = date;
+  // all=1 で全件取得、date指定で日付絞り込み、どちらもなければ今日
+  if (!all && date) {
+    where.date = date;
+  } else if (!all) {
+    where.date = new Date().toISOString().slice(0, 10);
+  }
 
   const dispatches = await prisma.kaitaiWasteDispatch.findMany({
     where,
