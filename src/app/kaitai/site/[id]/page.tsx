@@ -440,10 +440,23 @@ function TabBasic({
         )}
       </div>
 
-      {/* ── 🚨 Alert notices from admin reactions ── */}
+      {/* ── 🚨 Alert notices from admin reactions (until next finish report) ── */}
       {(() => {
+        // Find the latest finish report timestamp
+        const latestFinish = logs
+          .filter(l => l.type === "finish")
+          .sort((a, b) => new Date(b.date + " " + b.time).getTime() - new Date(a.date + " " + a.time).getTime())[0];
+        const finishTime = latestFinish ? new Date(latestFinish.date + "T" + latestFinish.time).getTime() : 0;
+
         const alertReactions = Array.from(reactions.entries())
-          .filter(([, r]) => r.status === "action_required" || r.status === "call_required")
+          .filter(([logId, r]) => {
+            if (r.status !== "action_required" && r.status !== "call_required") return false;
+            // Only show if the reacted log was AFTER the latest finish report
+            const log = logs.find(l => l.id === logId);
+            if (!log) return false;
+            const logTime = new Date(log.date + "T" + log.time).getTime();
+            return logTime >= finishTime;
+          })
           .map(([logId, r]) => {
             const log = logs.find(l => l.id === logId);
             return { ...r, log };
@@ -919,17 +932,22 @@ function TabHistory({
                           {reaction && (() => {
                             const cfg = REACTION_BADGE[reaction.status];
                             if (!cfg) return null;
+                            const rd = new Date(reaction.createdAt);
+                            const rTime = `${rd.getMonth()+1}/${rd.getDate()} ${String(rd.getHours()).padStart(2,"0")}:${String(rd.getMinutes()).padStart(2,"0")}`;
                             return (
-                              <span
-                                className="px-1.5 py-0.5 rounded"
-                                style={{
-                                  fontSize: 11, fontWeight: 800,
-                                  background: cfg.bg, color: cfg.fg,
-                                  border: `1px solid ${cfg.border}`,
-                                }}
-                              >
-                                {cfg.label}
-                              </span>
+                              <>
+                                <span
+                                  className="px-1.5 py-0.5 rounded"
+                                  style={{
+                                    fontSize: 11, fontWeight: 800,
+                                    background: cfg.bg, color: cfg.fg,
+                                    border: `1px solid ${cfg.border}`,
+                                  }}
+                                >
+                                  {cfg.label}
+                                </span>
+                                <span style={{ fontSize: 10, color: T.muted }}>{rTime}</span>
+                              </>
                             );
                           })()}
                         </div>
