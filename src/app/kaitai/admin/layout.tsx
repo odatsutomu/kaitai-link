@@ -174,19 +174,6 @@ function LoginScreen({
         </div>
       </div>
 
-      {/* Test account shortcut */}
-      <button
-        onClick={() => { setPin("0000"); verifyPin("0000"); }}
-        className="mb-4 px-5 py-2 rounded-full text-sm font-bold transition-all active:scale-95"
-        style={{
-          background: "rgba(255,255,255,0.07)",
-          border: "1.5px solid rgba(255,255,255,0.15)",
-          color: "rgba(255,255,255,0.55)",
-        }}
-      >
-        テスト用 PIN を入力 (0000)
-      </button>
-
       {/* Numpad (mobile-first, also works on PC) */}
       <div
         className="w-full max-w-xs grid grid-cols-3 mb-8"

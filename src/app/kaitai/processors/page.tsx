@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Plus, Trash2, X, MapPin, Truck, Database, ChevronRight, Package } from "lucide-react";
+import { Plus, Trash2, X, MapPin, Truck, ChevronRight, Package } from "lucide-react";
 import { T } from "../lib/design-tokens";
 import type { LatLng } from "../lib/geocode";
 
@@ -203,7 +203,6 @@ export default function ProcessorsPage() {
   const [fetchError,   setFetchError]   = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Processor | null>(null);
-  const [seeding,      setSeeding]      = useState(false);
   const [saving,       setSaving]       = useState(false);
 
   useEffect(() => {
@@ -239,24 +238,6 @@ export default function ProcessorsPage() {
     setShowAddModal(false);
   }
 
-  async function handleSeedProcessors() {
-    if (!confirm("テスト用処理場データ（4件）を投入します。既存の処理場データはすべて削除されます。よろしいですか？")) return;
-    setSeeding(true);
-    try {
-      const res  = await fetch("/api/kaitai/seed-processors", { method: "POST", credentials: "include" });
-      const data = await res.json();
-      if (data?.ok) {
-        const updated = await fetch("/api/kaitai/processors", { credentials: "include" }).then(r => r.json());
-        if (updated?.processors) setProcessors(updated.processors);
-        alert(data.message);
-      } else {
-        alert("シードに失敗しました: " + (data?.error ?? "不明なエラー"));
-      }
-    } finally {
-      setSeeding(false);
-    }
-  }
-
   function handleDelete(id: string) {
     fetch(`/api/kaitai/processors?id=${id}`, { method: "DELETE", credentials: "include" })
       .then(r => r.ok ? r.json() : null)
@@ -280,16 +261,6 @@ export default function ProcessorsPage() {
           <p className="text-sm mt-1" style={{ color: C.sub }}>産廃処理場の登録・廃材処理単価の管理</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleSeedProcessors}
-            disabled={seeding}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm hover:opacity-80 transition-opacity"
-            style={{ background: T.bg, color: C.sub, border: `1.5px solid ${C.border}` }}
-            title="テスト用処理場データ4件を一括登録（既存データは削除されます）"
-          >
-            <Database size={15} />
-            {seeding ? "登録中..." : "テストデータ投入"}
-          </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm text-white hover:opacity-90 transition-opacity"
