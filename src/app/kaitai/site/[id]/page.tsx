@@ -1,691 +1,1142 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft, MapPin, Calendar, Users, Clock,
-  Truck, Camera, FileText, CheckCircle2, ChevronRight,
-  X, AlertTriangle, Shield,
+  Truck, Camera, FileText, ChevronRight, ChevronDown, ChevronUp,
+  X, AlertTriangle, Shield, Phone, ExternalLink,
+  Zap, Flame, Droplets, Trash2, AlertCircle,
+  ParkingSquare, HardHat, Megaphone, Package,
+  ClipboardList, Fuel, CircleStop, FolderOpen,
+  Image as ImageIcon, ZoomIn,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-type SiteStatus = "着工前" | "解体中" | "完工";
+type TabKey = "basic" | "history" | "docs";
 
-type StaffLog = {
-  name: string;
-  avatar: string;
-  role: string;
-  clockIn: string;
-  clockOut: string | null;
-  color: string;
-};
-
-type TroubleLog = {
-  type: string;
-  severity: "軽微" | "中程度" | "重大";
-  detail: string;
-};
-
-type DailyLog = {
-  date: string;
-  dateLabel: string;
-  mainWork: string[];
-  wasteM3: number;
-  wasteItems: string[];
-  photos: number;
-  staff: StaffLog[];
-  troubles: TroubleLog[];
-  safetyNote: string;
-};
-
-type CostBreakdown = {
-  wasteDisposal: number;      // 産廃処分費
-  labor: number;              // 労務費（人工×日当）
-  equipmentRental: number;    // 重機リース費
-  transport: number;          // 運搬費
-  misc: number;               // その他（養生材・消耗品等）
-};
-
-type Site = {
+type SiteData = {
   id: string;
   name: string;
   address: string;
-  status: SiteStatus;
+  status: string;
   startDate: string;
   endDate: string;
   progressPct: number;
   contractAmount: number;
-  costs: CostBreakdown;
-  todayWorkers: number;
-  workLogs: DailyLog[];
+  paidAmount: number;
+  costAmount: number;
   structureType: string;
+  notes: string;
+  lat: number | null;
+  lng: number | null;
+  clientId: string | null;
 };
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-
-const C = {
-  text: T.text, sub: T.sub, muted: T.muted,
-  border: T.border, card: T.surface,
-  amber: T.primary, amberDk: T.primaryDk,
-  green: "#10B981", red: "#EF4444",
+type ContractData = {
+  clientName: string;
+  clientContact: string;
+  projectName: string;
+  notes: string;
 };
 
-// ─── Work log generation helpers ──────────────────────────────────────────────
-
-const STAFF_COLORS = [T.primary, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#0EA5E9", "#F97316"];
-
-const WORK_TASKS_WOOD = [
-  ["足場設置", "養生シート設置"],
-  ["屋根材撤去", "内装解体"],
-  ["内装解体", "建具撤去"],
-  ["柱・梁解体", "重機搬入"],
-  ["基礎解体", "重機作業"],
-  ["産廃搬出", "整地作業"],
-  ["コンクリート殻搬出", "埋め戻し"],
-  ["最終清掃", "養生撤去", "完了検査"],
-];
-
-const WORK_TASKS_STEEL = [
-  ["仮設足場設置", "養生ネット設置"],
-  ["内装撤去", "設備配管撤去"],
-  ["鉄骨切断準備", "ガス溶断"],
-  ["鉄骨解体", "クレーン作業"],
-  ["鉄骨搬出", "スクラップ分別"],
-  ["基礎コンクリート解体", "重機作業"],
-  ["産廃搬出", "鉄くずスクラップ搬出"],
-  ["整地", "境界確認", "完了検査"],
-];
-
-const WORK_TASKS_RC = [
-  ["仮設足場設置", "防音パネル設置"],
-  ["内装解体", "設備撤去"],
-  ["RC壁解体", "コンクリート圧砕"],
-  ["RC梁・柱解体", "鉄筋切断"],
-  ["コンクリート殻搬出", "鉄筋分別"],
-  ["基礎解体", "杭頭処理"],
-  ["埋め戻し", "整地作業"],
-  ["最終清掃", "完了検査"],
-];
-
-const WASTE_ITEMS_MAP: Record<string, string[]> = {
-  木造: ["木くず", "混合廃棄物", "石膏ボード", "ガラス陶磁器"],
-  鉄骨: ["鉄くず", "混合廃棄物", "コンクリート殻", "石膏ボード"],
-  RC: ["コンクリート殻", "鉄筋くず", "混合廃棄物", "石膏ボード"],
+type OperationLog = {
+  id: string;
+  action: string;
+  user: string;
+  siteId: string | null;
+  createdAt: string;
 };
 
-const SAFETY_NOTES = [
-  "隣地境界付近の作業時、飛散物に注意。養生シートの点検を毎朝実施すること。",
-  "重機旋回範囲への立入禁止を徹底。誘導員の配置を継続。",
-  "粉塵が多いため散水を適宜実施。マスク着用の徹底。",
-  "高所作業あり。安全帯の使用を確認。足場の点検を朝礼時に実施。",
-  "搬出経路の一般車両通行に注意。誘導員を交差点に配置。",
-  "夏季対策：水分補給の声掛けを1時間おきに実施。WBGT計の確認。",
-  "近隣住民への騒音配慮。作業時間は8:00〜17:00厳守。",
-  "",
-];
+type SiteImage = {
+  id: string;
+  url: string;
+  reportType: string;
+  uploadedBy: string;
+  createdAt: string;
+};
 
-const TROUBLE_TEMPLATES: TroubleLog[] = [
-  { type: "埋設物", severity: "中程度", detail: "基礎解体中に想定外の配管（旧下水管）を発見。元請に報告し、対応方針を協議中。作業は一時中断。" },
-  { type: "近隣クレーム", severity: "軽微", detail: "隣家より「振動が大きい」との連絡あり。午後の作業でブレーカー使用を控え、圧砕機に切り替えて対応。" },
-  { type: "機材故障", severity: "軽微", detail: "0.7バックホーの油圧ホースから軽微な漏れを確認。応急処置後、翌日修理予定。予備機で作業継続。" },
-  { type: "安全ヒヤリ", severity: "中程度", detail: "解体材の落下物が養生シート外に飛散。幸い通行人なし。養生範囲を拡大し、見張り員を追加配置。" },
-];
+type ClientData = {
+  id: string;
+  name: string;
+  contactName: string;
+  phone: string;
+};
 
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return (s - 1) / 2147483646;
+// ─── Lifeline / Safety types ─────────────────────────────────────────────────
+
+type LifelineStatus = "removed" | "pending" | "warning" | "unknown";
+type AsbestosInfo = { found: boolean; level: string | null };
+
+type SiteNotes = {
+  lifelines?: {
+    electric?: LifelineStatus;
+    gas?: LifelineStatus;
+    water?: LifelineStatus;
+    septic?: LifelineStatus;
   };
+  asbestos?: AsbestosInfo;
+  workOverview?: string;
+  remainingItems?: { text: string; imageUrl?: string | null }[];
+  neighborNotes?: string[];
+  parkingInstructions?: string;
+  recommendedProcessors?: string;
+  salesPerson?: string;
+  salesPhone?: string;
+  handoverNote?: string;
+};
+
+function parseSiteNotes(raw: string | null | undefined): SiteNotes {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) return parsed as SiteNotes;
+  } catch { /* not JSON, return empty */ }
+  return {};
 }
 
-type MemberInfo = { name: string; avatar: string; role: string };
+// ─── Status config ──────────────────────────────────────────────────────────
 
-function generateWorkLogs(
-  siteStatus: string,
-  startDate: string,
-  endDate: string,
-  progressPct: number,
-  structureType: string,
-  members: MemberInfo[],
-  siteId: string,
-): DailyLog[] {
-  if (siteStatus === "着工前" || !startDate) return [];
+const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string }> = {
+  "調査・見積":     { label: "調査・見積",     bg: "rgba(107,114,128,0.1)", fg: "#6B7280" },
+  "契約・申請":     { label: "契約・申請",     bg: "rgba(99,102,241,0.1)",  fg: "#6366F1" },
+  "近隣挨拶・養生": { label: "近隣挨拶・養生", bg: "rgba(59,130,246,0.1)",  fg: "#3B82F6" },
+  "着工・内装解体": { label: "着工・内装解体", bg: T.primaryLt,             fg: T.primaryDk },
+  "上屋解体・基礎": { label: "上屋解体・基礎", bg: "rgba(180,83,9,0.12)",   fg: "#B45309" },
+  "完工・更地確認": { label: "完工・更地確認", bg: "rgba(16,185,129,0.1)",  fg: "#10B981" },
+  "産廃書類完了":   { label: "産廃書類完了",   bg: "rgba(13,148,136,0.1)",  fg: "#0D9488" },
+  "入金確認":       { label: "入金確認",       bg: "rgba(5,150,105,0.1)",   fg: "#059669" },
+  // Legacy
+  "着工前":   { label: "着工前", bg: "#EFF6FF", fg: "#1D4ED8" },
+  "施工中":   { label: "施工中", bg: T.primaryLt, fg: T.primaryDk },
+  "解体中":   { label: "解体中", bg: T.primaryLt, fg: T.primaryDk },
+  "完工":     { label: "完工",   bg: "#F0FDF4", fg: "#16A34A" },
+};
 
-  const start = new Date(startDate);
-  const today = new Date("2026-04-03");
-  const end = siteStatus === "完工" && endDate ? new Date(endDate) : today;
-  const rand = seededRandom(siteId.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+function getStatusCfg(status: string) {
+  return STATUS_CONFIG[status] ?? { label: status, bg: T.bg, fg: T.sub };
+}
 
-  const tasks = structureType === "鉄骨" ? WORK_TASKS_STEEL
-    : structureType === "RC" ? WORK_TASKS_RC
-    : WORK_TASKS_WOOD;
-  const wasteItems = WASTE_ITEMS_MAP[structureType] ?? WASTE_ITEMS_MAP["木造"];
+// ─── Lifeline badge config ──────────────────────────────────────────────────
 
-  const logs: DailyLog[] = [];
-  const d = new Date(start);
+const LIFELINE_CONFIG = {
+  electric: { label: "電気", icon: Zap },
+  gas:      { label: "ガス", icon: Flame },
+  water:    { label: "水道", icon: Droplets },
+  septic:   { label: "浄化槽", icon: Trash2 },
+} as const;
 
-  while (d <= end) {
-    const dow = d.getDay();
-    if (dow === 0 || dow === 6) { d.setDate(d.getDate() + 1); continue; }
+const LIFELINE_STATUS_STYLE: Record<LifelineStatus, { label: string; bg: string; fg: string; border: string }> = {
+  removed: { label: "撤去済", bg: "#F0FDF4", fg: "#059669", border: "#BBF7D0" },
+  pending: { label: "手配中", bg: "#FFFBEB", fg: "#B45309", border: "#FDE68A" },
+  warning: { label: "要注意", bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" },
+  unknown: { label: "未確認", bg: "#F3F4F6", fg: "#6B7280", border: "#D1D5DB" },
+};
 
-    const dateStr = d.toISOString().slice(0, 10);
-    const dayLabel = `${d.getMonth() + 1}/${d.getDate()}（${"日月火水木金土"[dow]}）`;
+// ─── Operation log parsing ──────────────────────────────────────────────────
 
-    // Progress through work tasks
-    const elapsed = (d.getTime() - start.getTime()) / (end.getTime() - start.getTime() + 1);
-    const taskIdx = Math.min(Math.floor(elapsed * tasks.length), tasks.length - 1);
+type ParsedLog = {
+  id: string;
+  date: string;
+  dateLabel: string;
+  time: string;
+  user: string;
+  type: string;
+  typeLabel: string;
+  typeColor: string;
+  typeBg: string;
+  detail: string;
+  isHandover: boolean;
+};
 
-    // Staff for the day (3-6 people)
-    const staffCount = Math.min(3 + Math.floor(rand() * 4), members.length);
-    const dayStaff: StaffLog[] = [];
-    const shuffled = [...members].sort(() => rand() - 0.5);
-    for (let i = 0; i < staffCount; i++) {
-      const m = shuffled[i];
-      const clockInH = 7 + Math.floor(rand() * 2);
-      const clockInM = Math.floor(rand() * 4) * 15;
-      const clockOutH = 16 + Math.floor(rand() * 2);
-      const clockOutM = Math.floor(rand() * 4) * 15;
-      const isToday = dateStr === today.toISOString().slice(0, 10);
-      dayStaff.push({
-        name: m.name,
-        avatar: m.avatar,
-        role: m.role,
-        clockIn: `${String(clockInH).padStart(2, "0")}:${String(clockInM).padStart(2, "0")}`,
-        clockOut: isToday && rand() > 0.3 ? null : `${String(clockOutH).padStart(2, "0")}:${String(clockOutM).padStart(2, "0")}`,
-        color: STAFF_COLORS[i % STAFF_COLORS.length],
-      });
-    }
+function parseOperationLog(log: OperationLog): ParsedLog {
+  const d = new Date(log.createdAt);
+  const dateStr = d.toISOString().slice(0, 10);
+  const dow = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  const dateLabel = `${d.getMonth() + 1}/${d.getDate()}（${dow}）`;
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-    // Waste volume
-    const wasteM3 = Math.round((2 + rand() * 8) * 10) / 10;
+  const action = log.action;
+  let type: string = "other";
+  let typeLabel: string = "操作";
+  let typeColor: string = T.sub;
+  let typeBg: string = T.bg;
+  let detail: string = action;
+  let isHandover = false;
 
-    // Pick 1-2 waste items
-    const dayWaste = wasteItems.slice(0, 1 + Math.floor(rand() * 2));
-
-    // Photos
-    const photos = 2 + Math.floor(rand() * 8);
-
-    // Troubles (occasional)
-    const troubles: TroubleLog[] = [];
-    if (rand() < 0.12) {
-      troubles.push(TROUBLE_TEMPLATES[Math.floor(rand() * TROUBLE_TEMPLATES.length)]);
-    }
-
-    // Safety note
-    const safetyNote = SAFETY_NOTES[Math.floor(rand() * SAFETY_NOTES.length)];
-
-    logs.push({
-      date: dateStr,
-      dateLabel: dayLabel,
-      mainWork: tasks[taskIdx],
-      wasteM3,
-      wasteItems: dayWaste,
-      photos,
-      staff: dayStaff,
-      troubles,
-      safetyNote,
-    });
-
-    d.setDate(d.getDate() + 1);
+  if (action.startsWith("start:")) {
+    type = "start";
+    typeLabel = "作業開始";
+    typeColor = "#10B981";
+    typeBg = "rgba(16,185,129,0.08)";
+    detail = action.replace("start:", "").trim();
+  } else if (action.startsWith("clockout:")) {
+    type = "clockout";
+    typeLabel = "退勤";
+    typeColor = "#6366F1";
+    typeBg = "rgba(99,102,241,0.08)";
+    detail = action.replace("clockout:", "").trim();
+  } else if (action.startsWith("break_in:") || action.startsWith("break_out:")) {
+    type = "break";
+    typeLabel = action.startsWith("break_in") ? "休憩開始" : "休憩終了";
+    typeColor = "#8B5CF6";
+    typeBg = "rgba(139,92,246,0.08)";
+    detail = action.replace(/break_(in|out):/, "").trim();
+  } else if (action.startsWith("waste_dispatch:")) {
+    type = "waste";
+    typeLabel = "廃材報告";
+    typeColor = T.primary;
+    typeBg = T.primaryLt;
+    detail = action.replace("waste_dispatch:", "").trim();
+  } else if (action.startsWith("expense_log:") || action.startsWith("fuel_log:")) {
+    type = "expense";
+    typeLabel = action.startsWith("fuel") ? "燃料報告" : "経費報告";
+    typeColor = "#0EA5E9";
+    typeBg = "rgba(14,165,233,0.08)";
+    detail = action.replace(/^(expense_log|fuel_log):/, "").trim();
+  } else if (action.startsWith("daily_report:")) {
+    type = "daily";
+    typeLabel = "日報";
+    typeColor = "#3B82F6";
+    typeBg = "rgba(59,130,246,0.08)";
+    detail = action.replace("daily_report:", "").trim();
+    isHandover = detail.includes("引き継ぎ") || detail.includes("引継ぎ") || detail.includes("申し送り");
+  } else if (action.startsWith("finish:")) {
+    type = "finish";
+    typeLabel = "終了報告";
+    typeColor = "#059669";
+    typeBg = "rgba(5,150,105,0.08)";
+    detail = action.replace("finish:", "").trim();
+  } else if (action.startsWith("irregular")) {
+    type = "irregular";
+    typeLabel = "異常報告";
+    typeColor = "#EF4444";
+    typeBg = "rgba(239,68,68,0.08)";
+    detail = action.replace(/^irregular[_:]?/, "").trim();
+  } else if (action.startsWith("site_create:")) {
+    type = "system";
+    typeLabel = "現場登録";
+    typeColor = "#6B7280";
+    typeBg = "rgba(107,114,128,0.08)";
+    detail = action.replace("site_create:", "").trim();
   }
 
-  return logs.reverse(); // Most recent first
+  return { id: log.id, date: dateStr, dateLabel, time, user: log.user, type, typeLabel, typeColor, typeBg, detail, isHandover };
 }
 
-// ─── Cost calculation from work logs ─────────────────────────────────────────
+// ─── Accordion component ────────────────────────────────────────────────────
 
-// 産廃処分単価（円/㎥）— 構造種別で異なる
-const WASTE_UNIT_COST: Record<string, number> = {
-  木造: 18_000,   // 木くず中心、比較的安価
-  鉄骨: 22_000,   // 鉄くず＋混合
-  RC:   28_000,    // コンクリート殻が重い
-};
+function Accordion({
+  title, icon: Icon, iconColor, defaultOpen, danger, children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  iconColor: string;
+  defaultOpen?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
 
-// 日当（円/人日）— 役割別
-const DAY_RATE: Record<string, number> = {
-  現場責任者: 28_000,
-  重機オペ: 25_000,
-  作業員: 18_000,
-  見習い: 14_000,
-};
-
-function calcCostsFromLogs(
-  workLogs: DailyLog[],
-  structureType: string,
-  contractAmount: number,
-): CostBreakdown {
-  if (workLogs.length === 0) {
-    return { wasteDisposal: 0, labor: 0, equipmentRental: 0, transport: 0, misc: 0 };
-  }
-
-  const wasteUnitCost = WASTE_UNIT_COST[structureType] ?? 20_000;
-
-  // 産廃処分費: 各日の搬出量 × 単価
-  let totalWasteM3 = 0;
-  let totalStaffDays = 0;
-  let totalLaborCost = 0;
-  let transportTrips = 0;
-
-  for (const log of workLogs) {
-    totalWasteM3 += log.wasteM3;
-
-    // 搬出がある日は運搬1回カウント（4㎥以上で2回）
-    if (log.wasteM3 > 0) {
-      transportTrips += log.wasteM3 >= 4 ? 2 : 1;
-    }
-
-    // 労務費: スタッフ人数×役割別日当
-    for (const s of log.staff) {
-      totalStaffDays++;
-      const rate = s.role === "責任者" || s.role === "現場責任者" ? DAY_RATE["現場責任者"]
-        : s.role === "重機オペ" ? DAY_RATE["重機オペ"]
-        : s.role === "見習い" ? DAY_RATE["見習い"]
-        : DAY_RATE["作業員"];
-      totalLaborCost += rate;
-    }
-  }
-
-  const wasteDisposal = Math.round(totalWasteM3 * wasteUnitCost);
-  const labor = totalLaborCost;
-  // 重機リース: 作業日数ベース（日額35,000〜55,000、構造種別で変動）
-  const equipmentDailyRate = structureType === "RC" ? 55_000 : structureType === "鉄骨" ? 48_000 : 35_000;
-  const equipmentRental = workLogs.length * equipmentDailyRate;
-  // 運搬費: トリップ数 × 運搬単価
-  const transport = transportTrips * 25_000;
-  // その他: 養生材・消耗品・ガス代等（受注額の3〜5%程度、日数按分）
-  const misc = Math.round(contractAmount * 0.04 * (workLogs.length / Math.max(workLogs.length, 20)));
-
-  return { wasteDisposal, labor, equipmentRental, transport, misc };
-}
-
-const STATUS_CONFIG: Record<SiteStatus, { label: string; bg: string; fg: string }> = {
-  着工前: { label: "着工前", bg: "#EFF6FF", fg: "#1D4ED8" },
-  解体中: { label: "解体中", bg: T.primaryLt, fg: T.primaryDk },
-  完工:   { label: "完工",   bg: "#F0FDF4", fg: "#16A34A" },
-};
-
-const SEVERITY_STYLE: Record<"軽微" | "中程度" | "重大", { bg: string; fg: string; border: string }> = {
-  軽微:   { bg: "#FEF9C3", fg: "#854D0E", border: "#FDE68A" },
-  中程度: { bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" },
-  重大:   { bg: "#FFF1F2", fg: "#9F1239", border: "#FECDD3" },
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function calcDuration(clockIn: string, clockOut: string | null): string {
-  if (!clockOut) return "勤務中";
-  const [ih, im] = clockIn.split(":").map(Number);
-  const [oh, om] = clockOut.split(":").map(Number);
-  const mins = (oh * 60 + om) - (ih * 60 + im);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${h}h${m > 0 ? `${m}m` : ""}`;
-}
-
-// ─── Daily Report Modal ────────────────────────────────────────────────────────
-
-function DailyReportModal({ log, onClose }: { log: DailyLog; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
-      style={{ background: "rgba(0,0,0,0.52)", backdropFilter: "blur(4px)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: "#fff",
+        border: `1px solid ${danger && open ? "#FECACA" : T.border}`,
+      }}
     >
-      <div
-        className="w-full sm:max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto"
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 text-left"
         style={{
-          background: T.surface,
-          borderRadius: "20px 20px 0 0",
-          border: `1px solid ${T.border}`,
-          boxShadow: "0 -4px 40px rgba(0,0,0,0.2)",
+          padding: "16px 20px",
+          minHeight: 56,
+          background: danger ? "rgba(239,68,68,0.03)" : "transparent",
         }}
       >
-        {/* ── Header ── */}
         <div
-          className="flex items-center justify-between px-6 py-5 sticky top-0 z-10"
-          style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}
+          className="flex-shrink-0 flex items-center justify-center rounded-lg"
+          style={{ width: 36, height: 36, background: `${iconColor}14` }}
         >
-          <div>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 2 }}>
-              日報詳細
-            </p>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{log.dateLabel}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
-            style={{ width: 40, height: 40, flexShrink: 0 }}
-          >
-            <X size={20} style={{ color: C.sub }} />
-          </button>
+          <Icon size={18} style={{ color: iconColor }} />
         </div>
-
-        <div className="px-6 py-5 flex flex-col gap-7">
-
-          {/* ── Summary chips ── */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-              <Users size={13} style={{ color: "#10B981" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>{log.staff.length}名出勤</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: T.primaryLt, border: `1px solid ${T.primaryMd}` }}>
-              <Truck size={13} style={{ color: C.amber }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.amberDk }}>{log.wasteM3}㎥搬出</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-              <Camera size={13} style={{ color: "#3B82F6" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1D4ED8" }}>写真{log.photos}枚</span>
-            </div>
-          </div>
-
-          {/* ── Staff attendance ── */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 12 }}>
-              出勤メンバー
-            </p>
-            <div className="flex flex-col gap-2">
-              {log.staff.map((s) => (
-                <div
-                  key={s.name}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
-                  style={{ background: T.bg, border: `1px solid ${T.border}` }}
-                >
-                  <div
-                    className="flex-shrink-0 flex items-center justify-center rounded-xl font-bold"
-                    style={{ width: 38, height: 38, background: `${s.color}18`, color: s.color, fontSize: 15 }}
-                  >
-                    {s.avatar}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{s.name}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: `${s.color}15`, color: s.color }}>
-                        {s.role}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={11} style={{ color: C.muted }} />
-                      <span style={{ fontSize: 12, color: C.sub }}>
-                        {s.clockIn} — {s.clockOut ?? "勤務中"}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>
-                        （{calcDuration(s.clockIn, s.clockOut)}）
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Work items ── */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 12 }}>
-              作業内容
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {log.mainWork.map((w) => (
-                <span
-                  key={w}
-                  className="px-3 py-1.5 rounded-lg font-bold"
-                  style={{ background: T.primaryLt, color: C.amberDk, fontSize: 14, border: `1px solid ${T.primaryMd}` }}
-                >
-                  {w}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Waste/materials ── */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 12 }}>
-              産廃搬出
-            </p>
-            <div
-              className="flex items-start gap-5 px-5 py-4 rounded-xl"
-              style={{ background: T.bg, border: `1px solid ${T.border}` }}
-            >
-              <div className="text-center flex-shrink-0">
-                <p style={{ fontSize: 28, fontWeight: 800, color: C.amber, lineHeight: 1 }}>{log.wasteM3}</p>
-                <p style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>㎥</p>
-              </div>
-              <div className="flex-1">
-                <p style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>廃材種別</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {log.wasteItems.map((w) => (
-                    <span
-                      key={w}
-                      style={{ fontSize: 13, padding: "4px 10px", borderRadius: 20, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A" }}
-                    >
-                      {w}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Trouble reports ── */}
-          {log.troubles.length > 0 && (
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 12 }}>
-                トラブル報告
-              </p>
-              <div className="flex flex-col gap-2">
-                {log.troubles.map((t, i) => {
-                  const sty = SEVERITY_STYLE[t.severity];
-                  return (
-                    <div
-                      key={i}
-                      className="px-5 py-4 rounded-xl"
-                      style={{ background: sty.bg, border: `1.5px solid ${sty.border}` }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle size={14} style={{ color: sty.fg }} />
-                        <span style={{ fontSize: 14, fontWeight: 700, color: sty.fg }}>{t.type}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: sty.border, color: sty.fg }}>
-                          {t.severity}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: 13, color: sty.fg, lineHeight: 1.65 }}>{t.detail}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── Safety note ── */}
-          {log.safetyNote && (
-            <div>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 12 }}>
-                安全申し送り事項
-              </p>
-              <div
-                className="flex items-start gap-3 px-5 py-4 rounded-xl"
-                style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0" }}
-              >
-                <Shield size={16} style={{ color: "#10B981", flexShrink: 0, marginTop: 2 }} />
-                <p style={{ fontSize: 13, color: "#166534", lineHeight: 1.75 }}>{log.safetyNote}</p>
-              </div>
-            </div>
-          )}
-
+        <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: T.text }}>
+          {title}
+        </span>
+        {open
+          ? <ChevronUp size={18} style={{ color: T.muted }} />
+          : <ChevronDown size={18} style={{ color: T.muted }} />
+        }
+      </button>
+      {open && (
+        <div style={{ padding: "0 20px 20px", borderTop: `1px solid ${T.border}` }}>
+          <div style={{ paddingTop: 16 }}>{children}</div>
         </div>
-
-        {/* ── Footer close ── */}
-        <div className="px-6 pt-2 pb-8">
-          <button
-            onClick={onClose}
-            className="w-full py-3.5 rounded-xl font-bold transition-colors hover:bg-gray-100"
-            style={{ background: T.bg, border: `1px solid ${T.border}`, color: C.sub, fontSize: 15 }}
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-// ─── Timeline entry ────────────────────────────────────────────────────────────
+// ─── Fullscreen Image Viewer ────────────────────────────────────────────────
 
-function TimelineEntry({
-  log, showLine, onOpen,
+function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.85)" }}
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 flex items-center justify-center rounded-full"
+        style={{ width: 44, height: 44, background: "rgba(255,255,255,0.2)" }}
+      >
+        <X size={22} style={{ color: "#fff" }} />
+      </button>
+      <img
+        src={url}
+        alt=""
+        className="max-w-full max-h-full object-contain"
+        style={{ touchAction: "pinch-zoom" }}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ─── Tab 1: Basic & Safety ──────────────────────────────────────────────────
+
+function TabBasic({
+  site, contract, client, notes,
 }: {
-  log: DailyLog;
-  showLine: boolean;
-  onOpen: () => void;
+  site: SiteData;
+  contract: ContractData | null;
+  client: ClientData | null;
+  notes: SiteNotes;
 }) {
-  const hasTrouble = log.troubles.length > 0;
+  const cfg = getStatusCfg(site.status);
+  const lifelines = notes.lifelines ?? {};
+  const asbestos = notes.asbestos ?? { found: false, level: null };
+
+  const googleMapsUrl = site.lat && site.lng
+    ? `https://www.google.com/maps?q=${site.lat},${site.lng}`
+    : `https://www.google.com/maps/search/${encodeURIComponent(site.address)}`;
+
+  // Determine if any lifeline is warning
+  const hasLifelineWarning = Object.values(lifelines).some(v => v === "warning");
+  const hasAsbestosWarning = asbestos.found;
 
   return (
-    <div className="relative flex gap-4">
-      {/* Dot + vertical connector */}
-      <div className="flex flex-col items-center flex-shrink-0 pt-4" style={{ width: 20 }}>
-        <div
-          className="flex-shrink-0 rounded-full z-10"
-          style={{
-            width: 12, height: 12,
-            background: hasTrouble ? C.red : C.amber,
-            border: `2px solid ${hasTrouble ? "#FECACA" : T.primaryMd}`,
-            flexShrink: 0,
-          }}
-        />
-        {showLine && (
-          <div className="flex-1 w-px mt-1.5" style={{ background: T.border, minHeight: 24 }} />
+    <div className="flex flex-col gap-4">
+
+      {/* ── Site header card ── */}
+      <div className="rounded-xl" style={{ background: "#fff", border: `1px solid ${T.border}`, padding: "20px" }}>
+        {/* Status badge */}
+        <span
+          className="inline-block font-bold px-3 py-1.5 rounded-full mb-3"
+          style={{ fontSize: 14, background: cfg.bg, color: cfg.fg }}
+        >
+          {cfg.label}
+        </span>
+
+        {/* Site name */}
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: T.heading, lineHeight: 1.3, marginBottom: 10 }}>
+          {site.name}
+        </h2>
+
+        {/* Address + Map button */}
+        <div className="flex items-start gap-2 mb-4">
+          <MapPin size={16} style={{ color: T.sub, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 16, color: T.sub, flex: 1 }}>{site.address}</span>
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg flex-shrink-0"
+            style={{
+              fontSize: 13, fontWeight: 700,
+              background: "#EFF6FF", color: "#2563EB",
+              border: "1px solid #BFDBFE",
+              textDecoration: "none",
+            }}
+          >
+            <ExternalLink size={13} /> 地図
+          </a>
+        </div>
+
+        {/* Dates */}
+        {(site.startDate || site.endDate) && (
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={15} style={{ color: T.muted }} />
+            <span style={{ fontSize: 16, color: T.sub }}>
+              {site.startDate?.replace(/-/g, "/")} 〜 {site.endDate?.replace(/-/g, "/")}
+            </span>
+          </div>
+        )}
+
+        {/* Progress bar */}
+        {site.progressPct > 0 && (
+          <div>
+            <div className="flex justify-between mb-2">
+              <span style={{ fontSize: 14, color: T.sub }}>工事進捗</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{site.progressPct}%</span>
+            </div>
+            <div className="h-3 rounded-full overflow-hidden" style={{ background: T.bg }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${site.progressPct}%`,
+                  background: `linear-gradient(90deg, ${T.primary}, ${T.primaryDk})`,
+                }}
+              />
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Card */}
-      <button
-        onClick={onOpen}
-        className="flex-1 min-w-0 mb-3 text-left"
-      >
-        <div
-          className="px-5 py-4 rounded-xl transition-colors"
-          style={{ background: T.surface, border: `1px solid ${T.border}` }}
-          onMouseEnter={(e) => {
-            const el = e.currentTarget as HTMLElement;
-            el.style.background = T.bg;
-            el.style.borderColor = `${T.primary}40`;
-          }}
-          onMouseLeave={(e) => {
-            const el = e.currentTarget as HTMLElement;
-            el.style.background = T.surface;
-            el.style.borderColor = T.border;
-          }}
-        >
-          {/* Row 1: date + meta + chevron */}
-          <div className="flex items-center justify-between gap-3 mb-2.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{log.dateLabel}</span>
-              {hasTrouble && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
-                  style={{ fontSize: 11, fontWeight: 700, background: "#FEF2F2", color: C.red, border: "1px solid #FECACA" }}
+      {/* ── Contacts / stakeholders ── */}
+      <Accordion title="関係者情報" icon={Users} iconColor="#3B82F6" defaultOpen>
+        <div className="flex flex-col gap-3">
+          {/* Client */}
+          {(contract?.clientName || client?.name) && (
+            <div className="flex items-center justify-between py-3 px-4 rounded-lg" style={{ background: T.bg }}>
+              <div>
+                <p style={{ fontSize: 13, color: T.muted, marginBottom: 2 }}>施主・元請</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+                  {contract?.clientName || client?.name || "—"}
+                </p>
+                {(contract?.clientContact || client?.contactName) && (
+                  <p style={{ fontSize: 14, color: T.sub, marginTop: 2 }}>
+                    担当: {contract?.clientContact || client?.contactName}
+                  </p>
+                )}
+              </div>
+              {client?.phone && (
+                <a
+                  href={`tel:${client.phone}`}
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 48, height: 48,
+                    background: "#10B981", color: "#fff",
+                    flexShrink: 0,
+                  }}
                 >
-                  <AlertTriangle size={10} /> 報告あり
-                </span>
+                  <Phone size={20} />
+                </a>
               )}
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="flex items-center gap-1" style={{ fontSize: 12, color: C.sub }}>
-                <Users size={11} /> {log.staff.length}名
-              </span>
-              <span className="flex items-center gap-1" style={{ fontSize: 12, color: C.sub }}>
-                <Truck size={11} /> {log.wasteM3}㎥
-              </span>
-              <ChevronRight size={14} style={{ color: C.muted }} />
+          )}
+
+          {/* Sales person */}
+          {notes.salesPerson && (
+            <div className="flex items-center justify-between py-3 px-4 rounded-lg" style={{ background: T.bg }}>
+              <div>
+                <p style={{ fontSize: 13, color: T.muted, marginBottom: 2 }}>自社担当営業</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: T.text }}>{notes.salesPerson}</p>
+              </div>
+              {notes.salesPhone && (
+                <a
+                  href={`tel:${notes.salesPhone}`}
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 48, height: 48,
+                    background: "#3B82F6", color: "#fff",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Phone size={20} />
+                </a>
+              )}
             </div>
+          )}
+
+          {!contract?.clientName && !client?.name && !notes.salesPerson && (
+            <p style={{ fontSize: 15, color: T.muted, textAlign: "center", padding: "12px 0" }}>
+              関係者情報は未設定です
+            </p>
+          )}
+        </div>
+      </Accordion>
+
+      {/* ── 🚨 Lifeline / Safety badges (CRITICAL) ── */}
+      <Accordion
+        title="安全・ライフライン確認"
+        icon={Shield}
+        iconColor={hasLifelineWarning || hasAsbestosWarning ? "#DC2626" : "#10B981"}
+        defaultOpen
+        danger={hasLifelineWarning || hasAsbestosWarning}
+      >
+        <div className="flex flex-col gap-4">
+          {/* Lifeline badges */}
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(LIFELINE_CONFIG) as Array<keyof typeof LIFELINE_CONFIG>).map(key => {
+              const cfg = LIFELINE_CONFIG[key];
+              const status = lifelines[key] ?? "unknown";
+              const style = LIFELINE_STATUS_STYLE[status];
+              const Icon = cfg.icon;
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-3 rounded-xl"
+                  style={{
+                    padding: "14px 16px",
+                    background: style.bg,
+                    border: `2px solid ${style.border}`,
+                    minHeight: 56,
+                  }}
+                >
+                  <Icon size={20} style={{ color: style.fg, flexShrink: 0 }} />
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 14, fontWeight: 700, color: style.fg }}>{cfg.label}</p>
+                    <p style={{ fontSize: 16, fontWeight: 800, color: style.fg }}>{style.label}</p>
+                  </div>
+                  {status === "warning" && (
+                    <AlertCircle size={20} style={{ color: "#DC2626", flexShrink: 0 }} />
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {/* Row 2: work tags */}
-          <div className="flex flex-wrap gap-1.5">
-            {log.mainWork.map((w) => (
-              <span
-                key={w}
-                style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: T.primaryLt, color: C.amberDk }}
+
+          {/* Asbestos */}
+          <div
+            className="flex items-center gap-3 rounded-xl"
+            style={{
+              padding: "16px",
+              background: asbestos.found ? "#FEF2F2" : "#F0FDF4",
+              border: `2px solid ${asbestos.found ? "#FECACA" : "#BBF7D0"}`,
+              minHeight: 56,
+            }}
+          >
+            <AlertTriangle
+              size={22}
+              style={{ color: asbestos.found ? "#DC2626" : "#059669", flexShrink: 0 }}
+            />
+            <div className="flex-1">
+              <p style={{ fontSize: 14, fontWeight: 700, color: asbestos.found ? "#DC2626" : "#059669" }}>
+                アスベスト事前調査
+              </p>
+              <p style={{
+                fontSize: 18, fontWeight: 800,
+                color: asbestos.found ? "#DC2626" : "#059669",
+              }}>
+                {asbestos.found
+                  ? `あり${asbestos.level ? `（レベル${asbestos.level}）` : ""}`
+                  : "なし"
+                }
+              </p>
+            </div>
+            {asbestos.found && (
+              <div
+                className="px-3 py-1 rounded-full"
+                style={{ background: "#DC2626", color: "#fff", fontSize: 12, fontWeight: 800 }}
               >
-                {w}
-              </span>
-            ))}
+                危険
+              </div>
+            )}
           </div>
         </div>
-      </button>
+      </Accordion>
+
+      {/* ── Work overview ── */}
+      <Accordion title="作業概要・大まかな流れ" icon={ClipboardList} iconColor={T.primary}>
+        {notes.workOverview ? (
+          <p style={{ fontSize: 16, color: T.text, lineHeight: 1.8 }}>
+            {notes.workOverview}
+          </p>
+        ) : (
+          <p style={{ fontSize: 15, color: T.muted, textAlign: "center", padding: "8px 0" }}>
+            作業概要は未設定です
+          </p>
+        )}
+      </Accordion>
+
+      {/* ── 🚧 Remaining items (don't destroy) ── */}
+      <Accordion title="壊してはいけないもの（残置物）" icon={Package} iconColor="#EF4444" danger>
+        {notes.remainingItems && notes.remainingItems.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {notes.remainingItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 rounded-lg"
+                style={{
+                  padding: "14px 16px",
+                  background: "#FEF2F2",
+                  border: "1.5px solid #FECACA",
+                }}
+              >
+                <AlertCircle size={18} style={{ color: "#DC2626", flexShrink: 0, marginTop: 2 }} />
+                <div className="flex-1">
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#991B1B", lineHeight: 1.5 }}>
+                    {item.text}
+                  </p>
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.text}
+                      className="mt-2 rounded-lg"
+                      style={{ maxWidth: "100%", maxHeight: 200, objectFit: "cover" }}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 15, color: T.muted, textAlign: "center", padding: "8px 0" }}>
+            残置物の指定はありません
+          </p>
+        )}
+      </Accordion>
+
+      {/* ── ⚠️ Neighbor notes ── */}
+      <Accordion title="近隣の注意事項" icon={Megaphone} iconColor="#F59E0B">
+        {notes.neighborNotes && notes.neighborNotes.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {notes.neighborNotes.map((note, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 rounded-lg"
+                style={{
+                  padding: "14px 16px",
+                  background: "#FFFBEB",
+                  border: "1.5px solid #FDE68A",
+                }}
+              >
+                <AlertTriangle size={16} style={{ color: "#B45309", flexShrink: 0, marginTop: 2 }} />
+                <p style={{ fontSize: 16, color: "#92400E", lineHeight: 1.6, fontWeight: 600 }}>
+                  {note}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 15, color: T.muted, textAlign: "center", padding: "8px 0" }}>
+            近隣注意事項は未設定です
+          </p>
+        )}
+      </Accordion>
+
+      {/* ── 🅿️ Parking / processor instructions ── */}
+      <Accordion title="駐車・処分場指示" icon={ParkingSquare} iconColor="#6366F1">
+        {notes.parkingInstructions || notes.recommendedProcessors ? (
+          <div className="flex flex-col gap-3">
+            {notes.parkingInstructions && (
+              <div className="rounded-lg" style={{ padding: "14px 16px", background: T.bg, border: `1px solid ${T.border}` }}>
+                <p style={{ fontSize: 13, color: T.muted, fontWeight: 600, marginBottom: 4 }}>
+                  🅿️ 駐車・待機位置
+                </p>
+                <p style={{ fontSize: 16, color: T.text, lineHeight: 1.6 }}>
+                  {notes.parkingInstructions}
+                </p>
+              </div>
+            )}
+            {notes.recommendedProcessors && (
+              <div className="rounded-lg" style={{ padding: "14px 16px", background: T.bg, border: `1px solid ${T.border}` }}>
+                <p style={{ fontSize: 13, color: T.muted, fontWeight: 600, marginBottom: 4 }}>
+                  🏭 推奨処分場
+                </p>
+                <p style={{ fontSize: 16, color: T.text, lineHeight: 1.6 }}>
+                  {notes.recommendedProcessors}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: 15, color: T.muted, textAlign: "center", padding: "8px 0" }}>
+            駐車・処分場指示は未設定です
+          </p>
+        )}
+      </Accordion>
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Tab 2: History & Reports ───────────────────────────────────────────────
+
+function TabHistory({
+  logs, siteId,
+}: {
+  logs: ParsedLog[];
+  siteId: string;
+}) {
+  // Group logs by date
+  const grouped: { date: string; dateLabel: string; items: ParsedLog[] }[] = [];
+  for (const log of logs) {
+    const existing = grouped.find(g => g.date === log.date);
+    if (existing) {
+      existing.items.push(log);
+    } else {
+      grouped.push({ date: log.date, dateLabel: log.dateLabel, items: [log] });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4 pb-24">
+
+      {/* Handover note highlight */}
+      {logs.length > 0 && (() => {
+        const handover = logs.find(l => l.isHandover);
+        if (!handover) return null;
+        return (
+          <div
+            className="rounded-xl"
+            style={{
+              padding: "16px 20px",
+              background: "#FFFBEB",
+              border: "2px solid #FDE68A",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <HardHat size={16} style={{ color: "#B45309" }} />
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>
+                引き継ぎメモ（{handover.user}より）
+              </span>
+            </div>
+            <p style={{ fontSize: 16, color: "#78350F", lineHeight: 1.7 }}>
+              {handover.detail}
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* Timeline */}
+      {grouped.length > 0 ? (
+        grouped.map((group) => (
+          <div key={group.date}>
+            {/* Date header */}
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="px-3 py-1.5 rounded-lg"
+                style={{ background: T.primaryLt, border: `1px solid ${T.primaryMd}` }}
+              >
+                <span style={{ fontSize: 15, fontWeight: 800, color: T.primaryDk }}>
+                  {group.dateLabel}
+                </span>
+              </div>
+              <div style={{ flex: 1, height: 1, background: T.border }} />
+              <span style={{ fontSize: 13, color: T.muted }}>{group.items.length}件</span>
+            </div>
+
+            {/* Entries for this date */}
+            <div className="flex flex-col gap-2 ml-2">
+              {group.items.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex gap-3"
+                >
+                  {/* Dot */}
+                  <div className="flex flex-col items-center flex-shrink-0 pt-4" style={{ width: 16 }}>
+                    <div
+                      className="rounded-full"
+                      style={{
+                        width: 10, height: 10,
+                        background: log.typeColor,
+                        border: `2px solid ${log.typeBg}`,
+                      }}
+                    />
+                  </div>
+
+                  {/* Card */}
+                  <div
+                    className="flex-1 rounded-xl"
+                    style={{
+                      padding: "14px 16px",
+                      background: log.isHandover ? "#FFFBEB" : "#fff",
+                      border: `1px solid ${log.isHandover ? "#FDE68A" : T.border}`,
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span
+                        className="px-2 py-0.5 rounded-md font-bold"
+                        style={{ fontSize: 12, background: log.typeBg, color: log.typeColor }}
+                      >
+                        {log.typeLabel}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                        {log.user}
+                      </span>
+                      <span style={{ fontSize: 13, color: T.muted }}>{log.time}</span>
+                    </div>
+                    {log.detail && (
+                      <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, wordBreak: "break-word" }}>
+                        {log.detail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="py-16 text-center">
+          <Clock size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
+          <p style={{ fontSize: 16, fontWeight: 600, color: T.sub }}>作業履歴がありません</p>
+          <p style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>報告を提出すると履歴に表示されます</p>
+        </div>
+      )}
+
+      {/* ── Floating action buttons ── */}
+      <div
+        className="fixed right-4 z-40 flex flex-col gap-3"
+        style={{ bottom: "calc(80px + env(safe-area-inset-bottom, 0px) + 16px)" }}
+      >
+        <Link
+          href={`/kaitai/report/waste?siteId=${siteId}`}
+          className="flex items-center gap-2 px-4 py-3 rounded-full"
+          style={{
+            background: T.primary, color: "#fff",
+            fontSize: 14, fontWeight: 700,
+            boxShadow: "0 4px 14px rgba(180,83,9,0.35)",
+            textDecoration: "none",
+            minHeight: 48,
+          }}
+        >
+          <Truck size={18} /> 廃材報告
+        </Link>
+        <Link
+          href={`/kaitai/report/expense?siteId=${siteId}`}
+          className="flex items-center gap-2 px-4 py-3 rounded-full"
+          style={{
+            background: "#3B82F6", color: "#fff",
+            fontSize: 14, fontWeight: 700,
+            boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
+            textDecoration: "none",
+            minHeight: 48,
+          }}
+        >
+          <Fuel size={18} /> 経費・燃料
+        </Link>
+        <Link
+          href={`/kaitai/report/finish?siteId=${siteId}`}
+          className="flex items-center gap-2 px-4 py-3 rounded-full"
+          style={{
+            background: "#059669", color: "#fff",
+            fontSize: 14, fontWeight: 700,
+            boxShadow: "0 4px 14px rgba(5,150,105,0.35)",
+            textDecoration: "none",
+            minHeight: 48,
+          }}
+        >
+          <CircleStop size={18} /> 終了報告
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab 3: Photos & Documents ──────────────────────────────────────────────
+
+const FOLDER_CONFIG = [
+  { key: "before",    label: "着工前写真（Before）",          icon: Camera,    color: "#3B82F6" },
+  { key: "asbestos",  label: "アスベスト調査報告書・届出書",    icon: FileText,  color: "#DC2626" },
+  { key: "plan",      label: "足場計画・解体手順図面",         icon: ClipboardList, color: "#8B5CF6" },
+  { key: "remaining", label: "残置物・不用品リスト",           icon: Package,   color: "#F59E0B" },
+  { key: "progress",  label: "施工中写真",                   icon: HardHat,   color: T.primary },
+  { key: "other",     label: "その他",                      icon: FolderOpen, color: "#6B7280" },
+] as const;
+
+function classifyImage(img: SiteImage): string {
+  const rt = (img.reportType || "").toLowerCase();
+  const by = (img.uploadedBy || "").toLowerCase();
+  if (rt.includes("before") || rt.includes("着工前")) return "before";
+  if (rt.includes("asbestos") || rt.includes("アスベスト")) return "asbestos";
+  if (rt.includes("plan") || rt.includes("図面") || rt.includes("足場")) return "plan";
+  if (rt.includes("残置") || rt.includes("remaining") || rt.includes("不用品")) return "remaining";
+  if (rt.includes("progress") || rt.includes("施工") || rt.includes("解体")) return "progress";
+  // Default: check upload context
+  if (by.includes("start") || by.includes("着工前")) return "before";
+  return "other";
+}
+
+function TabDocs({
+  images,
+}: {
+  images: SiteImage[];
+}) {
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
+
+  // Group images into folders
+  const folders = FOLDER_CONFIG.map(cfg => ({
+    ...cfg,
+    images: images.filter(img => classifyImage(img) === cfg.key),
+  }));
+
+  const hasAnyImages = images.length > 0;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {folders.map(folder => {
+        const isOpen = openFolder === folder.key;
+        const Icon = folder.icon;
+        const count = folder.images.length;
+
+        return (
+          <div
+            key={folder.key}
+            className="rounded-xl overflow-hidden"
+            style={{ background: "#fff", border: `1px solid ${T.border}` }}
+          >
+            <button
+              onClick={() => setOpenFolder(isOpen ? null : folder.key)}
+              className="w-full flex items-center gap-3 text-left"
+              style={{ padding: "16px 20px", minHeight: 56 }}
+            >
+              <div
+                className="flex-shrink-0 flex items-center justify-center rounded-lg"
+                style={{ width: 40, height: 40, background: `${folder.color}14` }}
+              >
+                <Icon size={20} style={{ color: folder.color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+                  {folder.label}
+                </p>
+                <p style={{ fontSize: 13, color: T.muted }}>
+                  {count > 0 ? `${count}件` : "ファイルなし"}
+                </p>
+              </div>
+              {count > 0 && (
+                <span
+                  className="flex-shrink-0 flex items-center justify-center rounded-full"
+                  style={{
+                    width: 28, height: 28,
+                    background: folder.color, color: "#fff",
+                    fontSize: 13, fontWeight: 800,
+                  }}
+                >
+                  {count}
+                </span>
+              )}
+              {isOpen
+                ? <ChevronUp size={18} style={{ color: T.muted }} />
+                : <ChevronDown size={18} style={{ color: T.muted }} />
+              }
+            </button>
+
+            {isOpen && count > 0 && (
+              <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${T.border}` }}>
+                <div className="grid grid-cols-3 gap-2 pt-3">
+                  {folder.images.map(img => (
+                    <button
+                      key={img.id}
+                      onClick={() => setViewUrl(img.url)}
+                      className="relative rounded-lg overflow-hidden"
+                      style={{
+                        aspectRatio: "1",
+                        background: T.bg,
+                        border: `1px solid ${T.border}`,
+                      }}
+                    >
+                      <img
+                        src={img.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        style={{ background: "rgba(0,0,0,0.3)" }}
+                      >
+                        <ZoomIn size={24} style={{ color: "#fff" }} />
+                      </div>
+                      <div
+                        className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded"
+                        style={{ background: "rgba(0,0,0,0.6)", fontSize: 10, color: "#fff" }}
+                      >
+                        {new Date(img.createdAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isOpen && count === 0 && (
+              <div
+                className="text-center py-8"
+                style={{ borderTop: `1px solid ${T.border}` }}
+              >
+                <ImageIcon size={28} style={{ color: T.muted, margin: "0 auto 8px" }} />
+                <p style={{ fontSize: 14, color: T.muted }}>まだファイルがありません</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {!hasAnyImages && (
+        <div className="py-12 text-center">
+          <Camera size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
+          <p style={{ fontSize: 16, color: T.sub }}>写真・資料はまだ登録されていません</p>
+          <p style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>
+            報告時にアップロードされた写真がここに表示されます
+          </p>
+        </div>
+      )}
+
+      {/* Fullscreen viewer */}
+      {viewUrl && <ImageViewer url={viewUrl} onClose={() => setViewUrl(null)} />}
+    </div>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
+
+const TABS: { key: TabKey; label: string; emoji: string }[] = [
+  { key: "basic",   label: "基本・注意", emoji: "📋" },
+  { key: "history", label: "履歴・報告", emoji: "🚜" },
+  { key: "docs",    label: "写真・資料", emoji: "📂" },
+];
 
 export default function SiteDetailPage() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
-  const [site, setSite] = useState<Site | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("basic");
+
+  // Data
+  const [site, setSite] = useState<SiteData | null>(null);
+  const [contract, setContract] = useState<ContractData | null>(null);
+  const [client, setClient] = useState<ClientData | null>(null);
+  const [logs, setLogs] = useState<ParsedLog[]>([]);
+  const [images, setImages] = useState<SiteImage[]>([]);
+  const [siteNotes, setSiteNotes] = useState<SiteNotes>({});
+
+  // Swipe handling
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.7) return; // not a horizontal swipe
+
+    const tabIndex = TABS.findIndex(t => t.key === activeTab);
+    if (dx < 0 && tabIndex < TABS.length - 1) {
+      setActiveTab(TABS[tabIndex + 1].key);
+    } else if (dx > 0 && tabIndex > 0) {
+      setActiveTab(TABS[tabIndex - 1].key);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
 
-    Promise.all([
-      fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
-      fetch("/api/kaitai/members", { credentials: "include" }).then(r => r.ok ? r.json() : null),
-    ]).then(([sitesData, membersData]) => {
-      const siteRaw = sitesData?.sites?.find((s: Record<string, unknown>) => s.id === id);
-      if (!siteRaw) { setLoading(false); return; }
+    const fetchAll = async () => {
+      try {
+        // Fetch site
+        const sitesRes = await fetch("/api/kaitai/sites", { credentials: "include" });
+        const sitesData = sitesRes.ok ? await sitesRes.json() : null;
+        const siteRaw = sitesData?.sites?.find((s: Record<string, unknown>) => s.id === id);
+        if (!siteRaw) { setLoading(false); return; }
 
-      const members: MemberInfo[] = (membersData?.members ?? []).map((m: Record<string, unknown>) => ({
-        name: m.name as string,
-        avatar: (m.avatar as string) ?? (m.name as string).charAt(0),
-        role: (m.role as string) ?? "作業員",
-      }));
+        const siteObj: SiteData = {
+          id: siteRaw.id as string,
+          name: siteRaw.name as string,
+          address: (siteRaw.address as string) ?? "",
+          status: (siteRaw.status as string) ?? "着工前",
+          startDate: (siteRaw.startDate as string) ?? "",
+          endDate: (siteRaw.endDate as string) ?? "",
+          progressPct: (siteRaw.progressPct as number) ?? 0,
+          contractAmount: (siteRaw.contractAmount as number) ?? 0,
+          paidAmount: (siteRaw.paidAmount as number) ?? 0,
+          costAmount: (siteRaw.costAmount as number) ?? 0,
+          structureType: (siteRaw.structureType as string) ?? "",
+          notes: (siteRaw.notes as string) ?? "",
+          lat: (siteRaw.lat as number) ?? null,
+          lng: (siteRaw.lng as number) ?? null,
+          clientId: (siteRaw.clientId as string) ?? null,
+        };
+        setSite(siteObj);
+        setSiteNotes(parseSiteNotes(siteObj.notes));
 
-      const structureType = (siteRaw.structureType as string) ?? "木造";
+        // Parallel fetches
+        const [contractRes, logsRes, imagesRes, clientsRes] = await Promise.all([
+          fetch(`/api/kaitai/sites/contract?siteId=${id}`, { credentials: "include" }),
+          fetch(`/api/kaitai/operation-logs?type=reports&limit=200`, { credentials: "include" }),
+          fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" }),
+          siteObj.clientId
+            ? fetch("/api/kaitai/clients", { credentials: "include" })
+            : Promise.resolve(null),
+        ]);
 
-      const status = ((siteRaw.status as string) === "施工中" ? "解体中" : siteRaw.status as string) as SiteStatus;
+        // Contract
+        if (contractRes.ok) {
+          const cd = await contractRes.json();
+          if (cd?.data) {
+            setContract({
+              clientName: cd.data.clientName ?? "",
+              clientContact: cd.data.clientContact ?? "",
+              projectName: cd.data.projectName ?? "",
+              notes: cd.data.notes ?? "",
+            });
+          }
+        }
 
-      const workLogs = generateWorkLogs(
-        status,
-        (siteRaw.startDate as string) ?? "",
-        (siteRaw.endDate as string) ?? "",
-        (siteRaw.progressPct as number) ?? 0,
-        structureType,
-        members,
-        id,
-      );
+        // Operation logs (filter for this site)
+        if (logsRes.ok) {
+          const ld = await logsRes.json();
+          const siteLogs = (ld?.logs ?? [])
+            .filter((l: OperationLog) => l.siteId === id)
+            .map(parseOperationLog);
+          setLogs(siteLogs);
+        }
 
-      const contractAmount = (siteRaw.contractAmount as number) ?? 0;
-      const costs = calcCostsFromLogs(workLogs, structureType, contractAmount);
+        // Images
+        if (imagesRes.ok) {
+          const imgData = await imagesRes.json();
+          setImages(
+            (imgData?.images ?? []).map((img: Record<string, unknown>) => ({
+              id: img.id as string,
+              url: img.url as string,
+              reportType: (img.reportType as string) ?? "",
+              uploadedBy: (img.uploadedBy as string) ?? "",
+              createdAt: (img.createdAt as string) ?? "",
+            }))
+          );
+        }
 
-      setSite({
-        id: siteRaw.id as string,
-        name: siteRaw.name as string,
-        address: siteRaw.address as string,
-        status,
-        startDate: (siteRaw.startDate as string) ?? "",
-        endDate: (siteRaw.endDate as string) ?? "",
-        progressPct: (siteRaw.progressPct as number) ?? 0,
-        contractAmount,
-        costs,
-        todayWorkers: workLogs.length > 0 ? workLogs[0].staff.filter(s => !s.clockOut).length : 0,
-        workLogs,
-        structureType,
-      });
-      setLoading(false);
-    }).catch(() => setLoading(false));
+        // Client
+        if (clientsRes && clientsRes.ok) {
+          const cData = await clientsRes.json();
+          const cl = (cData?.clients ?? []).find(
+            (c: Record<string, unknown>) => c.id === siteObj.clientId
+          );
+          if (cl) {
+            setClient({
+              id: cl.id as string,
+              name: cl.name as string,
+              contactName: (cl.contactName as string) ?? "",
+              phone: (cl.phone as string) ?? "",
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load site detail:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
   }, [id]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ color: C.sub }}>
+      <div className="flex items-center justify-center py-20" style={{ color: T.sub, fontSize: 16 }}>
         読み込み中...
       </div>
     );
@@ -693,311 +1144,106 @@ export default function SiteDetailPage() {
 
   if (!site) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ color: C.sub }}>
-        現場が見つかりません
+      <div className="flex flex-col items-center justify-center py-20">
+        <AlertCircle size={36} style={{ color: T.muted, marginBottom: 12 }} />
+        <p style={{ fontSize: 16, color: T.sub }}>現場が見つかりません</p>
+        <Link
+          href="/kaitai"
+          className="mt-4 px-4 py-2 rounded-lg"
+          style={{ fontSize: 14, color: T.primary, background: T.primaryLt, textDecoration: "none", fontWeight: 700 }}
+        >
+          現場一覧に戻る
+        </Link>
       </div>
     );
   }
 
-  const cfg = STATUS_CONFIG[site.status];
-  const { wasteDisposal, labor, equipmentRental, transport, misc } = site.costs;
-  const totalCost = wasteDisposal + labor + equipmentRental + transport + misc;
-  const profit = site.contractAmount - totalCost;
-  const profitPct = site.contractAmount > 0 ? Math.round((profit / site.contractAmount) * 100) : 0;
-  const costPct   = site.contractAmount > 0 ? Math.round((totalCost / site.contractAmount) * 100) : 0;
-
-  // 作業履歴サマリ
-  const totalWasteM3 = site.workLogs.reduce((s, l) => s + l.wasteM3, 0);
-  const totalStaffDays = site.workLogs.reduce((s, l) => s + l.staff.length, 0);
-
   return (
-    <div className="py-6 pb-28 md:pb-8 flex flex-col gap-6">
+    <div className="flex flex-col" style={{ minHeight: "100dvh" }}>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-
-        {/* ══════════════════════════════════════════
-            Left column
-        ══════════════════════════════════════════ */}
-        <div className="flex-1 flex flex-col gap-6">
-
-          {/* ── Page header (read-only) ── */}
-          <section
-            className="px-6 pt-8 pb-6 rounded-xl"
-            style={{ background: C.card, border: `1px solid ${C.border}` }}
+      {/* ── Sticky header: back + site name ── */}
+      <div
+        className="sticky top-0 z-30"
+        style={{
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          borderBottom: `1px solid ${T.border}`,
+        }}
+      >
+        <div className="flex items-center gap-3" style={{ padding: "12px 16px" }}>
+          <Link
+            href="/kaitai"
+            className="flex items-center justify-center rounded-xl flex-shrink-0"
+            style={{ width: 40, height: 40, background: T.bg, border: `1px solid ${T.border}` }}
           >
-            <Link
-              href="/kaitai"
-              className="inline-flex items-center gap-1.5 mb-5 text-sm"
-              style={{ color: C.muted }}
-            >
-              <ArrowLeft size={15} /> 現場一覧
-            </Link>
-
-            {/* Status + title — NO edit button */}
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-2.5">
-                <span
-                  className="text-sm font-bold px-3 py-1.5 rounded-full"
-                  style={{ background: cfg.bg, color: cfg.fg }}
-                >
-                  {cfg.label}
-                </span>
-              </div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 8 }}>
-                {site.name}
-              </h1>
-              <div className="flex items-center gap-1.5">
-                <MapPin size={13} style={{ color: C.sub }} />
-                <p style={{ fontSize: 14, color: C.sub }}>{site.address}</p>
-              </div>
-            </div>
-
-            {/* Dates + workers */}
-            <div className="flex flex-wrap items-center gap-3 mb-5">
-              <div className="flex items-center gap-1.5" style={{ fontSize: 13, color: C.muted }}>
-                <Calendar size={13} />
-                <span>{site.startDate.replace(/-/g, "/")} 〜 {site.endDate.replace(/-/g, "/")}</span>
-              </div>
-              {site.todayWorkers > 0 && (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
-                >
-                  <Users size={13} style={{ color: "#10B981" }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>
-                    本日 {site.todayWorkers}名稼働
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Progress bar */}
-            {site.status !== "着工前" && (
-              <div>
-                <div className="flex justify-between text-sm mb-2" style={{ color: C.sub }}>
-                  <span>工事進捗</span>
-                  <span style={{ fontWeight: 700, color: C.text }}>{site.progressPct}%</span>
-                </div>
-                <div className="h-3 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${site.progressPct}%`,
-                      background: `linear-gradient(90deg, ${T.primary} 0%, ${T.primaryDk} 100%)`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* ══════════════════════════════════════════
-              作業・産廃履歴 タイムライン
-          ══════════════════════════════════════════ */}
-          {site.workLogs.length > 0 ? (
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text }}>作業・産廃履歴</h2>
-                <span style={{ fontSize: 13, color: C.muted }}>{site.workLogs.length}件</span>
-              </div>
-
-              {/* Timeline */}
-              <div>
-                {site.workLogs.map((log, i) => (
-                  <TimelineEntry
-                    key={log.date}
-                    log={log}
-                    showLine={i < site.workLogs.length - 1}
-                    onOpen={() => setSelectedLog(log)}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : (
-            <div
-              className="flex flex-col items-center justify-center py-14 rounded-xl"
-              style={{ background: T.surface, border: `1px solid ${T.border}` }}
-            >
-              <Clock size={32} style={{ color: T.muted, marginBottom: 12 }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: C.sub }}>
-                {site.status === "着工前" ? "着工前のため履歴はありません" : "作業履歴がありません"}
-              </p>
-              {site.status === "着工前" && (
-                <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-                  着工日：{site.startDate.replace(/-/g, "/")}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ── マニフェスト ── */}
-          <div
-            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-colors hover:bg-gray-50 cursor-pointer"
-            style={{ background: C.card, border: `1px solid ${C.border}` }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
-              style={{ background: "rgba(99,102,241,0.08)" }}
-            >
-              <FileText size={18} style={{ color: "#6366F1" }} />
-            </div>
-            <div className="flex-1">
-              <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>産廃マニフェスト</p>
-              <p style={{ fontSize: 13, color: C.sub, marginTop: 2 }}>作業票・マニフェストを確認する</p>
-            </div>
-            <ChevronRight size={16} style={{ color: C.muted }} />
+            <ArrowLeft size={18} style={{ color: T.sub }} />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <p style={{
+              fontSize: 16, fontWeight: 700, color: T.text,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {site.name}
+            </p>
           </div>
+        </div>
 
-          {/* ── 完工報告 ── */}
-          {site.status === "解体中" && (
-            <div
-              className="flex items-center gap-4 px-5 py-4 rounded-xl transition-colors hover:bg-gray-50 cursor-pointer"
-              style={{ background: C.card, border: `1px solid ${C.border}` }}
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
-                style={{ background: "rgba(16,185,129,0.08)" }}
+        {/* ── Tab navigation ── */}
+        <div className="flex" style={{ borderTop: `1px solid ${T.border}` }}>
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="flex-1 flex items-center justify-center gap-1.5"
+                style={{
+                  padding: "14px 0",
+                  minHeight: 52,
+                  fontSize: 15,
+                  fontWeight: isActive ? 800 : 600,
+                  color: isActive ? T.primary : T.muted,
+                  borderBottom: isActive ? `3px solid ${T.primary}` : "3px solid transparent",
+                  background: isActive ? T.primaryLt : "transparent",
+                  transition: "all 0.15s",
+                }}
               >
-                <CheckCircle2 size={18} style={{ color: C.green }} />
-              </div>
-              <div className="flex-1">
-                <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>完工報告を提出</p>
-                <p style={{ fontSize: 13, color: C.sub, marginTop: 2 }}>工事完了時に写真と共に提出</p>
-              </div>
-              <ChevronRight size={16} style={{ color: C.muted }} />
-            </div>
-          )}
-
+                <span>{tab.emoji}</span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-        {/* end left column */}
-
-        {/* ══════════════════════════════════════════
-            Right sidebar — financial summary
-        ══════════════════════════════════════════ */}
-        <div className="lg:w-80 xl:w-96 flex flex-col gap-6">
-
-          {/* ── 受注・利益サマリ ── */}
-          <section>
-            <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.amber, marginBottom: 12 }}>
-              原価・利益（現在値）
-            </p>
-            <div className="p-6 rounded-xl" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-
-              {/* Big profit number */}
-              <div className="text-center mb-5">
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: C.muted, marginBottom: 6 }}>
-                  現状利益
-                </p>
-                <p style={{
-                  fontSize: 36, fontWeight: 800, lineHeight: 1,
-                  color: profit >= 0 ? C.green : C.red,
-                  fontFeatureSettings: "'tnum'",
-                }}>
-                  {profit >= 0 ? "+" : ""}¥{profit.toLocaleString()}
-                </p>
-                <p style={{ fontSize: 13, color: C.sub, marginTop: 6 }}>
-                  粗利率 <span style={{ fontWeight: 700, color: profitPct >= 20 ? C.green : profitPct >= 10 ? C.amber : C.red }}>{profitPct}%</span>
-                </p>
-              </div>
-
-              {/* 受注金額 */}
-              <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>受注金額</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>¥{site.contractAmount.toLocaleString()}</span>
-              </div>
-
-              {/* Cost breakdown — 5 categories */}
-              <div className="flex flex-col gap-2.5 mb-4">
-                {[
-                  { label: "産廃処分費",   value: wasteDisposal,    color: C.red,      sub: `${Math.round(totalWasteM3)}㎥ × 単価` },
-                  { label: "労務費",       value: labor,            color: T.primary,  sub: `${totalStaffDays}人日` },
-                  { label: "重機リース費", value: equipmentRental,  color: "#8B5CF6",  sub: `${site.workLogs.length}日稼働` },
-                  { label: "運搬費",       value: transport,        color: "#0EA5E9",  sub: "産廃搬出" },
-                  { label: "その他経費",   value: misc,             color: "#6B7280",  sub: "養生材・消耗品等" },
-                ].map(({ label, value, color, sub }) => (
-                  <div key={label}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                        <span style={{ fontSize: 13, color: C.text }}>{label}</span>
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFeatureSettings: "'tnum'" }}>
-                        ¥{value.toLocaleString()}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 11, color: C.muted, marginLeft: 18, marginTop: 1 }}>{sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* 原価合計 */}
-              <div className="flex items-center justify-between pt-3 mb-5" style={{ borderTop: `2px solid ${C.border}` }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>原価合計</span>
-                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-                  ¥{totalCost.toLocaleString()}
-                  <span style={{ fontSize: 12, fontWeight: 500, color: C.sub, marginLeft: 4 }}>
-                    ({costPct}%)
-                  </span>
-                </span>
-              </div>
-
-              {/* Cost gauge — stacked bar */}
-              <div>
-                <div className="flex justify-between mb-1.5" style={{ fontSize: 12, color: C.sub }}>
-                  <span>原価消化率</span>
-                  <span style={{ fontWeight: 600 }}>{costPct}%</span>
-                </div>
-                <div className="h-3 rounded-full overflow-hidden flex" style={{ background: T.bg }}>
-                  {[
-                    { value: wasteDisposal, color: C.red },
-                    { value: labor, color: T.primary },
-                    { value: equipmentRental, color: "#8B5CF6" },
-                    { value: transport, color: "#0EA5E9" },
-                    { value: misc, color: "#6B7280" },
-                  ].map(({ value, color }, i) => {
-                    const pct = site.contractAmount > 0 ? (value / site.contractAmount) * 100 : 0;
-                    return pct > 0 ? (
-                      <div key={i} style={{ width: `${pct}%`, background: color, minWidth: pct > 0 ? 2 : 0 }} />
-                    ) : null;
-                  })}
-                </div>
-              </div>
-
-            </div>
-          </section>
-
-          {/* ── 作業実績サマリ ── */}
-          <section className="p-5 rounded-xl" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-            <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.amber, marginBottom: 14 }}>
-              作業実績サマリ
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "稼働日数", value: `${site.workLogs.length}`, unit: "日" },
-                { label: "延べ人工", value: `${totalStaffDays}`, unit: "人日" },
-                { label: "産廃搬出量", value: `${Math.round(totalWasteM3 * 10) / 10}`, unit: "㎥" },
-                { label: "構造種別", value: site.structureType, unit: "" },
-              ].map(({ label, value, unit }) => (
-                <div key={label} className="py-3 px-4 rounded-lg" style={{ background: T.bg }}>
-                  <p style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{label}</p>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1 }}>
-                    {value}<span style={{ fontSize: 12, fontWeight: 500, color: C.sub, marginLeft: 2 }}>{unit}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-        </div>
-        {/* end right sidebar */}
-
       </div>
 
-      {/* ── Daily report modal ── */}
-      {selectedLog && (
-        <DailyReportModal log={selectedLog} onClose={() => setSelectedLog(null)} />
-      )}
-
+      {/* ── Tab content ── */}
+      <div
+        ref={contentRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1"
+        style={{ padding: "16px 0 24px" }}
+      >
+        <div style={{ padding: "0 4px" }}>
+          {activeTab === "basic" && (
+            <TabBasic
+              site={site}
+              contract={contract}
+              client={client}
+              notes={siteNotes}
+            />
+          )}
+          {activeTab === "history" && (
+            <TabHistory
+              logs={logs}
+              siteId={site.id}
+            />
+          )}
+          {activeTab === "docs" && (
+            <TabDocs images={images} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
