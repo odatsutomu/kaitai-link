@@ -11,6 +11,7 @@ import {
   ParkingSquare, HardHat, Megaphone, Package,
   ClipboardList, Fuel, CircleStop, FolderOpen,
   Image as ImageIcon, ZoomIn, Pencil,
+  CheckCircle, DollarSign, Wrench,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -765,6 +766,21 @@ function TabBasic({
   );
 }
 
+// ─── Report type icon mapping ──────────────────────────────────────────────
+
+const REPORT_ICON_MAP: Record<string, { icon: typeof ClipboardList; color: string; bg: string }> = {
+  start:     { icon: Clock,          color: "#10B981", bg: "rgba(16,185,129,0.08)" },
+  clockout:  { icon: Clock,          color: "#6366F1", bg: "rgba(99,102,241,0.08)" },
+  break:     { icon: Clock,          color: "#8B5CF6", bg: "rgba(139,92,246,0.08)" },
+  daily:     { icon: Wrench,         color: "#8B5CF6", bg: "rgba(139,92,246,0.08)" },
+  finish:    { icon: CheckCircle,    color: "#059669", bg: "rgba(5,150,105,0.08)" },
+  expense:   { icon: DollarSign,     color: "#F97316", bg: "rgba(249,115,22,0.08)" },
+  waste:     { icon: Truck,          color: "#14B8A6", bg: "rgba(20,184,166,0.08)" },
+  irregular: { icon: AlertTriangle,  color: "#EF4444", bg: "rgba(239,68,68,0.08)" },
+  system:    { icon: FileText,       color: "#6B7280", bg: "rgba(107,114,128,0.08)" },
+  other:     { icon: FileText,       color: "#6B7280", bg: "rgba(107,114,128,0.08)" },
+};
+
 // ─── Tab 2: History & Reports ───────────────────────────────────────────────
 
 function TabHistory({
@@ -776,12 +792,15 @@ function TabHistory({
   reactions: Map<string, ReactionData>;
   onViewImage: (url: string) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   // Build image lookup map for fast access
   const imageMap = useMemo(() => {
     const map = new Map<string, SiteImage>();
     for (const img of images) map.set(img.id, img);
     return map;
   }, [images]);
+
   // Group logs by date
   const grouped: { date: string; dateLabel: string; items: ParsedLog[] }[] = [];
   for (const log of logs) {
@@ -822,144 +841,216 @@ function TabHistory({
         );
       })()}
 
-      {/* Timeline */}
-      {grouped.length > 0 ? (
-        grouped.map((group) => (
-          <div key={group.date}>
-            {/* Date header */}
-            <div className="flex items-center gap-3 mb-3">
-              <div
-                className="px-3 py-1.5 rounded-lg"
-                style={{ background: T.primaryLt, border: `1px solid ${T.primaryMd}` }}
-              >
-                <span style={{ fontSize: 15, fontWeight: 800, color: T.primaryDk }}>
-                  {group.dateLabel}
+      {/* Report list card */}
+      {logs.length > 0 ? (
+        <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: `1px solid ${T.border}` }}>
+          {/* List header */}
+          <div className="flex items-center justify-between px-4 py-2.5" style={{ background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>
+              {logs.length}件の報告
+            </span>
+          </div>
+
+          {/* Grouped by date */}
+          {grouped.map((group) => (
+            <div key={group.date}>
+              {/* Date header */}
+              <div className="px-4 py-2 sticky top-[110px] z-10" style={{ background: "rgba(248,250,252,0.95)", borderBottom: `1px solid ${T.border}`, backdropFilter: "blur(8px)" }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.primary }}>
+                  {(() => {
+                    const d = new Date(group.date + "T00:00:00");
+                    const dow = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+                    return `${d.getMonth() + 1}月${d.getDate()}日（${dow}）`;
+                  })()}
                 </span>
+                <span style={{ fontSize: 12, color: T.muted, marginLeft: 8 }}>{group.items.length}件</span>
               </div>
-              <div style={{ flex: 1, height: 1, background: T.border }} />
-              <span style={{ fontSize: 13, color: T.muted }}>{group.items.length}件</span>
-            </div>
 
-            {/* Entries for this date */}
-            <div className="flex flex-col gap-2 ml-2">
-              {group.items.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex gap-3"
-                >
-                  {/* Dot */}
-                  <div className="flex flex-col items-center flex-shrink-0 pt-4" style={{ width: 16 }}>
-                    <div
-                      className="rounded-full"
+              {/* Report entries */}
+              {group.items.map((log) => {
+                const isExpanded = expandedId === log.id;
+                const iconCfg = REPORT_ICON_MAP[log.type] ?? REPORT_ICON_MAP.other;
+                const Icon = iconCfg.icon;
+                const reaction = reactions.get(log.id);
+                const hasAlert = reaction && (reaction.status === "action_required" || reaction.status === "call_required");
+
+                return (
+                  <div key={log.id}>
+                    {/* List row */}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-gray-50"
                       style={{
-                        width: 10, height: 10,
-                        background: log.typeColor,
-                        border: `2px solid ${log.typeBg}`,
+                        borderBottom: `1px solid #F1F5F9`,
+                        background: hasAlert
+                          ? reaction.status === "call_required" ? "rgba(31,41,55,0.03)" : "rgba(239,68,68,0.03)"
+                          : "transparent",
                       }}
-                    />
-                  </div>
-
-                  {/* Card */}
-                  <div
-                    className="flex-1 rounded-xl"
-                    style={{
-                      padding: "14px 16px",
-                      background: log.isHandover ? "#FFFBEB" : "#fff",
-                      border: `1px solid ${log.isHandover ? "#FDE68A" : T.border}`,
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span
-                        className="px-2 py-0.5 rounded-md font-bold"
-                        style={{ fontSize: 12, background: log.typeBg, color: log.typeColor }}
-                      >
-                        {log.typeLabel}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-                        {log.user}
-                      </span>
-                      <span style={{ fontSize: 13, color: T.muted }}>{log.time}</span>
-                      {reactions.has(log.id) && (() => {
-                        const r = reactions.get(log.id)!;
-                        const cfg = REACTION_BADGE[r.status];
-                        if (!cfg) return null;
-                        return (
-                          <span
-                            className="px-1.5 py-0.5 rounded"
-                            style={{
-                              fontSize: 11, fontWeight: 800,
-                              background: cfg.bg, color: cfg.fg,
-                              border: `1px solid ${cfg.border}`,
-                            }}
-                          >
-                            {cfg.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    {log.detail && (
-                      <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, wordBreak: "break-word" }}>
-                        {log.detail}
-                      </p>
-                    )}
-                    {/* 管理者コメント */}
-                    {reactions.has(log.id) && reactions.get(log.id)!.comment && (
+                    >
+                      {/* Icon */}
                       <div
-                        className="rounded-md"
-                        style={{
-                          marginTop: 6, padding: "8px 12px",
-                          background: "#F8FAFC",
-                          border: `1px solid ${T.border}`,
-                        }}
+                        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: iconCfg.bg }}
                       >
-                        <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 2 }}>
-                          管理者 ({reactions.get(log.id)!.adminName})
-                        </p>
-                        <p style={{ fontSize: 14, color: T.text, lineHeight: 1.5 }}>
-                          {reactions.get(log.id)!.comment}
+                        <Icon size={18} style={{ color: iconCfg.color }} />
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                            {log.typeLabel}
+                          </span>
+                          {log.imageIds.length > 0 && (
+                            <span className="flex items-center gap-0.5" style={{ color: T.muted }}>
+                              <ImageIcon size={12} />
+                              <span style={{ fontSize: 11, fontWeight: 600 }}>{log.imageIds.length}</span>
+                            </span>
+                          )}
+                          {reaction && (() => {
+                            const cfg = REACTION_BADGE[reaction.status];
+                            if (!cfg) return null;
+                            return (
+                              <span
+                                className="px-1.5 py-0.5 rounded"
+                                style={{
+                                  fontSize: 11, fontWeight: 800,
+                                  background: cfg.bg, color: cfg.fg,
+                                  border: `1px solid ${cfg.border}`,
+                                }}
+                              >
+                                {cfg.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <p className="truncate" style={{ fontSize: 13, color: T.sub, maxWidth: "100%" }}>
+                          {log.detail}
                         </p>
                       </div>
+
+                      {/* Right side meta */}
+                      <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.sub }}>{log.user}</span>
+                        <span style={{ fontSize: 11, color: T.muted }}>{log.time}</span>
+                      </div>
+
+                      <ChevronRight
+                        size={16}
+                        style={{
+                          color: T.muted, flexShrink: 0,
+                          transform: isExpanded ? "rotate(90deg)" : "none",
+                          transition: "transform 0.15s",
+                        }}
+                      />
+                    </button>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div
+                        style={{
+                          padding: "12px 16px 16px",
+                          background: "#FAFBFC",
+                          borderBottom: `1px solid ${T.border}`,
+                        }}
+                      >
+                        {/* Report detail */}
+                        <p style={{ fontSize: 15, color: T.text, lineHeight: 1.7, wordBreak: "break-word", marginBottom: 8 }}>
+                          {log.detail}
+                        </p>
+
+                        {/* Admin reaction / comment */}
+                        {reaction && (
+                          <div
+                            className="rounded-lg"
+                            style={{
+                              padding: "10px 14px",
+                              marginBottom: 10,
+                              background: hasAlert
+                                ? reaction.status === "call_required" ? "#1F2937" : "#FEF2F2"
+                                : "#F8FAFC",
+                              border: `1px solid ${
+                                hasAlert
+                                  ? reaction.status === "call_required" ? "#374151" : "#FECACA"
+                                  : T.border
+                              }`,
+                            }}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {(() => {
+                                const cfg = REACTION_BADGE[reaction.status];
+                                if (!cfg) return null;
+                                return (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded"
+                                    style={{
+                                      fontSize: 11, fontWeight: 800,
+                                      background: cfg.bg, color: cfg.fg,
+                                      border: `1px solid ${cfg.border}`,
+                                    }}
+                                  >
+                                    {cfg.label}
+                                  </span>
+                                );
+                              })()}
+                              <span style={{
+                                fontSize: 12, fontWeight: 600,
+                                color: reaction.status === "call_required" ? "rgba(255,255,255,0.6)" : T.muted,
+                              }}>
+                                管理者: {reaction.adminName}
+                              </span>
+                            </div>
+                            {reaction.comment && (
+                              <p style={{
+                                fontSize: 14, lineHeight: 1.5,
+                                color: reaction.status === "call_required" ? "rgba(255,255,255,0.9)" : T.text,
+                              }}>
+                                {reaction.comment}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Photo thumbnails */}
+                        {log.imageIds.length > 0 && (() => {
+                          const logImages = log.imageIds
+                            .map(id => imageMap.get(id))
+                            .filter((img): img is SiteImage => !!img);
+                          if (logImages.length === 0) return null;
+                          return (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {logImages.map(img => (
+                                <button
+                                  key={img.id}
+                                  onClick={() => onViewImage(img.url)}
+                                  className="rounded-lg overflow-hidden flex-shrink-0"
+                                  style={{
+                                    width: 72, height: 72,
+                                    border: `1px solid ${T.border}`,
+                                    background: T.bg,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={img.url}
+                                    alt=""
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    loading="lazy"
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     )}
-                    {/* 添付写真サムネイル */}
-                    {log.imageIds.length > 0 && (() => {
-                      const logImages = log.imageIds
-                        .map(id => imageMap.get(id))
-                        .filter((img): img is SiteImage => !!img);
-                      if (logImages.length === 0) return null;
-                      return (
-                        <div style={{
-                          display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap",
-                        }}>
-                          {logImages.map(img => (
-                            <button
-                              key={img.id}
-                              onClick={() => onViewImage(img.url)}
-                              className="rounded-lg overflow-hidden flex-shrink-0"
-                              style={{
-                                width: 64, height: 64,
-                                border: `1px solid ${T.border}`,
-                                background: T.bg,
-                                cursor: "pointer",
-                              }}
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={img.url}
-                                alt=""
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                loading="lazy"
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       ) : (
         <div className="py-16 text-center">
           <Clock size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
@@ -1268,7 +1359,7 @@ export default function SiteDetailPage() {
         // Parallel fetches
         const [contractRes, logsRes, imagesRes, clientsRes] = await Promise.all([
           fetch(`/api/kaitai/sites/contract?siteId=${id}`, { credentials: "include" }),
-          fetch(`/api/kaitai/operation-logs?siteId=${id}&limit=500`, { credentials: "include" }),
+          fetch(`/api/kaitai/operation-logs?type=reports&siteId=${id}&limit=500`, { credentials: "include" }),
           fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" }),
           siteObj.clientId
             ? fetch("/api/kaitai/clients", { credentials: "include" })
