@@ -66,3 +66,25 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, log }, { status: 201 });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+  if (session.authLevel !== "admin") {
+    return NextResponse.json({ error: "管理者権限が必要です" }, { status: 403 });
+  }
+
+  const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
+
+  const existing = await prisma.kaitaiOperationLog.findFirst({
+    where: { id, companyId: session.companyId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "ログが見つかりません" }, { status: 404 });
+  }
+
+  await prisma.kaitaiOperationLog.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   MapPin, Calendar, Edit3, ChevronRight, ChevronLeft, Search,
   Building2, CheckCircle, Clock, FileText, Handshake,
-  ShieldCheck, Hammer, Truck, CreditCard, ClipboardCheck,
+  ShieldCheck, Hammer, Truck, CreditCard, ClipboardCheck, Trash2,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -301,6 +301,25 @@ export default function AdminSitesPage() {
     setSites(prev => prev.map(s => s.id === siteId ? { ...s, status: newStatus } : s));
   }
 
+  async function handleDelete(siteId: string, siteName: string) {
+    if (!confirm(`「${siteName}」を削除しますか？\n関連する経費・廃材・報告データもすべて削除されます。この操作は取り消せません。`)) return;
+    try {
+      const res = await fetch("/api/kaitai/sites", {
+        method: "DELETE", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: siteId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "削除に失敗しました");
+        return;
+      }
+      setSites(prev => prev.filter(s => s.id !== siteId));
+    } catch {
+      alert("削除に失敗しました");
+    }
+  }
+
   // Apply period filter then text search
   const periodFiltered = filterByPeriod(sites, mode, year, month);
 
@@ -505,19 +524,35 @@ export default function AdminSitesPage() {
                           </p>
                         </div>
 
-                        <Link
-                          href={`/kaitai/sites/${site.id}/edit`}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={{
-                            background: T.primaryLt,
-                            color: T.primary,
-                            textDecoration: "none",
-                            border: `1px solid ${T.primaryMd}`,
-                          }}
-                        >
-                          <Edit3 size={12} />
-                          編集
-                        </Link>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Link
+                            href={`/kaitai/sites/${site.id}/edit`}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold"
+                            style={{
+                              background: T.primaryLt,
+                              color: T.primary,
+                              textDecoration: "none",
+                              border: `1px solid ${T.primaryMd}`,
+                            }}
+                          >
+                            <Edit3 size={12} />
+                            編集
+                          </Link>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleDelete(site.id, site.name); }}
+                            className="flex items-center justify-center rounded-lg"
+                            style={{
+                              width: 34, height: 34,
+                              background: "rgba(239,68,68,0.06)",
+                              color: "#EF4444",
+                              border: "1px solid rgba(239,68,68,0.15)",
+                              cursor: "pointer",
+                            }}
+                            title="削除"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Row 2: address */}

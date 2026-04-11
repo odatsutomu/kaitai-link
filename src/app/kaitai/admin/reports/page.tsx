@@ -5,7 +5,7 @@ import {
   ClipboardList, Clock, Fuel, AlertTriangle, Truck, Wrench, Coffee,
   ChevronRight, ChevronLeft, Calendar, Users, MapPin,
   X, Search, CheckCircle, LogIn, LogOut,
-  FileText, DollarSign,
+  FileText, DollarSign, Trash2,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -161,13 +161,14 @@ function fmt(n: number) {
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 function DetailModal({
-  log, parsed, expenses, wastes, onClose,
+  log, parsed, expenses, wastes, onClose, onDelete,
 }: {
   log: OperationLog;
   parsed: ParsedReport;
   expenses: ExpenseLog[];
   wastes: WasteDispatch[];
   onClose: () => void;
+  onDelete: (id: string) => void;
 }) {
   // Find related expense or waste records
   const relatedExpenses = useMemo(() => {
@@ -202,7 +203,16 @@ function DetailModal({
               <p style={{ fontSize: 12, color: C.muted }}>{fmtDateTime(log.createdAt)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X size={20} style={{ color: C.sub }} /></button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onDelete(log.id)}
+              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+              title="この報告を削除"
+            >
+              <Trash2 size={18} style={{ color: C.red }} />
+            </button>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100"><X size={20} style={{ color: C.sub }} /></button>
+          </div>
         </div>
 
         {/* Content */}
@@ -687,6 +697,25 @@ export default function AdminReportsPage() {
           expenses={expenses}
           wastes={wastes}
           onClose={() => setSelectedLog(null)}
+          onDelete={async (id) => {
+            if (!confirm("この報告を削除しますか？この操作は取り消せません。")) return;
+            try {
+              const res = await fetch("/api/kaitai/operation-logs", {
+                method: "DELETE", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id }),
+              });
+              if (res.ok) {
+                setLogs(prev => prev.filter(l => l.id !== id));
+                setSelectedLog(null);
+              } else {
+                const data = await res.json().catch(() => ({}));
+                alert(data.error || "削除に失敗しました");
+              }
+            } catch {
+              alert("削除に失敗しました");
+            }
+          }}
         />
       )}
     </div>

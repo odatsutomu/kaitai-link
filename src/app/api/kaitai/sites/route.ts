@@ -121,3 +121,29 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ ok: true, site });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+  if (session.authLevel !== "admin") {
+    return NextResponse.json({ error: "管理者権限が必要です" }, { status: 403 });
+  }
+
+  const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
+
+  const existing = await prisma.kaitaiSite.findFirst({
+    where: { id, companyId: session.companyId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "現場が見つかりません" }, { status: 404 });
+  }
+
+  // Delete related records first
+  await prisma.kaitaiExpenseLog.deleteMany({ where: { siteId: id, companyId: session.companyId } });
+  await prisma.kaitaiWasteDispatch.deleteMany({ where: { siteId: id, companyId: session.companyId } });
+  await prisma.kaitaiOperationLog.deleteMany({ where: { siteId: id, companyId: session.companyId } });
+  await prisma.kaitaiSite.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
