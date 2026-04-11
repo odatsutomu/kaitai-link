@@ -139,6 +139,30 @@ function DocTypeModal({
               <ChevronRight size={16} color={C.muted} />
             </button>
           ))}
+
+          {/* Divider */}
+          <div style={{ borderTop: `1px solid ${C.border}`, margin: "4px 0" }} />
+
+          {/* Photo album — special entry */}
+          <button
+            onClick={() => router.push(`/kaitai/docs/photo-album?site=${site.id}`)}
+            className="hover:bg-gray-50"
+            style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "12px 16px", borderRadius: 12,
+              textAlign: "left", background: T.bg,
+              border: `1px solid ${T.primaryMd}`,
+              cursor: "pointer", width: "100%",
+              transition: "background 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 24 }}>📸</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>写真台帳</p>
+              <p style={{ fontSize: 14, color: C.sub, margin: "2px 0 0" }}>現場写真を選択してPDF台帳を作成</p>
+            </div>
+            <ChevronRight size={16} color={C.muted} />
+          </button>
         </div>
       </div>
     </div>
@@ -243,6 +267,16 @@ export default function DocsPage() {
               {meta.emoji} {meta.label}
             </span>
           ))}
+          <span
+            style={{
+              fontSize: 13, fontWeight: 600,
+              color: C.amberDk, background: T.primaryLt,
+              border: `1px solid ${T.primaryMd}`,
+              borderRadius: 20, padding: "4px 12px",
+            }}
+          >
+            📸 写真台帳
+          </span>
         </div>
       </header>
 
