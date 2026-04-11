@@ -82,8 +82,25 @@ model KaitaiSite {
   expenseLogs  KaitaiExpenseLog[]
   images       KaitaiImage[]
   contractData KaitaiContractData?
+  payments     KaitaiPayment[]
 
   @@index([companyId])
+}
+
+model KaitaiPayment {
+  id        String   @id @default(cuid())
+  companyId String
+  siteId    String
+  amount    Int
+  date      String        // YYYY-MM-DD
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site KaitaiSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([siteId])
 }
 
 model KaitaiMember {

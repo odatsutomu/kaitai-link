@@ -8,6 +8,7 @@ import {
   Hammer, CreditCard, ClipboardCheck, Trash2,
   AlertCircle, XCircle, TrendingUp, TrendingDown, Minus,
   DollarSign, Banknote, AlertTriangle,
+  X, Plus, History, Pencil,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -23,6 +24,15 @@ type SiteRow = {
   costAmount: number;
   progressPct: number;
   structureType: string;
+};
+
+type PaymentRecord = {
+  id: string;
+  siteId: string;
+  amount: number;
+  date: string;
+  note: string;
+  createdAt: string;
 };
 
 // ─── 9-stage status system (with 失注) ─────────────────────────────────────
@@ -347,14 +357,369 @@ function SummaryCard({
   );
 }
 
+// ─── Payment Modal ─────────────────────────────────────────────────────────
+
+function PaymentModal({
+  site, editingPayment, onClose, onSaved,
+}: {
+  site: SiteRow;
+  editingPayment: PaymentRecord | null;
+  onClose: () => void;
+  onSaved: (siteId: string, totalPaid: number) => void;
+}) {
+  const isEdit = !!editingPayment;
+  const [amount, setAmount] = useState(isEdit ? String(editingPayment.amount) : "");
+  const [date, setDate] = useState(isEdit ? editingPayment.date : new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState(isEdit ? (editingPayment.note ?? "") : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const remaining = site.contractAmount - site.paidAmount + (isEdit ? editingPayment.amount : 0);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const numAmount = Math.round(Number(amount));
+    if (!numAmount || numAmount <= 0) { setError("金額を正しく入力してください"); return; }
+    if (!date) { setError("入金日を入力してください"); return; }
+
+    setSaving(true);
+    setError("");
+    try {
+      const url = "/api/kaitai/payments";
+      const method = isEdit ? "PATCH" : "POST";
+      const body = isEdit
+        ? { id: editingPayment.id, amount: numAmount, date, note: note || null }
+        : { siteId: site.id, amount: numAmount, date, note: note || null };
+
+      const res = await fetch(url, {
+        method, credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "保存に失敗しました"); setSaving(false); return; }
+      onSaved(site.id, data.totalPaid);
+      onClose();
+    } catch {
+      setError("通信エラーが発生しました");
+      setSaving(false);
+    }
+  }
+
+  function handleAmountPreset(value: number) {
+    setAmount(String(value));
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl overflow-hidden"
+        style={{ background: "#fff", border: `1px solid ${T.border}` }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <p style={{ fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 2 }}>
+              {isEdit ? "入金記録の編集" : "入金を記録する"}
+            </p>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{site.name}</h3>
+          </div>
+          <button onClick={onClose} className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36 }}>
+            <X size={18} style={{ color: T.sub }} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-5">
+          {/* Context info */}
+          <div className="flex gap-4">
+            <div className="flex-1 rounded-lg" style={{ padding: "10px 14px", background: T.bg }}>
+              <p style={{ fontSize: 12, color: T.muted }}>受注額</p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#3B82F6" }}>{fmtMan(site.contractAmount)}</p>
+            </div>
+            <div className="flex-1 rounded-lg" style={{ padding: "10px 14px", background: T.bg }}>
+              <p style={{ fontSize: 12, color: T.muted }}>未入金残高</p>
+              <p style={{ fontSize: 16, fontWeight: 700, color: remaining > 0 ? T.primary : "#059669" }}>{fmtMan(remaining)}</p>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label style={{ fontSize: 14, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+              入金額 <span style={{ color: "#EF4444" }}>*</span>
+            </label>
+            <div className="relative">
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: T.muted }}>¥</span>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-xl outline-none"
+                style={{
+                  border: `1px solid ${T.border}`, padding: "14px 14px 14px 32px",
+                  fontSize: 20, fontWeight: 700, color: T.text, background: "#fff",
+                }}
+              />
+            </div>
+            {/* Quick presets */}
+            {remaining > 0 && (
+              <div className="flex gap-2 mt-2">
+                <button type="button" onClick={() => handleAmountPreset(remaining)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: "rgba(5,150,105,0.08)", color: "#059669", border: "1px solid rgba(5,150,105,0.15)" }}>
+                  全額 ({fmtMan(remaining)})
+                </button>
+                {remaining > 10000 && (
+                  <button type="button" onClick={() => handleAmountPreset(Math.round(remaining / 2))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                    style={{ background: "rgba(59,130,246,0.08)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.15)" }}>
+                    半額 ({fmtMan(Math.round(remaining / 2))})
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Date */}
+          <div>
+            <label style={{ fontSize: 14, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+              入金日 <span style={{ color: "#EF4444" }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="w-full rounded-xl outline-none"
+              style={{
+                border: `1px solid ${T.border}`, padding: "12px 14px",
+                fontSize: 16, color: T.text, background: "#fff",
+              }}
+            />
+          </div>
+
+          {/* Note */}
+          <div>
+            <label style={{ fontSize: 14, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>
+              メモ（任意）
+            </label>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="例：第1回目 振込"
+              className="w-full rounded-xl outline-none"
+              style={{
+                border: `1px solid ${T.border}`, padding: "12px 14px",
+                fontSize: 15, color: T.text, background: "#fff",
+              }}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p style={{ fontSize: 13, color: "#EF4444", fontWeight: 600 }}>{error}</p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-3.5 rounded-xl font-bold transition-all"
+            style={{
+              fontSize: 16,
+              background: saving ? T.muted : "#059669",
+              color: "#fff",
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? "保存中..." : isEdit ? "入金記録を更新" : "入金を記録する"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Payment History Drawer ────────────────────────────────────────────────
+
+function PaymentHistoryDrawer({
+  site, onClose, onEdit, onPaidUpdate,
+}: {
+  site: SiteRow;
+  onClose: () => void;
+  onEdit: (payment: PaymentRecord) => void;
+  onPaidUpdate: (siteId: string, totalPaid: number) => void;
+}) {
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/kaitai/payments?siteId=${site.id}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.payments) {
+          setPayments(data.payments.map((p: Record<string, unknown>) => ({
+            id: p.id as string,
+            siteId: p.siteId as string,
+            amount: p.amount as number,
+            date: p.date as string,
+            note: (p.note as string) ?? "",
+            createdAt: (p.createdAt as string) ?? "",
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [site.id]);
+
+  async function handleDelete(paymentId: string) {
+    if (!confirm("この入金記録を削除しますか？")) return;
+    try {
+      const res = await fetch("/api/kaitai/payments", {
+        method: "DELETE", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: paymentId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPayments(prev => prev.filter(p => p.id !== paymentId));
+        onPaidUpdate(site.id, data.totalPaid);
+      }
+    } catch { /* ignore */ }
+  }
+
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl overflow-hidden"
+        style={{ background: "#fff", border: `1px solid ${T.border}` }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 flex-shrink-0" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <div>
+            <p style={{ fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 2 }}>入金履歴</p>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{site.name}</h3>
+          </div>
+          <button onClick={onClose} className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36 }}>
+            <X size={18} style={{ color: T.sub }} />
+          </button>
+        </div>
+
+        {/* Summary */}
+        <div className="flex gap-4 px-6 py-4 flex-shrink-0" style={{ background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+          <div className="flex-1">
+            <p style={{ fontSize: 12, color: T.muted }}>受注額</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#3B82F6" }}>{fmtMan(site.contractAmount)}</p>
+          </div>
+          <div className="flex-1">
+            <p style={{ fontSize: 12, color: T.muted }}>入金済合計</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#059669" }}>{fmtMan(totalPaid)}</p>
+          </div>
+          <div className="flex-1">
+            <p style={{ fontSize: 12, color: T.muted }}>残高</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: site.contractAmount - totalPaid > 0 ? T.primary : "#059669" }}>
+              {fmtMan(site.contractAmount - totalPaid)}
+            </p>
+          </div>
+        </div>
+
+        {/* Payment list */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {loading ? (
+            <p className="text-center py-8" style={{ color: T.muted }}>読み込み中...</p>
+          ) : payments.length === 0 ? (
+            <div className="text-center py-12">
+              <CreditCard size={32} style={{ color: T.muted, margin: "0 auto 8px" }} />
+              <p style={{ fontSize: 15, color: T.sub }}>入金記録がありません</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {payments.map((p, i) => (
+                <div
+                  key={p.id}
+                  className="rounded-xl"
+                  style={{ border: `1px solid ${T.border}`, padding: "14px 16px" }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, color: "#059669",
+                          background: "rgba(5,150,105,0.08)", padding: "2px 8px", borderRadius: 4,
+                        }}>
+                          第{payments.length - i}回
+                        </span>
+                        <span style={{ fontSize: 14, color: T.sub }}>
+                          {p.date.replace(/-/g, "/")}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 20, fontWeight: 800, color: "#059669" }}>
+                        ¥{p.amount.toLocaleString("ja-JP")}
+                      </p>
+                      {p.note && (
+                        <p style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>{p.note}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => onEdit(p)}
+                        className="flex items-center justify-center rounded-lg"
+                        style={{ width: 34, height: 34, background: T.bg, border: `1px solid ${T.border}`, cursor: "pointer" }}
+                        title="編集"
+                      >
+                        <Pencil size={13} style={{ color: T.sub }} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="flex items-center justify-center rounded-lg"
+                        style={{ width: 34, height: 34, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.12)", cursor: "pointer" }}
+                        title="削除"
+                      >
+                        <Trash2 size={13} style={{ color: "#EF4444" }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.border}` }}>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-bold"
+            style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.sub, fontSize: 15 }}
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Site Card ─────────────────────────────────────────────────────────────
 
 function SiteCard({
-  site, onStatusChange, onDelete,
+  site, onStatusChange, onDelete, onPayment, onPaymentHistory,
 }: {
   site: SiteRow;
   onStatusChange: (siteId: string, newStatus: string) => void;
   onDelete: (siteId: string, siteName: string) => void;
+  onPayment: (site: SiteRow) => void;
+  onPaymentHistory: (site: SiteRow) => void;
 }) {
   const ss = resolveStatus(site.status);
   const isLost = ss.group === "lost";
@@ -529,6 +894,34 @@ function SiteCard({
             <div style={{ marginTop: 12 }}>
               <PaymentBar paid={site.paidAmount} total={site.contractAmount} />
             </div>
+
+            {/* Payment action buttons */}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); onPayment(site); }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold flex-1 justify-center"
+                style={{
+                  fontSize: 13,
+                  background: "#059669", color: "#fff",
+                  cursor: "pointer",
+                  border: "none",
+                }}
+              >
+                <Plus size={14} /> 入金を記録
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onPaymentHistory(site); }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold"
+                style={{
+                  fontSize: 13,
+                  background: T.bg, color: T.sub,
+                  cursor: "pointer",
+                  border: `1px solid ${T.border}`,
+                }}
+              >
+                <History size={14} /> 入金履歴
+              </button>
+            </div>
           </div>
         )}
 
@@ -626,6 +1019,11 @@ export default function AdminSitesPage() {
   // Group filter (click on summary card)
   const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
 
+  // Payment modal state
+  const [paymentSite, setPaymentSite] = useState<SiteRow | null>(null);
+  const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
+  const [historySite, setHistorySite] = useState<SiteRow | null>(null);
+
   useEffect(() => {
     fetch("/api/kaitai/sites", { credentials: "include" })
       .then(r => r.ok ? r.json() : null)
@@ -682,6 +1080,14 @@ export default function AdminSitesPage() {
       setSites(prev => prev.filter(s => s.id !== siteId));
     } catch {
       alert("削除に失敗しました");
+    }
+  }
+
+  function handlePaidUpdate(siteId: string, totalPaid: number) {
+    setSites(prev => prev.map(s => s.id === siteId ? { ...s, paidAmount: totalPaid } : s));
+    // Also update historySite if it's the same site
+    if (historySite?.id === siteId) {
+      setHistorySite(prev => prev ? { ...prev, paidAmount: totalPaid } : null);
     }
   }
 
@@ -931,6 +1337,8 @@ export default function AdminSitesPage() {
                   site={site}
                   onStatusChange={handleStatusChange}
                   onDelete={handleDelete}
+                  onPayment={(s) => { setPaymentSite(s); setEditingPayment(null); }}
+                  onPaymentHistory={(s) => setHistorySite(s)}
                 />
               ))}
             </div>
@@ -945,6 +1353,34 @@ export default function AdminSitesPage() {
             {search ? "検索条件に一致する現場がありません" : "登録されている現場がありません"}
           </p>
         </div>
+      )}
+
+      {/* ── Payment modal ── */}
+      {paymentSite && (
+        <PaymentModal
+          site={paymentSite}
+          editingPayment={editingPayment}
+          onClose={() => { setPaymentSite(null); setEditingPayment(null); }}
+          onSaved={handlePaidUpdate}
+        />
+      )}
+
+      {/* ── Payment history drawer ── */}
+      {historySite && (
+        <PaymentHistoryDrawer
+          site={historySite}
+          onClose={() => setHistorySite(null)}
+          onEdit={(payment) => {
+            // Find the current site data for the payment modal
+            const s = sites.find(si => si.id === payment.siteId);
+            if (s) {
+              setHistorySite(null);
+              setPaymentSite(s);
+              setEditingPayment(payment);
+            }
+          }}
+          onPaidUpdate={handlePaidUpdate}
+        />
       )}
     </div>
   );
