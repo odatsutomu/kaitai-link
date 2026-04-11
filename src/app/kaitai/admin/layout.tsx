@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   TrendingUp, Star, Users, Truck, Settings, Delete,
   LogOut, ChevronRight, LayoutDashboard, Shield, BarChart2, Building2, CalendarDays,
-  Wrench, Activity, Factory, Smartphone,
+  Wrench, Activity, Factory, Smartphone, ClipboardList,
 } from "lucide-react";
 import { useAppContext } from "../lib/app-context";
 import Image from "next/image";
@@ -17,6 +17,7 @@ import { TDark } from "../lib/design-tokens";
 const ADMIN_NAV = [
   { href: "/kaitai/admin",            label: "経営分析",       icon: TrendingUp,   exact: true  },
   { href: "/kaitai/admin/projects",   label: "プロジェクト収支", icon: BarChart2,    exact: false },
+  { href: "/kaitai/admin/reports",    label: "報告一覧",       icon: ClipboardList, exact: false },
   { href: "/kaitai/admin/evaluation", label: "月次評価",       icon: Star,         exact: false },
   { href: "/kaitai/admin/activity",   label: "アクティビティ", icon: Activity,     exact: false },
 ] as const;
