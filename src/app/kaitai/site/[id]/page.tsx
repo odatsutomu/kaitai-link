@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft, MapPin, Calendar, Users, Clock,
@@ -48,6 +48,7 @@ type OperationLog = {
   action: string;
   user: string;
   siteId: string | null;
+  imageIds?: string[];
   createdAt: string;
 };
 
@@ -150,6 +151,7 @@ type ParsedLog = {
   typeBg: string;
   detail: string;
   isHandover: boolean;
+  imageIds: string[];
 };
 
 function parseOperationLog(log: OperationLog): ParsedLog {
@@ -224,7 +226,7 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     detail = action.replace("site_create:", "").trim();
   }
 
-  return { id: log.id, date: dateStr, dateLabel, time, user: log.user, type, typeLabel, typeColor, typeBg, detail, isHandover };
+  return { id: log.id, date: dateStr, dateLabel, time, user: log.user, type, typeLabel, typeColor, typeBg, detail, isHandover, imageIds: Array.isArray(log.imageIds) ? log.imageIds : [] };
 }
 
 // ─── Accordion component ────────────────────────────────────────────────────
@@ -659,11 +661,19 @@ function TabBasic({
 // ─── Tab 2: History & Reports ───────────────────────────────────────────────
 
 function TabHistory({
-  logs, siteId,
+  logs, siteId, images, onViewImage,
 }: {
   logs: ParsedLog[];
   siteId: string;
+  images: SiteImage[];
+  onViewImage: (url: string) => void;
 }) {
+  // Build image lookup map for fast access
+  const imageMap = useMemo(() => {
+    const map = new Map<string, SiteImage>();
+    for (const img of images) map.set(img.id, img);
+    return map;
+  }, [images]);
   // Group logs by date
   const grouped: { date: string; dateLabel: string; items: ParsedLog[] }[] = [];
   for (const log of logs) {
@@ -767,6 +777,40 @@ function TabHistory({
                         {log.detail}
                       </p>
                     )}
+                    {/* 添付写真サムネイル */}
+                    {log.imageIds.length > 0 && (() => {
+                      const logImages = log.imageIds
+                        .map(id => imageMap.get(id))
+                        .filter((img): img is SiteImage => !!img);
+                      if (logImages.length === 0) return null;
+                      return (
+                        <div style={{
+                          display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap",
+                        }}>
+                          {logImages.map(img => (
+                            <button
+                              key={img.id}
+                              onClick={() => onViewImage(img.url)}
+                              className="rounded-lg overflow-hidden flex-shrink-0"
+                              style={{
+                                width: 64, height: 64,
+                                border: `1px solid ${T.border}`,
+                                background: T.bg,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={img.url}
+                                alt=""
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                loading="lazy"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -1021,6 +1065,7 @@ export default function SiteDetailPage() {
   const [logs, setLogs] = useState<ParsedLog[]>([]);
   const [images, setImages] = useState<SiteImage[]>([]);
   const [siteNotes, setSiteNotes] = useState<SiteNotes>({});
+  const [viewImageUrl, setViewImageUrl] = useState<string | null>(null);
 
   // Swipe handling
   const touchStartX = useRef(0);
@@ -1250,6 +1295,8 @@ export default function SiteDetailPage() {
             <TabHistory
               logs={logs}
               siteId={site.id}
+              images={images}
+              onViewImage={setViewImageUrl}
             />
           )}
           {activeTab === "docs" && (
@@ -1257,6 +1304,9 @@ export default function SiteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Page-level fullscreen image viewer */}
+      {viewImageUrl && <ImageViewer url={viewImageUrl} onClose={() => setViewImageUrl(null)} />}
     </div>
   );
 }
