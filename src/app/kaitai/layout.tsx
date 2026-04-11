@@ -66,7 +66,7 @@ export default function KaitaiLayout({
             <div
               aria-hidden="true"
               className="lg:hidden"
-              style={{ height: "calc(76px + env(safe-area-inset-bottom, 0px) + 8px)" }}
+              style={{ height: "calc(72px + env(safe-area-inset-bottom, 0px) + 8px)" }}
             />
           </div>
           {/* PC 用の下余白（lg 以上） */}

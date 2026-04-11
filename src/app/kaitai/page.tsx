@@ -832,8 +832,8 @@ export default function KaitaiHome() {
       />
 
       {/* ── モバイルヘッダー ─────────────── */}
-      <header className="md:hidden px-4 pt-8 pb-3 flex items-center justify-between bg-white"
-        style={{ borderBottom: `1px solid ${C.border}` }}>
+      <header className="md:hidden pt-8 pb-3 flex items-center justify-between bg-white"
+        style={{ borderBottom: `1px solid ${C.border}`, paddingLeft: 16, paddingRight: 56 }}>
         <KaitaiLogo iconSize={28} textSize={18} />
         <span style={{ fontSize: 14, color: C.muted }}>{dateStr}</span>
       </header>
