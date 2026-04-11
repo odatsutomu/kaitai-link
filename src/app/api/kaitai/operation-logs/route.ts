@@ -7,9 +7,15 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
   const type = req.nextUrl.searchParams.get("type");
+  const siteId = req.nextUrl.searchParams.get("siteId");
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit")) || 500, 1000);
 
   const where: Record<string, unknown> = { companyId: session.companyId };
+
+  // Filter by siteId if provided
+  if (siteId) {
+    where.siteId = siteId;
+  }
 
   // Filter by action type prefix
   if (type === "skill") {

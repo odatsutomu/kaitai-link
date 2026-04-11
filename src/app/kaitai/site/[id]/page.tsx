@@ -240,6 +240,18 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     typeColor = "#6B7280";
     typeBg = "rgba(107,114,128,0.08)";
     detail = action.replace("site_create:", "").trim();
+  } else if (action.startsWith("image_upload:") || action.startsWith("photo_upload:")) {
+    type = "photo";
+    typeLabel = "写真UP";
+    typeColor = "#8B5CF6";
+    typeBg = "rgba(139,92,246,0.08)";
+    detail = action.replace(/^(image_upload|photo_upload):/, "").trim();
+  } else if (action.startsWith("site_update:") || action.startsWith("site_edit:")) {
+    type = "system";
+    typeLabel = "現場更新";
+    typeColor = "#6B7280";
+    typeBg = "rgba(107,114,128,0.08)";
+    detail = action.replace(/^(site_update|site_edit):/, "").trim();
   }
 
   return { id: log.id, date: dateStr, dateLabel, time, user: log.user, type, typeLabel, typeColor, typeBg, detail, isHandover, imageIds: Array.isArray(log.imageIds) ? log.imageIds : [] };
@@ -329,12 +341,14 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
 // ─── Tab 1: Basic & Safety ──────────────────────────────────────────────────
 
 function TabBasic({
-  site, contract, client, notes,
+  site, contract, client, notes, reactions, logs,
 }: {
   site: SiteData;
   contract: ContractData | null;
   client: ClientData | null;
   notes: SiteNotes;
+  reactions: Map<string, ReactionData>;
+  logs: ParsedLog[];
 }) {
   const cfg = getStatusCfg(site.status);
   const lifelines = notes.lifelines ?? {};
@@ -415,6 +429,83 @@ function TabBasic({
           </div>
         )}
       </div>
+
+      {/* ── 🚨 Alert notices from admin reactions ── */}
+      {(() => {
+        const alertReactions = Array.from(reactions.entries())
+          .filter(([, r]) => r.status === "action_required" || r.status === "call_required")
+          .map(([logId, r]) => {
+            const log = logs.find(l => l.id === logId);
+            return { ...r, log };
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        if (alertReactions.length === 0) return null;
+
+        return (
+          <div className="flex flex-col gap-3">
+            {alertReactions.map((alert) => {
+              const isCall = alert.status === "call_required";
+              const cfg = REACTION_BADGE[alert.status];
+              return (
+                <div
+                  key={alert.id}
+                  className="rounded-xl overflow-hidden"
+                  style={{
+                    background: isCall ? "#1F2937" : "#FEF2F2",
+                    border: `2px solid ${isCall ? "#374151" : "#FECACA"}`,
+                  }}
+                >
+                  <div
+                    className="flex items-center gap-3"
+                    style={{ padding: "14px 16px" }}
+                  >
+                    {isCall ? (
+                      <Phone size={20} style={{ color: "#FBBF24", flexShrink: 0 }} />
+                    ) : (
+                      <AlertCircle size={20} style={{ color: "#DC2626", flexShrink: 0 }} />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className="px-2 py-0.5 rounded-md font-bold"
+                          style={{
+                            fontSize: 12,
+                            background: cfg?.bg, color: cfg?.fg,
+                            border: `1px solid ${cfg?.border}`,
+                          }}
+                        >
+                          {cfg?.label}
+                        </span>
+                        <span style={{ fontSize: 12, color: isCall ? "rgba(255,255,255,0.5)" : T.muted }}>
+                          管理者: {alert.adminName}
+                        </span>
+                      </div>
+                      {alert.log && (
+                        <p style={{
+                          fontSize: 14, fontWeight: 700,
+                          color: isCall ? "#FFFFFF" : "#991B1B",
+                          marginBottom: alert.comment ? 4 : 0,
+                        }}>
+                          {alert.log.typeLabel} — {alert.log.detail}
+                        </p>
+                      )}
+                      {alert.comment && (
+                        <p style={{
+                          fontSize: 14, lineHeight: 1.5,
+                          color: isCall ? "rgba(255,255,255,0.85)" : "#B91C1C",
+                        }}>
+                          💬 {alert.comment}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* ── Contacts / stakeholders ── */}
       <Accordion title="関係者情報" icon={Users} iconColor="#3B82F6" defaultOpen>
@@ -1177,7 +1268,7 @@ export default function SiteDetailPage() {
         // Parallel fetches
         const [contractRes, logsRes, imagesRes, clientsRes] = await Promise.all([
           fetch(`/api/kaitai/sites/contract?siteId=${id}`, { credentials: "include" }),
-          fetch(`/api/kaitai/operation-logs?type=reports&limit=200`, { credentials: "include" }),
+          fetch(`/api/kaitai/operation-logs?siteId=${id}&limit=500`, { credentials: "include" }),
           fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" }),
           siteObj.clientId
             ? fetch("/api/kaitai/clients", { credentials: "include" })
@@ -1197,10 +1288,10 @@ export default function SiteDetailPage() {
           }
         }
 
-        // Operation logs (filter for this site)
+        // Operation logs (already filtered by siteId server-side)
         if (logsRes.ok) {
           const ld = await logsRes.json();
-          const rawLogs = (ld?.logs ?? []).filter((l: OperationLog) => l.siteId === id);
+          const rawLogs = (ld?.logs ?? []) as OperationLog[];
           const siteLogs = rawLogs.map(parseOperationLog);
           setLogs(siteLogs);
 
@@ -1355,6 +1446,8 @@ export default function SiteDetailPage() {
               contract={contract}
               client={client}
               notes={siteNotes}
+              reactions={reactions}
+              logs={logs}
             />
           )}
           {activeTab === "history" && (
