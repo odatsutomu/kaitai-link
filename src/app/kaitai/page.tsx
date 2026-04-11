@@ -564,7 +564,7 @@ function StatusPanel({ sites }: { sites: SiteData[] }) {
 }
 
 // ─── 右パネル：現場マップ ─────────────────────────────────────────────────────
-function MapPanel({ sites }: { sites: SiteData[] }) {
+function MapPanel({ sites, processors = [] }: { sites: SiteData[]; processors?: ProcessorData[] }) {
   const mapSites = sites.map(s => ({
     id: s.id, name: s.name, lat: s.lat, lng: s.lng, status: s.status, address: s.address,
   }));
@@ -574,7 +574,7 @@ function MapPanel({ sites }: { sites: SiteData[] }) {
         <h3 style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>現場マップ</h3>
         <ArrowUpRight size={14} style={{ color: C.muted }} />
       </div>
-      <HomeMap sites={mapSites} height={200} />
+      <HomeMap sites={mapSites} processors={processors} height={200} />
     </div>
   );
 }
@@ -734,10 +734,13 @@ const STRUCTURE_TYPE_LABEL: Record<string, string> = {
   "木造": "木造解体", "RC": "RC解体", "鉄骨": "鉄骨解体", "S造": "鉄骨解体",
 };
 
+type ProcessorData = { id: string; name: string; lat: number; lng: number; address?: string };
+
 export default function KaitaiHome() {
   const { attendanceLogs } = useAppContext();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [sites, setSites] = useState<SiteData[]>([]);
+  const [processors, setProcessors] = useState<ProcessorData[]>([]);
   const [MEMBER_NAMES, setMemberNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -774,6 +777,23 @@ export default function KaitaiHome() {
         const names: Record<string, string> = {};
         for (const m of data.members) names[m.id] = m.name;
         setMemberNames(names);
+      })
+      .catch(() => {});
+
+    fetch("/api/kaitai/processors", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.processors) return;
+        const mapped: ProcessorData[] = data.processors
+          .filter((p: Record<string, unknown>) => p.lat != null && p.lng != null)
+          .map((p: Record<string, unknown>) => ({
+            id: p.id as string,
+            name: p.name as string,
+            lat: p.lat as number,
+            lng: p.lng as number,
+            address: (p.address as string) ?? undefined,
+          }));
+        setProcessors(mapped);
       })
       .catch(() => {});
   }, []);
@@ -849,7 +869,7 @@ export default function KaitaiHome() {
             稼働中 {active.length}件
           </span>
         </div>
-        <HomeMap sites={mapSites} height={320} />
+        <HomeMap sites={mapSites} processors={processors} height={320} />
       </div>
 
       {/* ── メインコンテンツ ─────────────── */}

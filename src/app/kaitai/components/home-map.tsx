@@ -15,6 +15,14 @@ export interface MapSite {
   address?: string;
 }
 
+export interface MapProcessor {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
 const STATUSES = ["解体中", "着工前", "完工"] as const;
 type SiteStatus = (typeof STATUSES)[number];
 
@@ -38,6 +46,43 @@ function teardropPin(color: string): string {
       <path d="M16 0C7.163 0 0 7.163 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
       <circle cx="16" cy="16" r="6.5" fill="white" opacity="0.92"/>
     </svg>
+  `;
+}
+
+const PROCESSOR_COLOR = "#10B981"; // green
+
+// 処理場マーカー: 四角形ピン
+function processorPin(color: string): string {
+  return `
+    <svg width="30" height="36" viewBox="0 0 30 36" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">
+      <rect x="1" y="1" width="28" height="24" rx="5" ry="5" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <polygon points="15,36 10,25 20,25" fill="${color}"/>
+      <svg x="7" y="4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+      </svg>
+    </svg>
+  `;
+}
+
+// 処理場ポップアップ
+function buildProcessorPopupHtml(proc: MapProcessor): string {
+  const addrHtml = proc.address
+    ? `<p style="font-size:12px;color:#6B7280;margin:0 0 10px 0;line-height:1.45;">${proc.address}</p>`
+    : "";
+
+  return `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;width:220px;background:#fff;border-radius:14px;overflow:hidden;">
+      <div style="height:48px;background:linear-gradient(135deg,${PROCESSOR_COLOR} 0%,${PROCESSOR_COLOR}cc 100%);display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+        </svg>
+        <span style="color:rgba(255,255,255,0.95);font-size:12px;font-weight:700;">処理場</span>
+      </div>
+      <div style="padding:12px 14px 14px;">
+        <p style="font-size:14px;font-weight:800;color:#1E293B;margin:0 0 ${proc.address ? "4px" : "0"} 0;line-height:1.3;">${proc.name}</p>
+        ${addrHtml}
+      </div>
+    </div>
   `;
 }
 
@@ -85,11 +130,12 @@ function buildPopupHtml(site: MapSite): string {
 
 interface Props {
   sites: MapSite[];
+  processors?: MapProcessor[];
   center?: LatLng;
   height?: number;
 }
 
-export function HomeMap({ sites, center, height = 200 }: Props) {
+export function HomeMap({ sites, processors = [], center, height = 200 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
@@ -97,6 +143,7 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
 
   // Category-based visibility: all statuses visible by default
   const [visibleStatuses, setVisibleStatuses] = useState<Set<SiteStatus>>(new Set(STATUSES));
+  const [showProcessors, setShowProcessors] = useState(true);
 
   const toggleStatus = useCallback((status: SiteStatus) => {
     setVisibleStatuses(prev => {
@@ -113,6 +160,8 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
     return acc;
   }, {} as Record<SiteStatus, number>);
 
+  const processorMarkersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
+
   // Sync marker visibility with visibleStatuses
   useEffect(() => {
     const map = mapRef.current;
@@ -126,7 +175,15 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
         if (!map.hasLayer(marker)) marker.addTo(map);
       }
     });
-  }, [visibleStatuses, sites]);
+    // Processor visibility
+    processorMarkersRef.current.forEach((marker) => {
+      if (!showProcessors) {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      } else {
+        if (!map.hasLayer(marker)) marker.addTo(map);
+      }
+    });
+  }, [visibleStatuses, showProcessors, sites]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -200,21 +257,27 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      processorMarkersRef.current.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync markers when sites data arrives or changes
+  // Sync markers when sites/processors data arrives or changes
   useEffect(() => {
     const map = mapRef.current;
     const L = leafletRef.current;
-    if (!map || !L || sites.length === 0) return;
+    if (!map || !L) return;
+    if (sites.length === 0 && processors.length === 0) return;
 
-    // Clear old markers
+    // Clear old site markers
     markersRef.current.forEach(marker => map.removeLayer(marker));
     markersRef.current.clear();
 
-    // Create new markers
+    // Clear old processor markers
+    processorMarkersRef.current.forEach(marker => map.removeLayer(marker));
+    processorMarkersRef.current.clear();
+
+    // Create site markers
     const newMarkers = new Map<string, import("leaflet").Marker>();
     sites.forEach((site) => {
       const color = STATUS_COLOR[site.status];
@@ -235,7 +298,6 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
           autoClose: true,
         });
 
-      // Only add to map if status is visible
       if (visibleStatuses.has(site.status)) {
         marker.addTo(map);
       }
@@ -243,15 +305,46 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
     });
     markersRef.current = newMarkers;
 
-    // Fit bounds to all sites
-    if (sites.length >= 2) {
-      const bounds = L.latLngBounds(sites.map(s => [s.lat, s.lng]));
+    // Create processor markers
+    const newProcMarkers = new Map<string, import("leaflet").Marker>();
+    processors.forEach((proc) => {
+      const icon = L.divIcon({
+        html: processorPin(PROCESSOR_COLOR),
+        iconSize: [30, 36],
+        iconAnchor: [15, 36],
+        popupAnchor: [0, -40],
+        className: "",
+      });
+
+      const marker = L.marker([proc.lat, proc.lng], { icon })
+        .bindPopup(buildProcessorPopupHtml(proc), {
+          className: "kaitai-info-popup",
+          maxWidth: 240,
+          minWidth: 220,
+          closeButton: true,
+          autoClose: true,
+        });
+
+      if (showProcessors) {
+        marker.addTo(map);
+      }
+      newProcMarkers.set(proc.id, marker);
+    });
+    processorMarkersRef.current = newProcMarkers;
+
+    // Fit bounds to all sites + processors
+    const allPoints: [number, number][] = [
+      ...sites.map(s => [s.lat, s.lng] as [number, number]),
+      ...processors.map(p => [p.lat, p.lng] as [number, number]),
+    ];
+    if (allPoints.length >= 2) {
+      const bounds = L.latLngBounds(allPoints);
       map.fitBounds(bounds, { padding: [40, 40] });
-    } else if (sites.length === 1) {
-      map.setView([sites[0].lat, sites[0].lng], 14);
+    } else if (allPoints.length === 1) {
+      map.setView(allPoints[0], 14);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sites]);
+  }, [sites, processors]);
 
   return (
     <div style={{ position: "relative" }}>
@@ -305,6 +398,38 @@ export function HomeMap({ sites, center, height = 200 }: Props) {
             </button>
           );
         })}
+        {processors.length > 0 && (
+          <button
+            onClick={() => setShowProcessors(p => !p)}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "4px 8px", border: "none", borderRadius: 6,
+              background: "transparent", cursor: "pointer",
+              opacity: showProcessors ? 1 : 0.35,
+              transition: "opacity 0.15s",
+            }}
+          >
+            <span style={{ position: "relative", flexShrink: 0 }}>
+              <svg width="12" height="14" viewBox="0 0 30 36" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="1" width="28" height="24" rx="5" ry="5" fill={PROCESSOR_COLOR}/>
+                <polygon points="15,36 10,25 20,25" fill={PROCESSOR_COLOR}/>
+              </svg>
+              {showProcessors && (
+                <Check
+                  size={8}
+                  strokeWidth={3}
+                  style={{
+                    position: "absolute", top: 2, left: 2,
+                    color: "#fff",
+                  }}
+                />
+              )}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: showProcessors ? T.text : T.muted }}>
+              処理場
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );
