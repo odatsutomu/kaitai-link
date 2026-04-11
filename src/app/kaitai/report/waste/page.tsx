@@ -2,11 +2,14 @@
 
 import { useState, useEffect, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, CheckCircle, ChevronDown, MapPin } from "lucide-react";
+import {
+  ChevronLeft, CheckCircle, ChevronDown, MapPin, Truck,
+  Navigation,
+} from "lucide-react";
 import { useAppContext } from "../../lib/app-context";
 import { T } from "../../lib/design-tokens";
 
-// ─── 廃材品目の絵文字マッピング（既知の品目用） ──────────────────────────────
+// ─── 廃材品目の絵文字マッピング ─────────────────────────────────────────────
 const EMOJI_MAP: Record<string, string> = {
   "コンクリートガラ": "🪨", "コンクリート": "🪨",
   "木くず": "🪵", "木材": "🪵",
@@ -26,18 +29,47 @@ type Processor = {
   id: string;
   name: string;
   address: string | null;
+  lat: number | null;
+  lng: number | null;
   prices: { wasteType: string; unitPrice: number; direction: string; unit: string }[];
 };
 
-// 各品目ごとに選択した処理場
-type Selection = { processorId: string; processorName: string; unitPrice: number; direction: string };
+type Selection = {
+  processorId: string;
+  processorName: string;
+  unitPrice: number;
+  direction: string;
+};
 
-function yen(n: number) { return (n < 0 ? "-" : "") + "¥" + Math.abs(n).toLocaleString("ja-JP"); }
+function yen(n: number) {
+  return (n < 0 ? "-" : "") + "¥" + Math.abs(n).toLocaleString("ja-JP");
+}
 
+// ─── Haversine距離計算（km） ─────────────────────────────────────────────────
+function haversineKm(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number,
+): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
+}
+
+// ─── メインコンポーネント ────────────────────────────────────────────────────
 function WastePageInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const siteId   = params.get("site") ?? "";
+  const siteId = params.get("site") ?? "";
   const siteName = params.get("name") ?? "現場";
   const { company, addLog } = useAppContext();
 
@@ -50,16 +82,29 @@ function WastePageInner() {
   const [done, setDone] = useState(false);
   const [loadingItems, setLoadingItems] = useState(true);
 
-  // 処理場マスター読み込み → 廃材品目を動的に構築
+  // 現場の位置情報
+  const [siteLat, setSiteLat] = useState<number | null>(null);
+  const [siteLng, setSiteLng] = useState<number | null>(null);
+
+  // 処理場マスター読み込み + 現場位置取得
   useEffect(() => {
+    // 処理場データ
     fetch("/api/kaitai/processors")
       .then(r => r.json())
       .then(d => {
         if (!d.ok) return;
-        const procs: Processor[] = d.processors ?? [];
+        const procs: Processor[] = (d.processors ?? []).map(
+          (p: Record<string, unknown>) => ({
+            id: p.id as string,
+            name: p.name as string,
+            address: (p.address as string) ?? null,
+            lat: p.lat != null ? Number(p.lat) : null,
+            lng: p.lng != null ? Number(p.lng) : null,
+            prices: (p.prices as Processor["prices"]) ?? [],
+          }),
+        );
         setProcessors(procs);
 
-        // 全処理場の prices から一意の wasteType を抽出
         const seen = new Map<string, { unit: string }>();
         for (const proc of procs) {
           for (const p of proc.prices) {
@@ -69,19 +114,50 @@ function WastePageInner() {
           }
         }
 
-        const items: WasteItem[] = Array.from(seen.entries()).map(([wasteType, info]) => ({
-          id: wasteType,
-          label: wasteType,
-          unit: info.unit,
-          emoji: EMOJI_MAP[wasteType] ?? DEFAULT_EMOJI,
-        }));
+        const items: WasteItem[] = Array.from(seen.entries()).map(
+          ([wasteType, info]) => ({
+            id: wasteType,
+            label: wasteType,
+            unit: info.unit,
+            emoji: EMOJI_MAP[wasteType] ?? DEFAULT_EMOJI,
+          }),
+        );
 
         setWasteItems(items);
         setQuantities(Object.fromEntries(items.map(w => [w.id, ""])));
       })
       .catch(() => {})
       .finally(() => setLoadingItems(false));
-  }, []);
+
+    // 現場の位置情報を取得
+    if (siteId) {
+      fetch("/api/kaitai/sites", { credentials: "include" })
+        .then(r => r.json())
+        .then(d => {
+          if (!d?.sites) return;
+          const site = (d.sites as Record<string, unknown>[]).find(
+            s => s.id === siteId,
+          );
+          if (site && site.lat != null && site.lng != null) {
+            setSiteLat(Number(site.lat));
+            setSiteLng(Number(site.lng));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [siteId]);
+
+  // 処理場ごとの現場からの距離
+  const processorDistances = useMemo(() => {
+    const map = new Map<string, number>();
+    if (siteLat == null || siteLng == null) return map;
+    for (const proc of processors) {
+      if (proc.lat != null && proc.lng != null) {
+        map.set(proc.id, haversineKm(siteLat, siteLng, proc.lat, proc.lng));
+      }
+    }
+    return map;
+  }, [processors, siteLat, siteLng]);
 
   function handleInput(id: string, val: string) {
     if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
@@ -89,58 +165,131 @@ function WastePageInner() {
     }
   }
 
-  // 入力された廃材のみ
-  const activeWaste = useMemo(() =>
-    wasteItems.filter(w => {
-      const q = parseFloat(quantities[w.id] || "0");
-      return q > 0;
-    }).map(w => ({ ...w, qty: parseFloat(quantities[w.id]) })),
-    [quantities, wasteItems]
+  const activeWaste = useMemo(
+    () =>
+      wasteItems
+        .filter(w => parseFloat(quantities[w.id] || "0") > 0)
+        .map(w => ({ ...w, qty: parseFloat(quantities[w.id]) })),
+    [quantities, wasteItems],
   );
 
-  // 品目ごとの処理場オプション（単価付き）
+  // 品目ごとの処理場オプション（距離順でソート可能）
   function getProcessorOptions(wasteId: string, wasteLabel: string) {
     return processors
       .map(proc => {
-        const price = proc.prices.find(p => p.wasteType === wasteId || p.wasteType === wasteLabel);
+        const price = proc.prices.find(
+          p => p.wasteType === wasteId || p.wasteType === wasteLabel,
+        );
         if (!price) return null;
         return {
           processorId: proc.id,
           processorName: proc.name,
           address: proc.address,
+          lat: proc.lat,
+          lng: proc.lng,
           unitPrice: price.unitPrice,
           direction: price.direction,
           unit: price.unit,
+          distance: processorDistances.get(proc.id) ?? null,
         };
       })
       .filter(Boolean) as {
-        processorId: string; processorName: string; address: string | null;
-        unitPrice: number; direction: string; unit: string;
-      }[];
+      processorId: string;
+      processorName: string;
+      address: string | null;
+      lat: number | null;
+      lng: number | null;
+      unitPrice: number;
+      direction: string;
+      unit: string;
+      distance: number | null;
+    }[];
   }
 
-  // コスト合計（リアルタイム）
-  const costSummary = useMemo(() => {
-    let total = 0;
-    const items: { label: string; qty: number; unit: string; processorName: string; cost: number; direction: string }[] = [];
+  // 処理場ごとにグループ化した配送マニフェスト
+  const deliveryManifest = useMemo(() => {
+    const byProc = new Map<
+      string,
+      {
+        processorId: string;
+        processorName: string;
+        distance: number | null;
+        address: string | null;
+        items: {
+          label: string;
+          emoji: string;
+          qty: number;
+          unit: string;
+          unitPrice: number;
+          direction: string;
+          cost: number;
+        }[];
+        totalCost: number;
+      }
+    >();
+
     for (const w of activeWaste) {
       const sel = selections[w.id];
-      if (sel) {
-        const cost = sel.direction === "buyback" ? -(w.qty * sel.unitPrice) : w.qty * sel.unitPrice;
-        total += cost;
-        items.push({ label: w.label, qty: w.qty, unit: w.unit, processorName: sel.processorName, cost, direction: sel.direction });
-      }
-    }
-    return { total, items };
-  }, [activeWaste, selections]);
+      if (!sel) continue;
+      const cost =
+        sel.direction === "buyback"
+          ? -(w.qty * sel.unitPrice)
+          : w.qty * sel.unitPrice;
 
-  function selectProcessor(wasteId: string, opt: { processorId: string; processorName: string; unitPrice: number; direction: string }) {
+      if (!byProc.has(sel.processorId)) {
+        const proc = processors.find(p => p.id === sel.processorId);
+        byProc.set(sel.processorId, {
+          processorId: sel.processorId,
+          processorName: sel.processorName,
+          distance: processorDistances.get(sel.processorId) ?? null,
+          address: proc?.address ?? null,
+          items: [],
+          totalCost: 0,
+        });
+      }
+      const group = byProc.get(sel.processorId)!;
+      group.items.push({
+        label: w.label,
+        emoji: w.emoji,
+        qty: w.qty,
+        unit: w.unit,
+        unitPrice: sel.unitPrice,
+        direction: sel.direction,
+        cost,
+      });
+      group.totalCost += cost;
+    }
+
+    // 距離順にソート
+    return Array.from(byProc.values()).sort((a, b) => {
+      if (a.distance != null && b.distance != null)
+        return a.distance - b.distance;
+      if (a.distance != null) return -1;
+      return 1;
+    });
+  }, [activeWaste, selections, processors, processorDistances]);
+
+  // 全コスト合計
+  const grandTotal = useMemo(
+    () => deliveryManifest.reduce((sum, g) => sum + g.totalCost, 0),
+    [deliveryManifest],
+  );
+
+  const allSelected =
+    activeWaste.length > 0 && activeWaste.every(w => selections[w.id]);
+
+  function selectProcessor(
+    wasteId: string,
+    opt: {
+      processorId: string;
+      processorName: string;
+      unitPrice: number;
+      direction: string;
+    },
+  ) {
     setSelections(prev => ({ ...prev, [wasteId]: opt }));
     setOpenDropdown(null);
   }
-
-  // 全入力品目に処理場が選択されているか
-  const allSelected = activeWaste.length > 0 && activeWaste.every(w => selections[w.id]);
 
   async function submit() {
     if (!allSelected || submitting) return;
@@ -168,7 +317,7 @@ function WastePageInner() {
       }
       addLog(
         `waste_dispatch: ${siteName} / ${activeWaste.map(w => `${w.label}:${w.qty}${w.unit}→${selections[w.id]?.processorName}`).join("、")}`,
-        company?.adminName ?? "作業員"
+        company?.adminName ?? "作業員",
       );
       setDone(true);
     } catch {}
@@ -178,27 +327,99 @@ function WastePageInner() {
   // ── 完了画面 ──────────────────────────────────────────────────────────────
   if (done) {
     return (
-      <div className="flex flex-col items-center justify-center py-16"
-        style={{ background: "#F5F5F5", borderRadius: 16, padding: "64px 32px" }}>
-        <CheckCircle size={96} color="#212121" strokeWidth={1.5} />
-        <p style={{ fontSize: 28, fontWeight: 900, color: "#212121", marginTop: 24 }}>廃材記録 完了</p>
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
-          {activeWaste.map(w => {
-            const sel = selections[w.id];
-            return (
-              <span key={w.id} style={{ fontSize: 14, color: "#444" }}>
-                {w.emoji} {w.label} {w.qty}{w.unit} → {sel?.processorName}
-              </span>
-            );
-          })}
+      <div className="py-6 pb-28 md:pb-8 flex flex-col gap-6">
+        <div
+          className="flex flex-col items-center py-12"
+          style={{ background: "#F5F5F5", borderRadius: 20, padding: "48px 24px" }}
+        >
+          <CheckCircle size={80} color="#10B981" strokeWidth={1.8} />
+          <p
+            style={{
+              fontSize: 24,
+              fontWeight: 900,
+              color: "#212121",
+              marginTop: 20,
+            }}
+          >
+            廃材記録 完了
+          </p>
         </div>
+
+        {/* 配送先別サマリー */}
+        {deliveryManifest.map(group => (
+          <div
+            key={group.processorId}
+            className="rounded-2xl overflow-hidden"
+            style={{ border: "1.5px solid #E5E7EB", background: "#fff" }}
+          >
+            <div
+              className="flex items-center gap-3 px-4 py-3"
+              style={{
+                background: "#F0FDF4",
+                borderBottom: "1px solid #E5E7EB",
+              }}
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "#10B981" }}
+              >
+                <Truck size={16} color="#fff" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  style={{ fontSize: 14, fontWeight: 800, color: "#065F46" }}
+                >
+                  {group.processorName}
+                </p>
+                {group.distance != null && (
+                  <p style={{ fontSize: 12, color: "#6B7280" }}>
+                    {formatDist(group.distance)}
+                  </p>
+                )}
+              </div>
+            </div>
+            {group.items.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{
+                  borderBottom:
+                    i < group.items.length - 1 ? "1px solid #F3F4F6" : "none",
+                }}
+              >
+                <span style={{ fontSize: 14, color: "#333" }}>
+                  {item.emoji} {item.label} {item.qty}
+                  {item.unit}
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color:
+                      item.direction === "buyback" ? "#10B981" : "#B45309",
+                  }}
+                >
+                  {item.direction === "buyback"
+                    ? `+${yen(Math.abs(item.cost))}`
+                    : yen(item.cost)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+
         <button
           onClick={() => router.push("/kaitai/report")}
           style={{
-            marginTop: 32, height: 56, padding: "0 36px",
-            background: T.primary, color: "#FFFFFF",
-            fontSize: 16, fontWeight: 700, borderRadius: 16,
-            border: "none", cursor: "pointer",
+            height: 56,
+            padding: "0 36px",
+            background: T.primary,
+            color: "#FFF",
+            fontSize: 16,
+            fontWeight: 700,
+            borderRadius: 16,
+            border: "none",
+            cursor: "pointer",
           }}
         >
           ← 報告画面に戻る
@@ -209,50 +430,177 @@ function WastePageInner() {
 
   return (
     <div className="py-6 pb-28 md:pb-8 flex flex-col gap-5">
-      <header className="flex flex-col gap-2" style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}>
+      <header
+        className="flex flex-col gap-2"
+        style={{ borderBottom: "2px solid #EEEEEE", paddingBottom: 20 }}
+      >
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => router.back()}
+          <button
+            onClick={() => router.back()}
             className="w-10 h-10 flex items-center justify-center rounded-2xl"
-            style={{ background: "#F5F5F5" }}>
+            style={{ background: "#F5F5F5" }}
+          >
             <ChevronLeft size={20} style={{ color: "#444" }} />
           </button>
           <span style={{ fontSize: 14, color: "#888" }}>{siteName}</span>
         </div>
-        <p style={{ fontSize: 26, fontWeight: 900, color: "#212121" }}>🚛 廃材入力</p>
-        <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>品目・量を入力し、各廃材の行き先を選択してください</p>
+        <p style={{ fontSize: 26, fontWeight: 900, color: "#212121" }}>
+          🚛 廃材入力
+        </p>
+        <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+          品目・量を入力し、各廃材の行き先を選択してください
+        </p>
       </header>
 
-      {/* ── リアルタイムコストサマリー（入力がある場合のみ表示） ── */}
-      {costSummary.items.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #FDE68A", background: "#FFFBEB" }}>
-          <div className="px-4 py-3" style={{ borderBottom: "1px solid #FDE68A" }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#92400E" }}>処理費用サマリー</p>
-          </div>
-          {costSummary.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between px-4 py-2"
-              style={{ borderBottom: i < costSummary.items.length - 1 ? "1px solid #FDE68A40" : "none" }}>
-              <div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#78350F" }}>{item.label}</span>
-                <span style={{ fontSize: 12, color: "#92400E", marginLeft: 6 }}>
-                  {item.qty}{item.unit} → {item.processorName}
-                </span>
+      {/* ── 配送先別マニフェスト（処理場が選択されたら表示） ── */}
+      {deliveryManifest.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <p
+            style={{ fontSize: 14, fontWeight: 800, color: "#222" }}
+          >
+            🗺️ 配送マニフェスト
+          </p>
+
+          {deliveryManifest.map(group => (
+            <div
+              key={group.processorId}
+              className="rounded-2xl overflow-hidden"
+              style={{
+                border: "1.5px solid #D1FAE5",
+                background: "#F0FDF4",
+              }}
+            >
+              {/* 処理場ヘッダー */}
+              <div
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ borderBottom: "1px solid #D1FAE5" }}
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: "#10B981" }}
+                >
+                  <Truck size={18} color="#fff" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 800,
+                        color: "#065F46",
+                      }}
+                    >
+                      {group.processorName}
+                    </p>
+                    {group.distance != null && (
+                      <span
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: "#DBEAFE",
+                          color: "#1D4ED8",
+                        }}
+                      >
+                        <Navigation size={10} />
+                        {formatDist(group.distance)}
+                      </span>
+                    )}
+                  </div>
+                  {group.address && (
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "#6B7280",
+                        marginTop: 1,
+                      }}
+                    >
+                      {group.address}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <span
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 900,
+                      color:
+                        group.totalCost < 0 ? "#10B981" : "#B45309",
+                    }}
+                  >
+                    {group.totalCost < 0
+                      ? `+${yen(Math.abs(group.totalCost))}`
+                      : yen(group.totalCost)}
+                  </span>
+                </div>
               </div>
-              <span style={{
-                fontSize: 15, fontWeight: 800,
-                color: item.direction === "buyback" ? "#10B981" : "#B45309",
-              }}>
-                {item.direction === "buyback" ? `+${yen(Math.abs(item.cost))}` : yen(item.cost)}
-              </span>
+
+              {/* 品目リスト */}
+              {group.items.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-4 py-2"
+                  style={{
+                    background: "#fff",
+                    borderBottom:
+                      i < group.items.length - 1
+                        ? "1px solid #F0FDF4"
+                        : "none",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#333",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+                      {item.qty}
+                      {item.unit}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color:
+                        item.direction === "buyback"
+                          ? "#10B981"
+                          : "#B45309",
+                    }}
+                  >
+                    {item.direction === "buyback"
+                      ? `+${yen(Math.abs(item.cost))}`
+                      : yen(item.cost)}
+                  </span>
+                </div>
+              ))}
             </div>
           ))}
-          <div className="flex items-center justify-between px-4 py-3"
-            style={{ background: "#FEF3C7", borderTop: "1px solid #FDE68A" }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: "#78350F" }}>合計</span>
-            <span style={{
-              fontSize: 22, fontWeight: 900,
-              color: costSummary.total < 0 ? "#10B981" : "#B45309",
-            }}>
-              {costSummary.total < 0 ? `+${yen(Math.abs(costSummary.total))}` : yen(costSummary.total)}
+
+          {/* 合計 */}
+          <div
+            className="flex items-center justify-between rounded-xl px-4 py-3"
+            style={{ background: "#FEF3C7", border: "1.5px solid #FDE68A" }}
+          >
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#78350F" }}>
+              処理費用 合計
+            </span>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: grandTotal < 0 ? "#10B981" : "#B45309",
+              }}
+            >
+              {grandTotal < 0
+                ? `+${yen(Math.abs(grandTotal))}`
+                : yen(grandTotal)}
             </span>
           </div>
         </div>
@@ -261,19 +609,39 @@ function WastePageInner() {
       {/* ── 廃材入力リスト ── */}
       {loadingItems && (
         <div className="flex items-center justify-center py-12">
-          <span style={{ fontSize: 14, color: "#999" }}>廃材品目を読み込み中...</span>
+          <span style={{ fontSize: 14, color: "#999" }}>
+            廃材品目を読み込み中...
+          </span>
         </div>
       )}
       {!loadingItems && wasteItems.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3"
-          style={{ background: "#F9FAFB", borderRadius: 16, border: "1.5px dashed #D1D5DB" }}>
+        <div
+          className="flex flex-col items-center justify-center py-12 gap-3"
+          style={{
+            background: "#F9FAFB",
+            borderRadius: 16,
+            border: "1.5px dashed #D1D5DB",
+          }}
+        >
           <span style={{ fontSize: 36 }}>📋</span>
-          <p style={{ fontSize: 15, fontWeight: 700, color: "#666" }}>廃材品目が未登録です</p>
-          <p style={{ fontSize: 13, color: "#999", textAlign: "center", lineHeight: 1.6 }}>
-            管理者画面の「処理場管理」で処理場と<br />対応する廃材品目を登録してください
+          <p style={{ fontSize: 15, fontWeight: 700, color: "#666" }}>
+            廃材品目が未登録です
+          </p>
+          <p
+            style={{
+              fontSize: 13,
+              color: "#999",
+              textAlign: "center",
+              lineHeight: 1.6,
+            }}
+          >
+            管理者画面の「処理場管理」で処理場と
+            <br />
+            対応する廃材品目を登録してください
           </p>
         </div>
       )}
+
       <div className="flex flex-col gap-3">
         {wasteItems.map(w => {
           const qty = parseFloat(quantities[w.id] || "0");
@@ -283,16 +651,27 @@ function WastePageInner() {
           const isDropdownOpen = openDropdown === w.id;
 
           return (
-            <div key={w.id} className="rounded-2xl overflow-hidden"
+            <div
+              key={w.id}
+              className="rounded-2xl overflow-hidden"
               style={{
                 background: isActive ? "#FFFBEB" : T.surface,
-                border: isActive ? "1.5px solid #FDE68A" : "1.5px solid #EEEEEE",
-              }}>
-              {/* 品目行: ラベル + 入力欄 */}
+                border: isActive
+                  ? "1.5px solid #FDE68A"
+                  : "1.5px solid #EEEEEE",
+              }}
+            >
+              {/* 品目行 */}
               <div className="flex items-center gap-3 px-4 py-3">
-                <span style={{ fontSize: 24, flexShrink: 0 }}>{w.emoji}</span>
+                <span style={{ fontSize: 24, flexShrink: 0 }}>
+                  {w.emoji}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#222" }}>{w.label}</p>
+                  <p
+                    style={{ fontSize: 15, fontWeight: 700, color: "#222" }}
+                  >
+                    {w.label}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <input
@@ -304,13 +683,26 @@ function WastePageInner() {
                     placeholder="0"
                     className="rounded-xl text-right outline-none"
                     style={{
-                      width: 100, height: 44,
-                      fontSize: 20, fontWeight: 800, color: "#111",
-                      background: "#F9FAFB", border: "1.5px solid #E5E7EB",
+                      width: 100,
+                      height: 44,
+                      fontSize: 20,
+                      fontWeight: 800,
+                      color: "#111",
+                      background: "#F9FAFB",
+                      border: "1.5px solid #E5E7EB",
                       padding: "0 12px",
                     }}
                   />
-                  <span style={{ fontSize: 14, color: "#666", fontWeight: 600, minWidth: 24 }}>{w.unit}</span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: "#666",
+                      fontWeight: 600,
+                      minWidth: 24,
+                    }}
+                  >
+                    {w.unit}
+                  </span>
                 </div>
               </div>
 
@@ -319,17 +711,43 @@ function WastePageInner() {
                 <div className="px-4 pb-3">
                   {/* 選択ボタン */}
                   <button
-                    onClick={() => setOpenDropdown(isDropdownOpen ? null : w.id)}
+                    onClick={() =>
+                      setOpenDropdown(isDropdownOpen ? null : w.id)
+                    }
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 transition-all"
                     style={{
-                      background: sel ? (sel.direction === "buyback" ? "#ECFDF5" : "#FFF7ED") : "#F3F4F6",
-                      border: sel ? `1.5px solid ${sel.direction === "buyback" ? "#A7F3D0" : "#FDBA74"}` : "1.5px solid #E5E7EB",
+                      background: sel
+                        ? sel.direction === "buyback"
+                          ? "#ECFDF5"
+                          : "#FFF7ED"
+                        : "#F3F4F6",
+                      border: sel
+                        ? `1.5px solid ${sel.direction === "buyback" ? "#A7F3D0" : "#FDBA74"}`
+                        : "1.5px solid #E5E7EB",
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <MapPin size={14} style={{ color: sel ? (sel.direction === "buyback" ? "#10B981" : T.primary) : "#9CA3AF" }} />
+                      <MapPin
+                        size={14}
+                        style={{
+                          color: sel
+                            ? sel.direction === "buyback"
+                              ? "#10B981"
+                              : T.primary
+                            : "#9CA3AF",
+                        }}
+                      />
                       {sel ? (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: sel.direction === "buyback" ? "#065F46" : "#92400E" }}>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color:
+                              sel.direction === "buyback"
+                                ? "#065F46"
+                                : "#92400E",
+                          }}
+                        >
                           {sel.processorName}
                           <span style={{ fontWeight: 500, marginLeft: 6 }}>
                             ¥{sel.unitPrice.toLocaleString()}/{w.unit}
@@ -337,71 +755,157 @@ function WastePageInner() {
                           </span>
                         </span>
                       ) : (
-                        <span style={{ fontSize: 13, color: "#9CA3AF" }}>処理場を選択...</span>
+                        <span style={{ fontSize: 13, color: "#9CA3AF" }}>
+                          処理場を選択...
+                        </span>
                       )}
                     </div>
-                    <ChevronDown size={16} style={{
-                      color: "#9CA3AF",
-                      transform: isDropdownOpen ? "rotate(180deg)" : "none",
-                      transition: "transform 0.15s",
-                    }} />
+                    <ChevronDown
+                      size={16}
+                      style={{
+                        color: "#9CA3AF",
+                        transform: isDropdownOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                        transition: "transform 0.15s",
+                      }}
+                    />
                   </button>
 
                   {/* ドロップダウン */}
                   {isDropdownOpen && (
-                    <div className="mt-1 rounded-xl overflow-hidden"
-                      style={{ border: "1.5px solid #E5E7EB", background: "#FFF" }}>
-                      {options.sort((a, b) => {
-                        // 安い順 (buybackはマイナスコスト扱い)
-                        const costA = a.direction === "buyback" ? -a.unitPrice : a.unitPrice;
-                        const costB = b.direction === "buyback" ? -b.unitPrice : b.unitPrice;
-                        return costA - costB;
-                      }).map((opt, i) => {
-                        const estCost = qty * opt.unitPrice;
-                        const isSelected = sel?.processorId === opt.processorId;
-                        const isBuyback = opt.direction === "buyback";
-                        return (
-                          <button
-                            key={opt.processorId}
-                            onClick={() => selectProcessor(w.id, opt)}
-                            className="w-full flex items-center justify-between px-3 py-3 text-left transition-colors"
-                            style={{
-                              background: isSelected ? (isBuyback ? "#ECFDF5" : "#FFF7ED") : "transparent",
-                              borderBottom: i < options.length - 1 ? "1px solid #F3F4F6" : "none",
-                            }}
-                          >
-                            <div>
-                              <div className="flex items-center gap-2">
-                                {i === 0 && (
-                                  <span style={{
-                                    fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 99,
-                                    background: isBuyback ? "#DCFCE7" : "#FEF3C7",
-                                    color: isBuyback ? "#166534" : "#92400E",
-                                  }}>
-                                    {isBuyback ? "最高買取" : "最安"}
+                    <div
+                      className="mt-1 rounded-xl overflow-hidden"
+                      style={{
+                        border: "1.5px solid #E5E7EB",
+                        background: "#FFF",
+                      }}
+                    >
+                      {options
+                        .sort((a, b) => {
+                          const costA =
+                            a.direction === "buyback"
+                              ? -a.unitPrice
+                              : a.unitPrice;
+                          const costB =
+                            b.direction === "buyback"
+                              ? -b.unitPrice
+                              : b.unitPrice;
+                          return costA - costB;
+                        })
+                        .map((opt, i) => {
+                          const estCost = qty * opt.unitPrice;
+                          const isSelected =
+                            sel?.processorId === opt.processorId;
+                          const isBuyback = opt.direction === "buyback";
+                          return (
+                            <button
+                              key={opt.processorId}
+                              onClick={() => selectProcessor(w.id, opt)}
+                              className="w-full flex items-center justify-between px-3 py-3 text-left transition-colors"
+                              style={{
+                                background: isSelected
+                                  ? isBuyback
+                                    ? "#ECFDF5"
+                                    : "#FFF7ED"
+                                  : "transparent",
+                                borderBottom:
+                                  i < options.length - 1
+                                    ? "1px solid #F3F4F6"
+                                    : "none",
+                              }}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {i === 0 && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 800,
+                                        padding: "1px 6px",
+                                        borderRadius: 99,
+                                        background: isBuyback
+                                          ? "#DCFCE7"
+                                          : "#FEF3C7",
+                                        color: isBuyback
+                                          ? "#166534"
+                                          : "#92400E",
+                                      }}
+                                    >
+                                      {isBuyback ? "最高買取" : "最安"}
+                                    </span>
+                                  )}
+                                  <span
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: 700,
+                                      color: "#222",
+                                    }}
+                                  >
+                                    {opt.processorName}
                                   </span>
+                                  {opt.distance != null && (
+                                    <span
+                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        background: "#DBEAFE",
+                                        color: "#1D4ED8",
+                                      }}
+                                    >
+                                      <Navigation size={8} />
+                                      {formatDist(opt.distance)}
+                                    </span>
+                                  )}
+                                </div>
+                                {opt.address && (
+                                  <p
+                                    style={{
+                                      fontSize: 11,
+                                      color: "#9CA3AF",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {opt.address}
+                                  </p>
                                 )}
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "#222" }}>{opt.processorName}</span>
                               </div>
-                              {opt.address && (
-                                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{opt.address}</p>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end flex-shrink-0">
-                              <span style={{ fontSize: 13, color: "#666" }}>
-                                ¥{opt.unitPrice.toLocaleString()}/{opt.unit}
-                                {isBuyback && <span style={{ color: "#10B981", fontWeight: 700 }}> 買取</span>}
-                              </span>
-                              <span style={{
-                                fontSize: 15, fontWeight: 800,
-                                color: isBuyback ? "#10B981" : "#B45309",
-                              }}>
-                                {isBuyback ? `+${yen(estCost)}` : yen(estCost)}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                                <span
+                                  style={{ fontSize: 13, color: "#666" }}
+                                >
+                                  ¥{opt.unitPrice.toLocaleString()}/
+                                  {opt.unit}
+                                  {isBuyback && (
+                                    <span
+                                      style={{
+                                        color: "#10B981",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      {" "}
+                                      買取
+                                    </span>
+                                  )}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 15,
+                                    fontWeight: 800,
+                                    color: isBuyback
+                                      ? "#10B981"
+                                      : "#B45309",
+                                  }}
+                                >
+                                  {isBuyback
+                                    ? `+${yen(estCost)}`
+                                    : yen(estCost)}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -410,7 +914,13 @@ function WastePageInner() {
               {/* 処理場が未登録の品目 */}
               {isActive && options.length === 0 && (
                 <div className="px-4 pb-3">
-                  <p style={{ fontSize: 12, color: "#9CA3AF", fontStyle: "italic" }}>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "#9CA3AF",
+                      fontStyle: "italic",
+                    }}
+                  >
                     この品目に対応する処理場が登録されていません
                   </p>
                 </div>
@@ -427,13 +937,24 @@ function WastePageInner() {
           disabled={!allSelected || submitting || wasteItems.length === 0}
           className="w-full flex items-center justify-center gap-2 rounded-3xl font-black transition-all active:scale-[0.98]"
           style={{
-            height: 68, fontSize: 20,
-            background: allSelected && wasteItems.length > 0 ? "#212121" : "#D1D5DB",
+            height: 68,
+            fontSize: 20,
+            background:
+              allSelected && wasteItems.length > 0 ? "#212121" : "#D1D5DB",
             color: "#FFF",
-            cursor: allSelected && wasteItems.length > 0 ? "pointer" : "not-allowed",
+            cursor:
+              allSelected && wasteItems.length > 0
+                ? "pointer"
+                : "not-allowed",
           }}
         >
-          {submitting ? "送信中..." : activeWaste.length === 0 ? "廃材を入力してください" : !allSelected ? "各廃材の処理場を選択してください" : "廃材記録を送信"}
+          {submitting
+            ? "送信中..."
+            : activeWaste.length === 0
+              ? "廃材を入力してください"
+              : !allSelected
+                ? "各廃材の処理場を選択してください"
+                : `廃材記録を送信（${deliveryManifest.length}箇所）`}
         </button>
       </div>
     </div>
