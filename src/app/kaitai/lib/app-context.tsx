@@ -126,6 +126,8 @@ export interface ExpenseLog {
   equipmentName?: string;
   liters?: number;
   pricePerLiter?: number;
+  // 添付写真
+  imageIds?: string[];
 }
 
 export type ClientContact = { name: string; phone: string; role?: string };
@@ -207,7 +209,7 @@ type AppContextType = {
   sessionReady: boolean;
   plan: PlanId;
   operationLog: OperationLog[];
-  addLog: (action: string, user?: string) => void;
+  addLog: (action: string, user?: string, imageIds?: string[]) => void;
 
   // 元請け管理
   clients: Client[];
@@ -502,7 +504,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return handoverMemos.find(m => m.siteId === siteId && m.date === date);
   }, [handoverMemos]);
 
-  const addLog = useCallback((action: string, user = "system") => {
+  const addLog = useCallback((action: string, user = "system", imageIds?: string[]) => {
     const device = typeof window !== "undefined"
       ? window.navigator.userAgent.slice(0, 60)
       : "server";
@@ -518,7 +520,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetch("/api/kaitai/operation-logs", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, user, device }),
+      body: JSON.stringify({ action, user, device, imageIds: imageIds ?? [] }),
     }).catch(() => {});
   }, []);
 

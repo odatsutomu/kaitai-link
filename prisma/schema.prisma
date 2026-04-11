@@ -359,6 +359,7 @@ model KaitaiOperationLog {
   user      String
   device    String?
   siteId    String?
+  imageIds  Json     @default("[]")
   createdAt DateTime @default(now())
 
   company KaitaiCompany? @relation(fields: [companyId], references: [id])

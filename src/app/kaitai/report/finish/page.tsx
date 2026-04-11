@@ -105,11 +105,13 @@ function FinishPageInner() {
 
   // ── 送信 ────────────────────────────────────────────────────────────────
   const [done, setDone] = useState(false);
+  const [photoIds, setPhotoIds] = useState<string[]>([]);
 
   function confirm() {
     addLog(
       `finish: ${siteName} / 進捗${progressPct}% / 廃材${wasteDispatches.length}件`,
-      company?.adminName ?? "作業員"
+      company?.adminName ?? "作業員",
+      photoIds
     );
 
     // 評価を保存
@@ -292,6 +294,7 @@ function FinishPageInner() {
           maxPhotos={5}
           label="現場写真（Before/After）"
           placeholder="タップして本日の作業結果を撮影"
+          onPhotosChange={setPhotoIds}
         />
       </section>
 

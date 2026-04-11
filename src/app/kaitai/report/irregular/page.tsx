@@ -43,6 +43,7 @@ function IrregularPageInner() {
   const [reporter, setReporter] = useState<string | null>(null);
   const [memo, setMemo] = useState("");
   const [done, setDone] = useState(false);
+  const [photoIds, setPhotoIds] = useState<string[]>([]);
 
   function confirm() {
     if (!category || !memo.trim()) return;
@@ -51,7 +52,8 @@ function IrregularPageInner() {
     const rep = MEMBERS.find(m => m.id === reporter)?.name ?? "不明";
     addLog(
       `irregular[${urg}]: ${siteName} / ${cat} / ${memo.slice(0, 40)} [${company?.stripeCustomerId ?? "—"}]`,
-      rep
+      rep,
+      photoIds
     );
     setDone(true);
   }
@@ -208,6 +210,7 @@ function IrregularPageInner() {
             accentBg="#FEF2F2"
             label="現場写真"
             placeholder="タップして現場写真を撮影"
+            onPhotosChange={setPhotoIds}
           />
         </section>
 

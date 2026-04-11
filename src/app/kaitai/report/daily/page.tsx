@@ -26,6 +26,7 @@ function DailyReportInner() {
 
   const [notes, setNotes] = useState("");
   const [done, setDone] = useState(false);
+  const [allPhotoIds, setAllPhotoIds] = useState<Record<string, string[]>>({});
 
   // 使用中の機材を自動取得
   const [siteEquipment, setSiteEquipment] = useState<{ id: string; name: string; category: string }[]>([]);
@@ -44,9 +45,11 @@ function DailyReportInner() {
   }, []);
 
   function confirm() {
+    const photoIds = Object.values(allPhotoIds).flat();
     addLog(
       `daily_report: ${siteName} / 機材チェック完了`,
-      company?.adminName ?? "作業員"
+      company?.adminName ?? "作業員",
+      photoIds
     );
     setDone(true);
   }
@@ -122,6 +125,7 @@ function DailyReportInner() {
                   maxPhotos={3}
                   label=""
                   placeholder="タップして撮影"
+                  onPhotosChange={(ids) => setAllPhotoIds(prev => ({ ...prev, [eq.id]: ids }))}
                 />
               </div>
             </div>

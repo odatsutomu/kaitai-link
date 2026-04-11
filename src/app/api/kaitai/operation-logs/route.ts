@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
   const body = await req.json();
-  const { action, user, device, siteId } = body;
+  const { action, user, device, siteId, imageIds } = body;
 
   if (!action) {
     return NextResponse.json({ error: "actionは必須です" }, { status: 400 });
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       user: user ?? "system",
       device: device ?? "",
       siteId: siteId ?? null,
+      imageIds: Array.isArray(imageIds) ? imageIds : [],
     },
   });
 

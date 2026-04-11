@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const {
     siteId, siteName, category, amount, description,
     reporter, date, memo, equipmentId, equipmentName,
-    liters, pricePerLiter,
+    liters, pricePerLiter, imageIds,
   } = body;
 
   if (!category || !reporter || !date) {
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       user:      reporter,
       siteId:    siteId ?? null,
       device:    req.headers.get("user-agent")?.slice(0, 120) ?? "",
+      imageIds:  Array.isArray(imageIds) ? imageIds : [],
     },
   });
 

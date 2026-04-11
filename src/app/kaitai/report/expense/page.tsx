@@ -111,6 +111,7 @@ function ExpenseContent() {
   const [pricePerL,    setPricePerL]    = useState("155");
 
   const [done, setDone] = useState(false);
+  const [photoIds, setPhotoIds] = useState<string[]>([]);
 
   const cat       = CATEGORIES.find(c => c.key === category);
   const amountNum = parseFloat(amount.replace(/,/g, "")) || 0;
@@ -142,6 +143,7 @@ function ExpenseContent() {
         : ""),
       reporter: company?.adminName ?? "作業員",
       memo,
+      imageIds: photoIds,
       ...(category === "燃料費" ? {
         equipmentId: selectedEqId,
         equipmentName: equipment.find(e => e.id === selectedEqId)?.name ?? "",
@@ -439,6 +441,7 @@ function ExpenseContent() {
               accentBg="#F0FDF4"
               label="レシート写真"
               placeholder="レシート・領収書を撮影"
+              onPhotosChange={setPhotoIds}
             />
           </>
         )}

@@ -26,6 +26,7 @@ type OperationLog = {
   user: string;
   siteId: string | null;
   device: string;
+  imageIds?: string[];
   createdAt: string;
 };
 
@@ -203,17 +204,13 @@ function DetailModal({
 }) {
   const [viewUrl, setViewUrl] = useState<string | null>(null);
 
-  // ── Match images client-side: within ±30 min of log (time proximity only) ──
-  // Note: uploadedBy (session.adminName) ≠ log.user (selected reporter name) なのでユーザー名マッチングは行わない
+  // ── Match images by direct imageIds link ──
   const images = useMemo(() => {
-    const logTime = new Date(log.createdAt).getTime();
-    const WINDOW = 30 * 60 * 1000; // 30 minutes
-
-    return allImages.filter(img => {
-      const imgTime = new Date(img.createdAt).getTime();
-      return Math.abs(imgTime - logTime) <= WINDOW;
-    });
-  }, [allImages, log.createdAt]);
+    const ids = log.imageIds;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return [];
+    const idSet = new Set(ids);
+    return allImages.filter(img => idSet.has(img.id));
+  }, [allImages, log.imageIds]);
 
   // Find related expense or waste records
   const relatedExpenses = useMemo(() => {
@@ -624,22 +621,17 @@ export default function AdminReportsPage() {
     return inRange.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
   }, [wastes, dateFrom, dateTo]);
 
-  // Precompute image counts for each log (time proximity only, ±30 min)
+  // Precompute image counts for each log (direct imageIds link)
   const logImageCountMap = useMemo(() => {
     const map = new Map<string, number>();
-    const WINDOW = 30 * 60 * 1000;
     for (const log of allLogs) {
-      const logTime = new Date(log.createdAt).getTime();
-      let count = 0;
-      for (const img of allImages) {
-        const imgTime = new Date(img.createdAt).getTime();
-        if (Math.abs(imgTime - logTime) > WINDOW) continue;
-        count++;
+      const ids = (log as OperationLog).imageIds;
+      if (Array.isArray(ids) && ids.length > 0) {
+        map.set(log.id, ids.length);
       }
-      if (count > 0) map.set(log.id, count);
     }
     return map;
-  }, [allLogs, allImages]);
+  }, [allLogs]);
 
   // Selected log parsed
   const selectedParsed = selectedLog ? parseAction(selectedLog.action) : null;
