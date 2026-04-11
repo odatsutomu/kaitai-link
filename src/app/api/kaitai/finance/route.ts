@@ -115,12 +115,54 @@ export async function GET(req: NextRequest) {
   const profitRate = totalPaid > 0 ? Math.round((profit / totalPaid) * 1000) / 10 : 0;
 
   // ── Monthly breakdown (for charts) ──
+  // Fetch ALL company expenses for monthly chart (not limited to filtered sites)
+  const allExpenses = await prisma.kaitaiExpenseLog.findMany({
+    where: { companyId: session.companyId },
+  });
+
   const monthlyData: Record<string, { revenue: number; cost: number; paid: number }> = {};
-  for (const log of [...expenseLogs, ...generalExpenses]) {
+  for (const log of allExpenses) {
     if (!log.date) continue;
     const monthKey = log.date.slice(0, 7); // "YYYY-MM"
     if (!monthlyData[monthKey]) monthlyData[monthKey] = { revenue: 0, cost: 0, paid: 0 };
     monthlyData[monthKey].cost += log.amount ?? 0;
+  }
+  // Add paid amounts from sites by their completion/payment timing
+  for (const s of allSites) {
+    if (s.paidAmount > 0) {
+      // Use endDate or startDate as proxy for when revenue was recognized
+      const dateKey = (s.endDate || s.startDate || s.createdAt?.toISOString()?.slice(0, 7) || "");
+      const mk = dateKey.slice(0, 7);
+      if (mk) {
+        if (!monthlyData[mk]) monthlyData[mk] = { revenue: 0, cost: 0, paid: 0 };
+        monthlyData[mk].revenue += s.contractAmount;
+        monthlyData[mk].paid += s.paidAmount;
+      }
+    }
+  }
+
+  // ── Previous period totals (for trend comparison) ──
+  let prevTotals: { contractAmount: number; paidAmount: number; totalCost: number; profit: number; profitRate: number } | null = null;
+  if (yearParam && monthParam) {
+    const pm = parseInt(monthParam, 10) - 1;
+    const py = pm === 0 ? parseInt(yearParam, 10) - 1 : parseInt(yearParam, 10);
+    const prevMonth = pm === 0 ? 12 : pm;
+    const prevStart = `${py}-${String(prevMonth).padStart(2, "0")}-01`;
+    const prevEnd = `${py}-${String(prevMonth).padStart(2, "0")}-31`;
+
+    const prevSites = allSites.filter(s => {
+      const sStart = s.startDate || "2000-01-01";
+      const sEnd = s.endDate || "2099-12-31";
+      return sStart <= prevEnd && sEnd >= prevStart;
+    });
+    const prevSiteIds = prevSites.map(s => s.id);
+    const prevExpenses = allExpenses.filter(e => prevSiteIds.includes(e.siteId ?? ""));
+    const prevContract = prevSites.reduce((sum, s) => sum + s.contractAmount, 0);
+    const prevPaid = prevSites.reduce((sum, s) => sum + s.paidAmount, 0);
+    const prevCost = prevExpenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    const prevProfit = prevPaid - prevCost;
+    const prevProfitRate = prevPaid > 0 ? Math.round((prevProfit / prevPaid) * 1000) / 10 : 0;
+    prevTotals = { contractAmount: prevContract, paidAmount: prevPaid, totalCost: prevCost, profit: prevProfit, profitRate: prevProfitRate };
   }
 
   // Active site count
@@ -130,20 +172,22 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     totals: {
-      contractAmount: totalContract,  // 見込み受注額合計
-      paidAmount: totalPaid,          // 売上額合計（入金済み）
-      remainingAmount: totalRemaining, // 未入金残高
-      totalCost,                       // 原価合計（経費リアルタイム）
-      profit,                          // 粗利（売上 - 原価）
-      profitRate,                      // 粗利率
+      contractAmount: totalContract,
+      paidAmount: totalPaid,
+      remainingAmount: totalRemaining,
+      totalCost,
+      profit,
+      profitRate,
       wasteCost,
       laborCost,
       vehicleCost,
       materialCost,
       otherCost,
     },
+    prevTotals,
     sites: siteSummaries,
     expenseByCategory,
+    monthlyData,
     activeSiteCount,
     totalSiteCount: sites.length,
   });
