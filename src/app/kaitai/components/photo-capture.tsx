@@ -25,6 +25,50 @@ type Props = {
   onPhotosChange?: (ids: string[]) => void;
 };
 
+// ── Compress image File → Blob (no base64, memory efficient) ──────────────
+
+function compressImageFile(file: File, maxDim = 1280, quality = 0.75): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(objectUrl);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("画像の圧縮に失敗しました"));
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("画像の読み込みに失敗しました"));
+    };
+    img.src = objectUrl;
+  });
+}
+
+// ── Create a preview thumbnail URL from Blob ──────────────────────────────
+
+function createThumbUrl(blob: Blob): string {
+  return URL.createObjectURL(blob);
+}
+
 export default function PhotoCapture({
   siteId,
   reportType,
@@ -41,7 +85,8 @@ export default function PhotoCapture({
   const [busy, setBusy] = useState(false);
 
   // ── Marking overlay state ──
-  const [markingDataUrl, setMarkingDataUrl] = useState<string | null>(null);
+  const [markingBlob, setMarkingBlob] = useState<Blob | null>(null);
+  const [markingPreviewUrl, setMarkingPreviewUrl] = useState<string | null>(null);
 
   const notifyParent = useCallback((list: CapturedPhoto[]) => {
     onPhotosChange?.(list.filter(p => p.id).map(p => p.id!));
@@ -52,30 +97,42 @@ export default function PhotoCapture({
     fileRef.current?.click();
   }, [photos.length, maxPhotos]);
 
-  // ── Upload a single data URL to R2 ──
-  const uploadDataUrl = useCallback(async (dataUrl: string) => {
+  // ── Upload a Blob via FormData (binary, no base64) ──
+  const uploadBlob = useCallback(async (blob: Blob) => {
     const tempId = `tmp_${Date.now()}_${Math.random()}`;
+    const thumbUrl = createThumbUrl(blob);
 
     // Add preview immediately
     setPhotos(prev => {
       if (prev.length >= maxPhotos) return prev;
-      return [...prev, { url: dataUrl, uploading: true, id: tempId }];
+      return [...prev, { url: thumbUrl, uploading: true, id: tempId }];
     });
 
     try {
+      const formData = new FormData();
+      formData.append("file", blob, "photo.jpg");
+      if (siteId)     formData.append("siteId", siteId);
+      if (reportType) formData.append("reportType", reportType);
+      if (uploadedBy) formData.append("uploadedBy", uploadedBy);
+
       const res = await fetch("/api/kaitai/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl, siteId, reportType, uploadedBy }),
+        body: formData,
+        // Note: don't set Content-Type — browser sets it with boundary automatically
       });
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
 
       setPhotos(prev => {
-        const next = prev.map(p =>
-          p.id === tempId ? { id: data.image.id, url: data.image.url } : p
-        );
+        const next = prev.map(p => {
+          if (p.id === tempId) {
+            // Revoke temp blob URL
+            URL.revokeObjectURL(thumbUrl);
+            return { id: data.image.id, url: data.image.url };
+          }
+          return p;
+        });
         notifyParent(next);
         return next;
       });
@@ -89,16 +146,17 @@ export default function PhotoCapture({
     }
   }, [maxPhotos, siteId, reportType, uploadedBy, notifyParent]);
 
-  // ── File input handler → open marking overlay ──
+  // ── File input handler → compress → open marking overlay ──
   const handleFiles = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Take the first file and compress it, then open the marking overlay
     const file = files[0];
     try {
-      const dataUrl = await fileToDataUrl(file);
-      setMarkingDataUrl(dataUrl);
+      const blob = await compressImageFile(file);
+      const previewUrl = createThumbUrl(blob);
+      setMarkingBlob(blob);
+      setMarkingPreviewUrl(previewUrl);
     } catch {
       alert("画像の読み込みに失敗しました");
     }
@@ -107,19 +165,31 @@ export default function PhotoCapture({
   }, []);
 
   // ── Marking overlay callbacks ──
-  const handleMarkingComplete = useCallback(async (finalDataUrl: string) => {
-    setMarkingDataUrl(null);
+  const handleMarkingComplete = useCallback(async (resultBlob: Blob) => {
+    // Clean up preview URL
+    if (markingPreviewUrl) URL.revokeObjectURL(markingPreviewUrl);
+    setMarkingBlob(null);
+    setMarkingPreviewUrl(null);
+
     setBusy(true);
-    await uploadDataUrl(finalDataUrl);
+    await uploadBlob(resultBlob);
     setBusy(false);
-  }, [uploadDataUrl]);
+  }, [uploadBlob, markingPreviewUrl]);
 
   const handleMarkingCancel = useCallback(() => {
-    setMarkingDataUrl(null);
-  }, []);
+    if (markingPreviewUrl) URL.revokeObjectURL(markingPreviewUrl);
+    setMarkingBlob(null);
+    setMarkingPreviewUrl(null);
+  }, [markingPreviewUrl]);
 
   const handleRemove = useCallback(async (index: number) => {
     const photo = photos[index];
+
+    // Revoke blob URL if it's a local preview
+    if (photo.url.startsWith("blob:")) {
+      URL.revokeObjectURL(photo.url);
+    }
+
     setPhotos(prev => {
       const next = prev.filter((_, i) => i !== index);
       notifyParent(next);
@@ -246,45 +316,14 @@ export default function PhotoCapture({
         style={{ display: "none" }}
       />
 
-      {/* ── Marking overlay (fullscreen, portal-like) ── */}
-      {markingDataUrl && (
+      {/* ── Marking overlay (fullscreen) ── */}
+      {markingBlob && markingPreviewUrl && (
         <PhotoMarkingOverlay
-          imageDataUrl={markingDataUrl}
+          imageBlob={markingBlob}
           onComplete={handleMarkingComplete}
           onCancel={handleMarkingCancel}
         />
       )}
     </div>
   );
-}
-
-// ── Compress large images before upload ────────────────────────────────────────
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 1920;
-      let w = img.width;
-      let h = img.height;
-      if (w > MAX || h > MAX) {
-        const ratio = Math.min(MAX / w, MAX / h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(objectUrl);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("画像の読み込みに失敗しました"));
-    };
-    img.src = objectUrl;
-  });
 }

@@ -54,7 +54,6 @@ const PENS: PenDef[] = [
 
 const BRUSH_WIDTH = 8;
 const BRUSH_OPACITY = 0.55;
-const MAX_OUTPUT_DIM = 2048;
 
 // ─── Stroke type ────────────────────────────────────────────────────────────
 
@@ -122,75 +121,28 @@ function drawLegend(
   ctx.restore();
 }
 
-// ─── Export: apply marks to data URL and return new data URL ────────────────
+// ─── Canvas → Blob (no base64, memory efficient) ──────────────────────────
 
-export function applyMarksToDataUrl(
-  imageDataUrl: string,
-  strokes: Stroke[],
-): Promise<string> {
+function canvasToBlob(canvas: HTMLCanvasElement, quality = 0.75): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let outW = img.width;
-      let outH = img.height;
-      if (outW > MAX_OUTPUT_DIM || outH > MAX_OUTPUT_DIM) {
-        if (outW > outH) {
-          outH = Math.round(outH * (MAX_OUTPUT_DIM / outW));
-          outW = MAX_OUTPUT_DIM;
-        } else {
-          outW = Math.round(outW * (MAX_OUTPUT_DIM / outH));
-          outH = MAX_OUTPUT_DIM;
-        }
-      }
-
-      const outCanvas = document.createElement("canvas");
-      outCanvas.width = outW;
-      outCanvas.height = outH;
-      const ctx = outCanvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, outW, outH);
-
-      // Scale strokes proportionally
-      const scaleX = outW / img.width;
-      const scaleY = outH / img.height;
-      const scaledBrushWidth = BRUSH_WIDTH * Math.max(scaleX, scaleY) * (img.width / outW > 1 ? 1 : outW / img.width);
-
-      const usedPenIds = new Set<string>();
-      for (const stroke of strokes) {
-        if (stroke.points.length < 2) continue;
-        usedPenIds.add(stroke.penId);
-        ctx.save();
-        ctx.globalAlpha = BRUSH_OPACITY;
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = scaledBrushWidth || BRUSH_WIDTH;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(stroke.points[0].x * scaleX, stroke.points[0].y * scaleY);
-        for (let i = 1; i < stroke.points.length; i++) {
-          ctx.lineTo(stroke.points[i].x * scaleX, stroke.points[i].y * scaleY);
-        }
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      if (usedPenIds.size > 0) {
-        drawLegend(ctx, outW, outH, usedPenIds);
-      }
-
-      resolve(outCanvas.toDataURL("image/jpeg", 0.80));
-    };
-    img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
-    img.src = imageDataUrl;
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Blob 変換に失敗しました"));
+      },
+      "image/jpeg",
+      quality,
+    );
   });
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 type PhotoMarkingOverlayProps = {
-  /** data URL of the image to mark */
-  imageDataUrl: string;
-  /** Called when user saves (with or without marks). Returns the final data URL */
-  onComplete: (dataUrl: string) => void;
+  /** Blob of the image to mark */
+  imageBlob: Blob;
+  /** Called when user saves (with or without marks). Returns the final Blob */
+  onComplete: (blob: Blob) => void;
   /** Called when user cancels (discards the photo entirely) */
   onCancel: () => void;
 };
@@ -198,7 +150,7 @@ type PhotoMarkingOverlayProps = {
 // ─── Main overlay component ─────────────────────────────────────────────────
 
 export default function PhotoMarkingOverlay({
-  imageDataUrl,
+  imageBlob,
   onComplete,
   onCancel,
 }: PhotoMarkingOverlayProps) {
@@ -210,17 +162,24 @@ export default function PhotoMarkingOverlay({
   const [saving, setSaving] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
   const imgDims = useRef({ w: 0, h: 0, displayW: 0, displayH: 0, offsetX: 0, offsetY: 0 });
 
-  // Load image
+  // Load image from Blob
   useEffect(() => {
+    const url = URL.createObjectURL(imageBlob);
+    blobUrlRef.current = url;
     const img = new Image();
     img.onload = () => {
       imgRef.current = img;
       setImgLoaded(true);
     };
-    img.src = imageDataUrl;
-  }, [imageDataUrl]);
+    img.src = url;
+    return () => {
+      URL.revokeObjectURL(url);
+      blobUrlRef.current = null;
+    };
+  }, [imageBlob]);
 
   // Compute layout
   const computeLayout = useCallback(() => {
@@ -348,30 +307,60 @@ export default function PhotoMarkingOverlay({
     }
   }
 
-  // ── Save ──
+  // ── Save → export as Blob ──
 
   async function handleSave() {
     setSaving(true);
     try {
       if (strokes.length === 0) {
-        // No marks — return original image as-is
-        onComplete(imageDataUrl);
+        // No marks — return original blob as-is
+        onComplete(imageBlob);
         return;
       }
 
-      // Convert display-coordinate strokes to image-coordinate strokes
-      const { displayW, displayH, offsetX, offsetY } = imgDims.current;
       const img = imgRef.current!;
-      const imgStrokes: Stroke[] = strokes.map(s => ({
-        ...s,
-        points: s.points.map(p => ({
-          x: (p.x - offsetX) * (img.width / displayW),
-          y: (p.y - offsetY) * (img.height / displayH),
-        })),
-      }));
+      const { displayW, displayH, offsetX, offsetY } = imgDims.current;
 
-      const result = await applyMarksToDataUrl(imageDataUrl, imgStrokes);
-      onComplete(result);
+      // Create output canvas at image resolution (already compressed to ≤1280)
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = img.width;
+      outCanvas.height = img.height;
+      const ctx = outCanvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+
+      // Scale strokes from display coords to image coords
+      const scaleX = img.width / displayW;
+      const scaleY = img.height / displayH;
+      const scaledBrushWidth = BRUSH_WIDTH * Math.max(scaleX, scaleY);
+
+      const usedPenIds = new Set<string>();
+      for (const stroke of strokes) {
+        if (stroke.points.length < 2) continue;
+        usedPenIds.add(stroke.penId);
+        ctx.save();
+        ctx.globalAlpha = BRUSH_OPACITY;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = scaledBrushWidth;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        const p0 = stroke.points[0];
+        ctx.moveTo((p0.x - offsetX) * scaleX, (p0.y - offsetY) * scaleY);
+        for (let i = 1; i < stroke.points.length; i++) {
+          const p = stroke.points[i];
+          ctx.lineTo((p.x - offsetX) * scaleX, (p.y - offsetY) * scaleY);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (usedPenIds.size > 0) {
+        drawLegend(ctx, img.width, img.height, usedPenIds);
+      }
+
+      // Export as Blob (not data URL — no base64 overhead)
+      const blob = await canvasToBlob(outCanvas, 0.75);
+      onComplete(blob);
     } catch {
       alert("マーキングの適用に失敗しました");
       setSaving(false);
@@ -381,7 +370,7 @@ export default function PhotoMarkingOverlay({
   // ── Skip marking — use original ──
 
   function handleSkip() {
-    onComplete(imageDataUrl);
+    onComplete(imageBlob);
   }
 
   const currentPenDef = PENS.find(p => p.id === activePen) ?? PENS[0];

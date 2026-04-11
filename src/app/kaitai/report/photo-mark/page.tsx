@@ -9,26 +9,35 @@ import Link from "next/link";
 import { T } from "../../lib/design-tokens";
 import PhotoMarkingOverlay from "../../components/photo-marking-overlay";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Compress File → Blob (no base64) ───────────────────────────────────────
 
-function fileToDataUrl(file: File, maxDim = 1920): Promise<string> {
+function compressImageFile(file: File, maxDim = 1280, quality = 0.75): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
       let w = img.width;
       let h = img.height;
       if (w > maxDim || h > maxDim) {
-        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
-        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
       }
+      const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(objectUrl);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("圧縮に失敗しました"));
+        },
+        "image/jpeg",
+        quality,
+      );
     };
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
@@ -38,7 +47,7 @@ function fileToDataUrl(file: File, maxDim = 1920): Promise<string> {
   });
 }
 
-// Pen definitions for display only (shared with overlay component)
+// Pen definitions for display only
 const PENS = [
   { id: "danger", label: "危険・キズ", color: "#EF4444", description: "既存クラック、活線、地中障害物、アスベスト" },
   { id: "keep", label: "残す・保護", color: "#22C55E", description: "残置物、境界ブロック、庭木" },
@@ -55,7 +64,7 @@ export default function PhotoMarkPage() {
   const siteName = searchParams.get("name") ?? "";
   const reportType = searchParams.get("type") ?? "marked_photo";
 
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [imageBlob, setImageBlob] = useState<Blob | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -63,27 +72,26 @@ export default function PhotoMarkPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await fileToDataUrl(file);
-      setImageDataUrl(dataUrl);
+      const blob = await compressImageFile(file);
+      setImageBlob(blob);
     } catch {
       alert("画像の読み込みに失敗しました");
     }
     e.target.value = "";
   }
 
-  async function handleMarkingComplete(finalDataUrl: string) {
-    // Upload the final image (with or without marks)
+  async function handleMarkingComplete(finalBlob: Blob) {
     setUploading(true);
     try {
+      const formData = new FormData();
+      formData.append("file", finalBlob, "marked_photo.jpg");
+      if (siteId)     formData.append("siteId", siteId);
+      if (reportType) formData.append("reportType", reportType);
+
       const res = await fetch("/api/kaitai/upload", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dataUrl: finalDataUrl,
-          siteId: siteId || undefined,
-          reportType: reportType || "marked_photo",
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -93,7 +101,6 @@ export default function PhotoMarkPage() {
         return;
       }
 
-      // Navigate back after successful upload
       if (siteId) {
         router.push(`/kaitai/site/${siteId}`);
       } else {
@@ -106,7 +113,7 @@ export default function PhotoMarkPage() {
   }
 
   function handleMarkingCancel() {
-    setImageDataUrl(null);
+    setImageBlob(null);
   }
 
   return (
@@ -149,7 +156,7 @@ export default function PhotoMarkPage() {
       )}
 
       {/* ── Photo selection screen ── */}
-      {!uploading && !imageDataUrl && (
+      {!uploading && !imageBlob && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6">
           <div className="text-center mb-4">
             <div
@@ -190,7 +197,7 @@ export default function PhotoMarkPage() {
               input.onchange = (ev) => {
                 const file = (ev.target as HTMLInputElement).files?.[0];
                 if (file) {
-                  fileToDataUrl(file).then(setImageDataUrl).catch(() => alert("画像の読み込みに失敗しました"));
+                  compressImageFile(file).then(setImageBlob).catch(() => alert("画像の読み込みに失敗しました"));
                 }
               };
               input.click();
@@ -248,9 +255,9 @@ export default function PhotoMarkPage() {
       )}
 
       {/* ── Marking overlay ── */}
-      {!uploading && imageDataUrl && (
+      {!uploading && imageBlob && (
         <PhotoMarkingOverlay
-          imageDataUrl={imageDataUrl}
+          imageBlob={imageBlob}
           onComplete={handleMarkingComplete}
           onCancel={handleMarkingCancel}
         />

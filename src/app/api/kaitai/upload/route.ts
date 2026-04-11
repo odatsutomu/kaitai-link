@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/kaitai/session";
-import { uploadKaitaiImage } from "@/lib/kaitai/storage";
+import { uploadKaitaiImage, uploadKaitaiImageBinary } from "@/lib/kaitai/storage";
 import { calcImageExpiry } from "@/lib/kaitai/plans";
 import { prisma } from "@/lib/prisma";
 
@@ -31,23 +31,61 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { dataUrl, siteId, reportType, uploadedBy } = body;
+    const contentType = req.headers.get("content-type") ?? "";
 
-    if (!dataUrl || typeof dataUrl !== "string") {
-      return NextResponse.json({ error: "画像データが不正です" }, { status: 400 });
+    let uploadResult: { key: string; url: string };
+    let siteId: string | undefined;
+    let reportType: string | undefined;
+    let uploadedBy: string | undefined;
+
+    if (contentType.includes("multipart/form-data")) {
+      // ━━━ NEW: FormData (binary) upload ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      const formData = await req.formData();
+      const file = formData.get("file");
+
+      if (!file || !(file instanceof Blob)) {
+        return NextResponse.json({ error: "ファイルが不正です" }, { status: 400 });
+      }
+
+      // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "画像サイズが大きすぎます（最大10MB）" }, { status: 413 });
+      }
+
+      siteId     = formData.get("siteId")?.toString() || undefined;
+      reportType = formData.get("reportType")?.toString() || undefined;
+      uploadedBy = formData.get("uploadedBy")?.toString() || undefined;
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const mimeType = file.type || "image/jpeg";
+
+      uploadResult = await uploadKaitaiImageBinary(buffer, mimeType, session.companyId, {
+        siteId,
+        reportType,
+      });
+
+    } else {
+      // ━━━ LEGACY: JSON (base64 dataURL) upload ━━━━━━━━━━━━━━━━━━━━━━
+      const body = await req.json();
+      const { dataUrl } = body;
+      siteId     = body.siteId;
+      reportType = body.reportType;
+      uploadedBy = body.uploadedBy;
+
+      if (!dataUrl || typeof dataUrl !== "string") {
+        return NextResponse.json({ error: "画像データが不正です" }, { status: 400 });
+      }
+
+      // サイズ制限（14MB base64 ≒ 10MB 実データ）
+      if (dataUrl.length > 14_000_000) {
+        return NextResponse.json({ error: "画像サイズが大きすぎます（最大10MB）" }, { status: 413 });
+      }
+
+      uploadResult = await uploadKaitaiImage(dataUrl, session.companyId, {
+        siteId,
+        reportType,
+      });
     }
-
-    // サイズ制限（10MB base64 ≒ 7.5MB 実データ）
-    if (dataUrl.length > 14_000_000) {
-      return NextResponse.json({ error: "画像サイズが大きすぎます（最大10MB）" }, { status: 413 });
-    }
-
-    // R2 にアップロード
-    const { key, url } = await uploadKaitaiImage(dataUrl, session.companyId, {
-      siteId,
-      reportType,
-    });
 
     // DB に保存（プランに応じた有効期限）
     const plan      = session.plan as Parameters<typeof calcImageExpiry>[0];
@@ -58,8 +96,8 @@ export async function POST(req: NextRequest) {
         companyId:  session.companyId,
         siteId:     siteId   ?? null,
         reportType: reportType ?? null,
-        r2Key:      key,
-        url,
+        r2Key:      uploadResult.key,
+        url:        uploadResult.url,
         expiresAt,
         uploadedBy: uploadedBy ?? session.adminName,
       },

@@ -10,13 +10,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // スマホ写真アップロード対応：ボディサイズ制限を緩和
+  // スマホ写真アップロード対応：ボディサイズ制限を緩和（FormData + Server Actions）
   experimental: {
     serverActions: {
-      bodySizeLimit: "20mb",
+      bodySizeLimit: "10mb",
     },
   },
-  serverExternalPackages: [],
 };
 
 export default nextConfig;

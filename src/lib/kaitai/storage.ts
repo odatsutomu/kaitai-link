@@ -64,6 +64,45 @@ export async function uploadKaitaiImage(
   return { key, url: `${PUBLIC_URL}/${key}` };
 }
 
+/**
+ * バイナリ (Buffer/Uint8Array) を直接 R2 にアップロード
+ * base64 変換なしでメモリ効率が良い
+ */
+export async function uploadKaitaiImageBinary(
+  buffer: Buffer | Uint8Array,
+  contentType: string,
+  companyId: string,
+  options: {
+    siteId?:     string;
+    reportType?: string;
+    fileName?:   string;
+  } = {}
+): Promise<UploadResult> {
+  const ext  = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const uuid = crypto.randomUUID();
+
+  const parts = [
+    "kaitai",
+    companyId,
+    options.siteId     ?? "no-site",
+    options.reportType ?? "misc",
+    options.fileName   ?? `${uuid}.${ext}`,
+  ];
+  const key = parts.join("/");
+
+  await r2Client.send(
+    new PutObjectCommand({
+      Bucket:       BUCKET,
+      Key:          key,
+      Body:         buffer,
+      ContentType:  contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+
+  return { key, url: `${PUBLIC_URL}/${key}` };
+}
+
 /** 単一画像を削除 */
 export async function deleteKaitaiImage(key: string) {
   await r2Client.send(
