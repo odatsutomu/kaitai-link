@@ -492,21 +492,23 @@ function WastePageInner() {
                     >
                       {group.processorName}
                     </p>
-                    {group.distance != null && (
+                  </div>
+                  {group.distance != null && (
+                    <div className="flex items-center gap-1.5 mt-1">
                       <span
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
                         style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: "#DBEAFE",
-                          color: "#1D4ED8",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          background: group.distance < 10 ? "#DBEAFE" : group.distance < 30 ? "#FEF3C7" : "#FEE2E2",
+                          color: group.distance < 10 ? "#1D4ED8" : group.distance < 30 ? "#92400E" : "#DC2626",
                         }}
                       >
-                        <Navigation size={10} />
+                        <Navigation size={12} />
                         {formatDist(group.distance)}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   {group.address && (
                     <p
                       style={{
@@ -650,28 +652,58 @@ function WastePageInner() {
           const options = getProcessorOptions(w.id, w.label);
           const isDropdownOpen = openDropdown === w.id;
 
+          // 決定済み = active + processor選択済み
+          const isDecided = isActive && !!sel;
+
           return (
             <div
               key={w.id}
-              className="rounded-2xl overflow-hidden"
+              className="rounded-2xl overflow-hidden transition-all"
               style={{
-                background: isActive ? "#FFFBEB" : T.surface,
-                border: isActive
-                  ? "1.5px solid #FDE68A"
-                  : "1.5px solid #EEEEEE",
+                background: isDecided
+                  ? "#F8FAFC"
+                  : isActive
+                    ? "#FFFBEB"
+                    : T.surface,
+                border: isDecided
+                  ? "1.5px solid #E2E8F0"
+                  : isActive
+                    ? "1.5px solid #FDE68A"
+                    : "1.5px solid #EEEEEE",
+                opacity: isDecided ? 0.75 : 1,
               }}
             >
               {/* 品目行 */}
               <div className="flex items-center gap-3 px-4 py-3">
-                <span style={{ fontSize: 24, flexShrink: 0 }}>
+                <span style={{ fontSize: isDecided ? 20 : 24, flexShrink: 0 }}>
                   {w.emoji}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p
-                    style={{ fontSize: 15, fontWeight: 700, color: "#222" }}
-                  >
-                    {w.label}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p
+                      style={{
+                        fontSize: isDecided ? 14 : 15,
+                        fontWeight: 700,
+                        color: isDecided ? "#94A3B8" : "#222",
+                      }}
+                    >
+                      {w.label}
+                    </p>
+                    {isDecided && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        padding: "2px 6px", borderRadius: 6,
+                        background: "#E2E8F0", color: "#64748B",
+                      }}>
+                        ✓ 決定
+                      </span>
+                    )}
+                  </div>
+                  {isDecided && sel && (
+                    <p style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                      → {sel.processorName}　¥{sel.unitPrice.toLocaleString()}/{w.unit}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <input
@@ -683,20 +715,20 @@ function WastePageInner() {
                     placeholder="0"
                     className="rounded-xl text-right outline-none"
                     style={{
-                      width: 100,
-                      height: 44,
-                      fontSize: 20,
+                      width: isDecided ? 80 : 100,
+                      height: isDecided ? 38 : 44,
+                      fontSize: isDecided ? 16 : 20,
                       fontWeight: 800,
-                      color: "#111",
-                      background: "#F9FAFB",
-                      border: "1.5px solid #E5E7EB",
-                      padding: "0 12px",
+                      color: isDecided ? "#94A3B8" : "#111",
+                      background: isDecided ? "#F1F5F9" : "#F9FAFB",
+                      border: `1.5px solid ${isDecided ? "#E2E8F0" : "#E5E7EB"}`,
+                      padding: "0 10px",
                     }}
                   />
                   <span
                     style={{
-                      fontSize: 14,
-                      color: "#666",
+                      fontSize: isDecided ? 12 : 14,
+                      color: isDecided ? "#94A3B8" : "#666",
                       fontWeight: 600,
                       minWidth: 24,
                     }}
@@ -717,12 +749,10 @@ function WastePageInner() {
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 transition-all"
                     style={{
                       background: sel
-                        ? sel.direction === "buyback"
-                          ? "#ECFDF5"
-                          : "#FFF7ED"
+                        ? "#F1F5F9"
                         : "#F3F4F6",
                       border: sel
-                        ? `1.5px solid ${sel.direction === "buyback" ? "#A7F3D0" : "#FDBA74"}`
+                        ? "1.5px solid #E2E8F0"
                         : "1.5px solid #E5E7EB",
                     }}
                   >
@@ -730,28 +760,20 @@ function WastePageInner() {
                       <MapPin
                         size={14}
                         style={{
-                          color: sel
-                            ? sel.direction === "buyback"
-                              ? "#10B981"
-                              : T.primary
-                            : "#9CA3AF",
+                          color: sel ? "#94A3B8" : "#9CA3AF",
                         }}
                       />
                       {sel ? (
                         <span
                           style={{
                             fontSize: 13,
-                            fontWeight: 700,
-                            color:
-                              sel.direction === "buyback"
-                                ? "#065F46"
-                                : "#92400E",
+                            fontWeight: 600,
+                            color: "#64748B",
                           }}
                         >
                           {sel.processorName}
-                          <span style={{ fontWeight: 500, marginLeft: 6 }}>
-                            ¥{sel.unitPrice.toLocaleString()}/{w.unit}
-                            {sel.direction === "buyback" && " (買取)"}
+                          <span style={{ fontWeight: 400, marginLeft: 4, color: "#94A3B8" }}>
+                            （変更する）
                           </span>
                         </span>
                       ) : (
@@ -802,7 +824,7 @@ function WastePageInner() {
                             <button
                               key={opt.processorId}
                               onClick={() => selectProcessor(w.id, opt)}
-                              className="w-full flex items-center justify-between px-3 py-3 text-left transition-colors"
+                              className="w-full px-3 py-3 text-left transition-colors"
                               style={{
                                 background: isSelected
                                   ? isBuyback
@@ -815,8 +837,9 @@ function WastePageInner() {
                                     : "none",
                               }}
                             >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
+                              {/* 上段: 処理場名 + バッジ + 金額 */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                                   {i === 0 && (
                                     <span
                                       style={{
@@ -837,71 +860,68 @@ function WastePageInner() {
                                   )}
                                   <span
                                     style={{
-                                      fontSize: 14,
+                                      fontSize: 15,
                                       fontWeight: 700,
                                       color: "#222",
                                     }}
                                   >
                                     {opt.processorName}
                                   </span>
-                                  {opt.distance != null && (
-                                    <span
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        background: "#DBEAFE",
-                                        color: "#1D4ED8",
-                                      }}
-                                    >
-                                      <Navigation size={8} />
-                                      {formatDist(opt.distance)}
-                                    </span>
-                                  )}
                                 </div>
-                                {opt.address && (
-                                  <p
+                                <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                                  <span
                                     style={{
-                                      fontSize: 11,
+                                      fontSize: 16,
+                                      fontWeight: 800,
+                                      color: isBuyback
+                                        ? "#10B981"
+                                        : "#B45309",
+                                    }}
+                                  >
+                                    {isBuyback
+                                      ? `+${yen(estCost)}`
+                                      : yen(estCost)}
+                                  </span>
+                                  <span
+                                    style={{ fontSize: 11, color: "#9CA3AF" }}
+                                  >
+                                    ¥{opt.unitPrice.toLocaleString()}/
+                                    {opt.unit}
+                                    {isBuyback && (
+                                      <span style={{ color: "#10B981", fontWeight: 700 }}>
+                                        {" "}買取
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* 下段: 距離 + 住所（見やすく） */}
+                              <div className="flex items-center gap-2 mt-1.5">
+                                {opt.distance != null && (
+                                  <span
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg"
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 800,
+                                      background: opt.distance < 10 ? "#DBEAFE" : opt.distance < 30 ? "#FEF3C7" : "#FEE2E2",
+                                      color: opt.distance < 10 ? "#1D4ED8" : opt.distance < 30 ? "#92400E" : "#DC2626",
+                                    }}
+                                  >
+                                    <Navigation size={12} />
+                                    {formatDist(opt.distance)}
+                                  </span>
+                                )}
+                                {opt.address && (
+                                  <span
+                                    className="truncate"
+                                    style={{
+                                      fontSize: 12,
                                       color: "#9CA3AF",
-                                      marginTop: 2,
                                     }}
                                   >
                                     {opt.address}
-                                  </p>
+                                  </span>
                                 )}
-                              </div>
-                              <div className="flex flex-col items-end flex-shrink-0 ml-2">
-                                <span
-                                  style={{ fontSize: 13, color: "#666" }}
-                                >
-                                  ¥{opt.unitPrice.toLocaleString()}/
-                                  {opt.unit}
-                                  {isBuyback && (
-                                    <span
-                                      style={{
-                                        color: "#10B981",
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      {" "}
-                                      買取
-                                    </span>
-                                  )}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: 15,
-                                    fontWeight: 800,
-                                    color: isBuyback
-                                      ? "#10B981"
-                                      : "#B45309",
-                                  }}
-                                >
-                                  {isBuyback
-                                    ? `+${yen(estCost)}`
-                                    : yen(estCost)}
-                                </span>
                               </div>
                             </button>
                           );
