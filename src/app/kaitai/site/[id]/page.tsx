@@ -173,7 +173,7 @@ const REACTION_BADGE: Record<string, { label: string; bg: string; fg: string; bo
 
 function parseOperationLog(log: OperationLog): ParsedLog {
   const d = new Date(log.createdAt);
-  const dateStr = d.toISOString().slice(0, 10);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const dow = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
   const dateLabel = `${d.getMonth() + 1}/${d.getDate()}（${dow}）`;
   const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;

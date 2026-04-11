@@ -130,7 +130,7 @@ type ParsedReport = {
 
 function parseLogForReport(log: OperationLog, siteName: string): ParsedReport {
   const d = new Date(log.createdAt);
-  const dateStr = d.toISOString().slice(0, 10);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   const action = log.action;
 

@@ -166,6 +166,15 @@ function parseAction(action: string): ParsedReport {
   return { category: "all", title: "操作ログ", detail: action, icon: FileText, color: C.muted, bg: T.bg };
 }
 
+/** Convert ISO string to local date string YYYY-MM-DD (fixes UTC vs JST mismatch) */
+function toLocalDateStr(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function fmtDateTime(iso: string): string {
   const d = new Date(iso);
   const mo = d.getMonth() + 1;
@@ -576,19 +585,21 @@ export default function AdminReportsPage() {
   const [allImages, setAllImages] = useState<ReportImage[]>([]);
   const [reactions, setReactions] = useState<Map<string, Reaction>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
 
   const [category, setCategory] = useState<ReportCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLog, setSelectedLog] = useState<OperationLog | null>(null);
 
-  // Date range
+  // Date range (local time)
   const now = new Date();
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(now);
     d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
+    return toLocalDateStr(d.toISOString());
   });
-  const [dateTo, setDateTo] = useState(() => now.toISOString().slice(0, 10));
+  const [dateTo, setDateTo] = useState(() => toLocalDateStr(now.toISOString()));
+  const [siteFilter, setSiteFilter] = useState<string>("all");
 
   // Fetch data (including all recent images for instant display)
   useEffect(() => {
@@ -598,13 +609,15 @@ export default function AdminReportsPage() {
       fetch("/api/kaitai/expense", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/waste-dispatch?all=1", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/upload?recent=1&days=30", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
     ])
-      .then(async ([logData, expData, wasteData, imgData]) => {
+      .then(async ([logData, expData, wasteData, imgData, sitesData]) => {
         const fetchedLogs: OperationLog[] = logData?.logs ?? [];
         if (fetchedLogs.length > 0) setLogs(fetchedLogs);
         if (expData?.logs) setExpenses(expData.logs);
         if (wasteData?.dispatches) setWastes(wasteData.dispatches);
         if (imgData?.images) setAllImages(imgData.images);
+        if (sitesData?.sites) setSites((sitesData.sites as { id: string; name: string }[]).map(s => ({ id: s.id, name: s.name })));
 
         // Fetch reactions for all logs (batch)
         if (fetchedLogs.length > 0) {
@@ -714,8 +727,18 @@ export default function AdminReportsPage() {
   const filteredLogs = useMemo(() => {
     return allLogs.filter(log => {
       // Date filter
-      const logDate = log.createdAt.slice(0, 10);
+      const logDate = toLocalDateStr(log.createdAt);
       if (logDate < dateFrom || logDate > dateTo) return false;
+
+      // Site filter
+      if (siteFilter !== "all") {
+        const site = sites.find(s => s.id === siteFilter);
+        if (site) {
+          const matchesSiteId = log.siteId === siteFilter;
+          const matchesSiteName = log.action.includes(site.name);
+          if (!matchesSiteId && !matchesSiteName) return false;
+        }
+      }
 
       // Category filter
       if (category !== "all") {
@@ -733,13 +756,13 @@ export default function AdminReportsPage() {
 
       return true;
     });
-  }, [allLogs, category, searchQuery, dateFrom, dateTo]);
+  }, [allLogs, category, searchQuery, dateFrom, dateTo, siteFilter, sites]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<ReportCategory, number> = { all: 0, attendance: 0, expense: 0, waste: 0, irregular: 0, daily: 0, finish: 0 };
     for (const log of allLogs) {
-      const logDate = log.createdAt.slice(0, 10);
+      const logDate = toLocalDateStr(log.createdAt);
       if (logDate < dateFrom || logDate > dateTo) continue;
       counts.all++;
       const parsed = parseAction(log.action);
@@ -755,7 +778,7 @@ export default function AdminReportsPage() {
     let currentGroup: OperationLog[] = [];
 
     for (const log of filteredLogs) {
-      const logDate = log.createdAt.slice(0, 10);
+      const logDate = toLocalDateStr(log.createdAt);
       if (logDate !== currentDate) {
         if (currentGroup.length > 0) {
           groups.push({ date: currentDate, logs: currentGroup });
@@ -896,6 +919,23 @@ export default function AdminReportsPage() {
             style={{ height: 44, fontSize: 13, padding: "0 12px", border: `1.5px solid ${C.border}`, color: C.text }}
           />
         </div>
+
+        {/* Site filter */}
+        <select
+          value={siteFilter}
+          onChange={e => setSiteFilter(e.target.value)}
+          className="rounded-xl outline-none"
+          style={{
+            height: 44, fontSize: 13, padding: "0 12px",
+            border: `1.5px solid ${C.border}`, color: C.text,
+            background: "#fff", minWidth: 120,
+          }}
+        >
+          <option value="all">全現場</option>
+          {sites.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* ── Summary Cards ── */}
@@ -988,22 +1028,34 @@ export default function AdminReportsPage() {
             {/* Logs for this date */}
             {group.logs.map(log => {
               const parsed = parseAction(log.action);
+              const reaction = reactions.get(log.id);
+              const isHandled = reaction && (reaction.status === "confirmed" || reaction.status === "approved");
+              const isAlert = reaction && (reaction.status === "action_required" || reaction.status === "call_required");
+
               return (
                 <button
                   key={log.id}
                   onClick={() => setSelectedLog(log)}
-                  className="w-full flex items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-gray-50"
-                  style={{ borderBottom: `1px solid #F1F5F9` }}
+                  className="w-full flex items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-gray-50 relative"
+                  style={{
+                    borderBottom: `1px solid #F1F5F9`,
+                    opacity: isHandled ? 0.55 : 1,
+                    background: isAlert
+                      ? reaction.status === "call_required" ? "rgba(31,41,55,0.03)" : "rgba(239,68,68,0.03)"
+                      : "transparent",
+                  }}
                 >
                   {/* Icon */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: parsed.bg }}>
-                    <parsed.icon size={18} style={{ color: parsed.color }} />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{
+                    background: isHandled ? "#F3F4F6" : parsed.bg,
+                  }}>
+                    <parsed.icon size={18} style={{ color: isHandled ? "#9CA3AF" : parsed.color }} />
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{parsed.title}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: isHandled ? "#9CA3AF" : C.text }}>{parsed.title}</span>
                       {(log.id.startsWith("orphan_waste_") || log.id.startsWith("orphan_exp_")) && (
                         <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: C.red }}>
                           ログ欠損
@@ -1018,13 +1070,13 @@ export default function AdminReportsPage() {
                         </span>
                       )}
                       {parsed.amount && parsed.amount > 0 && (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>{fmt(parsed.amount)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isHandled ? "#9CA3AF" : C.orange }}>{fmt(parsed.amount)}</span>
                       )}
                       {parsed.category === "waste" && (() => {
                         const wc = wasteLogCostMap.get(log.id);
                         if (!wc || wc.total === 0) return null;
                         return (
-                          <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{fmt(wc.total)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: isHandled ? "#9CA3AF" : C.teal }}>{fmt(wc.total)}</span>
                         );
                       })()}
                       {logImageCountMap.has(log.id) && (
@@ -1033,9 +1085,8 @@ export default function AdminReportsPage() {
                           <span style={{ fontSize: 11, fontWeight: 600 }}>{logImageCountMap.get(log.id)}</span>
                         </span>
                       )}
-                      {reactions.has(log.id) && (() => {
-                        const r = reactions.get(log.id)!;
-                        const cfg = REACTION_CONFIG[r.status as ReactionStatus];
+                      {reaction && (() => {
+                        const cfg = REACTION_CONFIG[reaction.status as ReactionStatus];
                         if (!cfg) return null;
                         return (
                           <span
@@ -1051,7 +1102,7 @@ export default function AdminReportsPage() {
                         );
                       })()}
                     </div>
-                    <p className="truncate" style={{ fontSize: 13, color: C.sub, maxWidth: "100%" }}>
+                    <p className="truncate" style={{ fontSize: 13, color: isHandled ? "#B0B8C4" : C.sub, maxWidth: "100%" }}>
                       {parsed.detail}
                       {parsed.category === "waste" && (() => {
                         const wc = wasteLogCostMap.get(log.id);
@@ -1063,13 +1114,33 @@ export default function AdminReportsPage() {
 
                   {/* Meta */}
                   <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.sub }}>{log.user || "—"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isHandled ? "#B0B8C4" : C.sub }}>{log.user || "—"}</span>
                     <span style={{ fontSize: 11, color: C.muted }}>
                       {new Date(log.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
 
                   <ChevronRight size={16} style={{ color: C.muted, flexShrink: 0 }} />
+
+                  {/* Handled stamp overlay */}
+                  {isHandled && (
+                    <div
+                      className="absolute flex items-center justify-center pointer-events-none"
+                      style={{
+                        right: 50, top: "50%", transform: "translateY(-50%) rotate(-12deg)",
+                      }}
+                    >
+                      <span style={{
+                        fontSize: 16, fontWeight: 900, letterSpacing: "0.1em",
+                        color: reaction.status === "approved" ? "rgba(29,78,216,0.25)" : "rgba(107,114,128,0.2)",
+                        border: `2.5px solid ${reaction.status === "approved" ? "rgba(29,78,216,0.2)" : "rgba(107,114,128,0.18)"}`,
+                        borderRadius: 6,
+                        padding: "2px 10px",
+                      }}>
+                        {reaction.status === "approved" ? "承認済" : "確認済"}
+                      </span>
+                    </div>
+                  )}
                 </button>
               );
             })}
