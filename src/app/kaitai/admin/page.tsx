@@ -6,7 +6,8 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, ChevronRight,
   ChevronLeft, ChevronDown, Calendar, BarChart2, Banknote,
   Receipt, Wallet, HelpCircle, ArrowUpDown, DollarSign,
-  AlertCircle, Activity, Building2,
+  AlertCircle, Activity, Building2, Target, Truck,
+  Filter, Search,
 } from "lucide-react";
 import { T } from "../lib/design-tokens";
 
@@ -56,21 +57,36 @@ type PrevTotals = {
 
 type MonthlyEntry = { revenue: number; cost: number; paid: number };
 
+type ProcessorWasteItem = {
+  processorId: string | null;
+  processorName: string;
+  wasteType: string;
+  unit: string;
+  totalQuantity: number;
+  totalCost: number;
+  direction: string;
+  count: number;
+};
+
 type FinanceData = {
   totals: FinanceTotals;
   prevTotals: PrevTotals;
   sites: SiteSummary[];
   expenseByCategory: Record<string, number>;
+  expenseSubCategories: Record<string, Record<string, number>>;
   monthlyData: Record<string, MonthlyEntry>;
   activeSiteCount: number;
   totalSiteCount: number;
+  wonSiteCount: number;
+  totalSiteCountAll: number;
+  processorWasteData: ProcessorWasteItem[];
 };
 
 type ViewMode = "month" | "year";
 
-const COST_ALERT_RATE = 70; // 原価率超過アラート閾値
+const COST_ALERT_RATE = 70;
 
-// ─── Mock data (fallback for empty DB) ──────────────────────────────────────
+// ─── Mock data ──────────────────────────────────────────────────────────────
 function generateMockData(): FinanceData {
   const months: Record<string, MonthlyEntry> = {};
   const base = [
@@ -106,9 +122,24 @@ function generateMockData(): FinanceData {
     prevTotals: { contractAmount: 11800000, paidAmount: 11800000, totalCost: 6100000, profit: 5700000, profitRate: 48.3 },
     sites,
     expenseByCategory: { "産廃処分費": 3800000, "燃料費": 2400000, "交通費": 1200000, "資材購入": 1100000, "工具・消耗品": 600000, "食費・雑費": 500000, "その他": 300000 },
+    expenseSubCategories: {
+      "産廃処分費": { "コンガラ処分": 1600000, "木くず処分": 1200000, "混合廃棄物": 1000000 },
+      "燃料費": { "重機燃料": 1500000, "車両燃料": 900000 },
+      "交通費": { "高速道路代": 600000, "駐車場代": 400000, "その他交通費": 200000 },
+      "資材購入": { "養生シート": 500000, "仮設材": 400000, "その他資材": 200000 },
+    },
     monthlyData: months,
     activeSiteCount: 4,
     totalSiteCount: 5,
+    wonSiteCount: 5,
+    totalSiteCountAll: 8,
+    processorWasteData: [
+      { processorId: "p1", processorName: "岡山環境センター", wasteType: "コンクリートガラ", unit: "t", totalQuantity: 45.5, totalCost: 682500, direction: "cost", count: 12 },
+      { processorId: "p1", processorName: "岡山環境センター", wasteType: "混合廃棄物", unit: "t", totalQuantity: 12.0, totalCost: 360000, direction: "cost", count: 5 },
+      { processorId: "p2", processorName: "倉敷リサイクル", wasteType: "木くず", unit: "t", totalQuantity: 28.3, totalCost: 283000, direction: "cost", count: 8 },
+      { processorId: "p3", processorName: "山陽金属買取", wasteType: "金属スクラップ", unit: "t", totalQuantity: 8.7, totalCost: -435000, direction: "buyback", count: 6 },
+      { processorId: "p2", processorName: "倉敷リサイクル", wasteType: "廃プラスチック", unit: "t", totalQuantity: 3.2, totalCost: 96000, direction: "cost", count: 3 },
+    ],
   };
 }
 
@@ -169,7 +200,6 @@ function MonthlyChart({ data }: { data: Record<string, MonthlyEntry> }) {
   const barW = 24;
   const gap = (chartW - entries.length * barW * 2) / (entries.length + 1);
 
-  // Profit rate line points
   const linePoints = entries.map(([, e], i) => {
     const rate = e.paid > 0 ? ((e.paid - e.cost) / e.paid) * 100 : 0;
     const x = gap + i * (barW * 2 + gap) + barW;
@@ -180,11 +210,9 @@ function MonthlyChart({ data }: { data: Record<string, MonthlyEntry> }) {
   return (
     <div style={{ width: "100%", overflowX: "auto" }}>
       <svg viewBox={`0 0 ${chartW} ${chartH + 40}`} style={{ width: "100%", maxWidth: chartW, height: "auto" }}>
-        {/* Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map(r => (
           <line key={r} x1={0} y1={chartH * (1 - r)} x2={chartW} y2={chartH * (1 - r)} stroke={P.borderLight} strokeWidth={1} />
         ))}
-
         {entries.map(([monthKey, e], i) => {
           const x = gap + i * (barW * 2 + gap);
           const revenueH = (e.paid / maxVal) * chartH;
@@ -192,17 +220,12 @@ function MonthlyChart({ data }: { data: Record<string, MonthlyEntry> }) {
           const label = monthKey.slice(5) + "月";
           return (
             <g key={monthKey}>
-              {/* Revenue bar */}
               <rect x={x} y={chartH - revenueH} width={barW} height={revenueH} rx={4} fill={P.blue} opacity={0.8} />
-              {/* Cost bar */}
               <rect x={x + barW + 2} y={chartH - costH} width={barW} height={costH} rx={4} fill={P.orange} opacity={0.6} />
-              {/* Label */}
               <text x={x + barW} y={chartH + 18} textAnchor="middle" fontSize={11} fill={P.sub} fontWeight={600}>{label}</text>
             </g>
           );
         })}
-
-        {/* Profit rate line */}
         {linePoints.length > 1 && (
           <polyline
             points={linePoints.map(p => `${p.x},${p.y}`).join(" ")}
@@ -291,13 +314,10 @@ function SiteRow({ site, rank }: {
         style={{ padding: "14px 20px" }}
       >
         <div className="flex items-center gap-3">
-          {/* Rank */}
           <span className="text-xs font-bold w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
             style={{ background: rank === 0 ? P.blueLt : P.bg, color: rank === 0 ? P.blue : P.muted }}>
             {rank + 1}
           </span>
-
-          {/* Status + Name */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {(isAlert || isWarning) && <AlertTriangle size={12} style={{ color: isAlert ? P.red : P.orange }} />}
@@ -311,7 +331,6 @@ function SiteRow({ site, rank }: {
               </span>
               <span className="text-sm font-bold truncate" style={{ color: isAlert ? P.red : P.text }}>{site.name}</span>
             </div>
-            {/* Progress + Payment bars */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 flex-1">
                 <span style={{ fontSize: 10, color: P.muted, width: 28 }}>進捗</span>
@@ -329,8 +348,6 @@ function SiteRow({ site, rank }: {
               </div>
             </div>
           </div>
-
-          {/* Numbers */}
           <div className="flex-shrink-0 text-right flex items-center gap-4">
             <div>
               <p style={{ fontSize: 11, color: P.muted }}>契約額</p>
@@ -350,8 +367,6 @@ function SiteRow({ site, rank }: {
           </div>
         </div>
       </button>
-
-      {/* Drill-down */}
       {open && (
         <div className="px-8 pb-4" style={{ paddingLeft: 56 }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -402,6 +417,199 @@ const COST_COLORS: Record<string, string> = {
   "その他": "#CBD5E1",
 };
 
+// ─── Drilldown legend item ──────────────────────────────────────────────────
+function CostLegendItem({ label, value, color, totalCost, subItems }: {
+  label: string; value: number; color: string; totalCost: number;
+  subItems?: Record<string, number>;
+}) {
+  const [open, setOpen] = useState(false);
+  const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
+  const hasSubs = subItems && Object.keys(subItems).length > 0;
+
+  return (
+    <div>
+      <button
+        onClick={() => hasSubs && setOpen(o => !o)}
+        className="flex items-center gap-2 w-full text-left py-1"
+        style={{ cursor: hasSubs ? "pointer" : "default" }}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+        <span className="text-xs flex-1 flex items-center gap-1" style={{ color: P.sub }}>
+          {label}
+          {hasSubs && (
+            <ChevronDown size={10} style={{ color: P.muted, transform: open ? "rotate(180deg)" : "none", transition: "0.15s" }} />
+          )}
+        </span>
+        <span className="text-xs font-bold" style={{ color: P.muted }}>{fmt(value)}</span>
+        <span className="text-xs font-bold w-8 text-right" style={{ color }}>{pct}%</span>
+      </button>
+      {open && subItems && (
+        <div className="ml-4 mb-1 pl-2" style={{ borderLeft: `2px solid ${P.borderLight}` }}>
+          {Object.entries(subItems)
+            .sort(([, a], [, b]) => b - a)
+            .map(([subLabel, subVal]) => (
+              <div key={subLabel} className="flex items-center gap-2 py-0.5">
+                <span className="text-xs flex-1" style={{ color: P.muted }}>{subLabel}</span>
+                <span className="text-xs font-bold" style={{ color: P.muted }}>{fmt(subVal)}</span>
+                <span className="text-xs w-8 text-right" style={{ color: P.muted }}>
+                  {value > 0 ? Math.round((subVal / value) * 100) : 0}%
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Processor Waste Table ──────────────────────────────────────────────────
+function ProcessorWasteSection({ data }: { data: ProcessorWasteItem[] }) {
+  const [sortKey, setSortKey] = useState<"cost" | "quantity">("cost");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  const wasteTypes = useMemo(() => {
+    const set = new Set(data.map(d => d.wasteType));
+    return Array.from(set).sort();
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    let items = data;
+    if (filterType !== "all") items = items.filter(d => d.wasteType === filterType);
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(d => d.processorName.toLowerCase().includes(q) || d.wasteType.toLowerCase().includes(q));
+    }
+    return [...items].sort((a, b) => {
+      if (sortKey === "cost") return Math.abs(b.totalCost) - Math.abs(a.totalCost);
+      return b.totalQuantity - a.totalQuantity;
+    });
+  }, [data, sortKey, filterType, search]);
+
+  // Group by processor for summary
+  const byProcessor = useMemo(() => {
+    const map = new Map<string, { name: string; totalCost: number; totalQty: number; items: ProcessorWasteItem[] }>();
+    for (const d of filtered) {
+      const key = d.processorId ?? d.processorName;
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalCost += d.totalCost;
+        existing.totalQty += d.totalQuantity;
+        existing.items.push(d);
+      } else {
+        map.set(key, { name: d.processorName, totalCost: d.totalCost, totalQty: d.totalQuantity, items: [d] });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => Math.abs(b.totalCost) - Math.abs(a.totalCost));
+  }, [filtered]);
+
+  const grandTotal = filtered.reduce((s, d) => s + d.totalCost, 0);
+
+  if (data.length === 0) {
+    return (
+      <div className="py-12 text-center" style={{ color: P.muted, fontSize: 13 }}>
+        廃材搬出データがまだありません
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Controls */}
+      <div className="flex items-center gap-3 flex-wrap mb-4">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: P.muted }} />
+          <input
+            type="text" placeholder="処理場名で検索..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full rounded-lg outline-none"
+            style={{ height: 36, fontSize: 13, padding: "0 12px 0 32px", border: `1px solid ${P.border}`, color: P.text, background: P.white }}
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Filter size={13} style={{ color: P.muted }} />
+          <select
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+            className="rounded-lg outline-none"
+            style={{ height: 36, fontSize: 12, padding: "0 8px", border: `1px solid ${P.border}`, color: P.sub, background: P.white }}
+          >
+            <option value="all">全品目</option>
+            {wasteTypes.map(wt => <option key={wt} value={wt}>{wt}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={() => setSortKey(s => s === "cost" ? "quantity" : "cost")}
+          className="flex items-center gap-1 px-3 rounded-lg text-xs font-bold"
+          style={{ height: 36, background: P.white, border: `1px solid ${P.border}`, color: P.sub }}
+        >
+          <ArrowUpDown size={12} />
+          {sortKey === "cost" ? "金額順" : "数量順"}
+        </button>
+      </div>
+
+      {/* Summary total */}
+      <div className="flex items-center justify-between px-4 py-3 rounded-xl mb-4"
+        style={{ background: grandTotal < 0 ? P.greenLt : P.orangeLt, border: `1px solid ${grandTotal < 0 ? "rgba(16,185,129,0.15)" : "rgba(249,115,22,0.15)"}` }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: P.sub }}>搬出コスト合計</span>
+        <span style={{ fontSize: 20, fontWeight: 900, color: grandTotal < 0 ? P.green : P.orange }}>
+          {grandTotal < 0 ? `+${fmtFull(Math.abs(grandTotal))}` : fmtFull(grandTotal)}
+        </span>
+      </div>
+
+      {/* Processor groups */}
+      <div className="flex flex-col gap-3">
+        {byProcessor.map(group => (
+          <div key={group.name} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${P.border}`, background: P.white }}>
+            {/* Processor header */}
+            <div className="flex items-center justify-between px-4 py-3" style={{ background: P.bg, borderBottom: `1px solid ${P.borderLight}` }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: group.totalCost < 0 ? P.greenLt : P.orangeLt }}>
+                  <Truck size={14} style={{ color: group.totalCost < 0 ? P.green : P.orange }} />
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: P.text }}>{group.name}</span>
+              </div>
+              <span style={{ fontSize: 16, fontWeight: 800, color: group.totalCost < 0 ? P.green : P.red }}>
+                {group.totalCost < 0 ? `+${fmtFull(Math.abs(group.totalCost))}` : fmtFull(group.totalCost)}
+              </span>
+            </div>
+            {/* Items */}
+            {group.items.map((item, i) => {
+              const avgPrice = item.totalQuantity > 0 ? Math.round(Math.abs(item.totalCost) / item.totalQuantity) : 0;
+              return (
+                <div key={`${item.wasteType}-${i}`} className="flex items-center justify-between px-4 py-2.5"
+                  style={{ borderBottom: i < group.items.length - 1 ? `1px solid ${P.borderLight}` : "none" }}>
+                  <div className="flex-1 min-w-0">
+                    <span style={{ fontSize: 13, fontWeight: 600, color: P.text }}>{item.wasteType}</span>
+                    <span style={{ fontSize: 11, color: P.muted, marginLeft: 8 }}>{item.count}回搬出</span>
+                  </div>
+                  <div className="flex items-center gap-4 flex-shrink-0 text-right">
+                    <div>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: P.sub }}>
+                        {item.totalQuantity.toFixed(1)}{item.unit}
+                      </p>
+                      <p style={{ fontSize: 10, color: P.muted }}>
+                        @¥{avgPrice.toLocaleString()}/{item.unit}
+                      </p>
+                    </div>
+                    <span style={{
+                      fontSize: 14, fontWeight: 800, minWidth: 80, textAlign: "right",
+                      color: item.totalCost < 0 ? P.green : P.red,
+                    }}>
+                      {item.totalCost < 0 ? `+${fmtFull(Math.abs(item.totalCost))}` : fmtFull(item.totalCost)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const now = new Date();
@@ -429,7 +637,6 @@ export default function AdminPage() {
       .then(data => {
         if (data?.ok) {
           setFinance(data);
-          // If all zeros use mock for dev visualization
           const isEmpty = data.sites.length === 0 && (data.totals.contractAmount ?? 0) === 0;
           setUseMock(isEmpty);
         }
@@ -457,7 +664,6 @@ export default function AdminPage() {
     });
   }, [sites, sortBy]);
 
-  // Alert sites
   const alertSites = rankedSites.filter(s => {
     if (s.contractAmount === 0) return false;
     const costRate = Math.round((s.totalCost / s.contractAmount) * 100);
@@ -473,6 +679,7 @@ export default function AdminPage() {
 
   // Cost pie
   const expenseCats = fd?.expenseByCategory ?? {};
+  const expenseSubCats = fd?.expenseSubCategories ?? {};
   const pieSlices = Object.entries(expenseCats)
     .filter(([, v]) => v > 0)
     .sort(([, a], [, b]) => b - a)
@@ -482,7 +689,11 @@ export default function AdminPage() {
   const profit = (t?.paidAmount ?? 0) - totalCost;
   const profitRate = (t?.paidAmount ?? 0) > 0 ? Math.round((profit / (t?.paidAmount ?? 1)) * 1000) / 10 : 0;
 
-  // Quick period buttons
+  // Conversion rate
+  const wonCount = fd?.wonSiteCount ?? 0;
+  const totalAllCount = fd?.totalSiteCountAll ?? 0;
+  const conversionRate = totalAllCount > 0 ? Math.round((wonCount / totalAllCount) * 100) : 0;
+
   const currentYear = now.getFullYear();
   const quickPeriods = [
     { label: "今月", action: () => { setMode("month"); setYear(currentYear); setMonth(now.getMonth() + 1); setShowPicker(false); } },
@@ -500,7 +711,6 @@ export default function AdminPage() {
     );
   }
 
-  // No data & no mock
   if (!fd) {
     return (
       <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
@@ -576,7 +786,6 @@ export default function AdminPage() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
               <div className="absolute right-0 top-full mt-2 z-50 p-4 rounded-xl" style={{ background: P.white, border: `1px solid ${P.border}`, width: 320, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
-                {/* Mode toggle */}
                 <div className="flex gap-1 p-1 rounded-lg mb-3" style={{ background: P.bg }}>
                   {(["month", "year"] as const).map(m => (
                     <button key={m} onClick={() => setMode(m)}
@@ -586,7 +795,6 @@ export default function AdminPage() {
                     </button>
                   ))}
                 </div>
-                {/* Year */}
                 <div className="flex items-center justify-center gap-3 mb-3">
                   <button onClick={() => setYear(year - 1)} className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ border: `1px solid ${P.border}`, color: P.sub }}>
                     <ChevronLeft size={16} />
@@ -598,7 +806,6 @@ export default function AdminPage() {
                     <ChevronRight size={16} />
                   </button>
                 </div>
-                {/* Months */}
                 {mode === "month" && (
                   <div className="grid grid-cols-6 gap-1 mb-3">
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
@@ -613,7 +820,6 @@ export default function AdminPage() {
                     })}
                   </div>
                 )}
-                {/* Quick links */}
                 <div className="flex gap-1.5">
                   {quickPeriods.map(q => (
                     <button key={q.label} onClick={q.action} className="flex-1 py-2 rounded-md text-xs font-bold" style={{ background: P.bg, color: P.sub }}>
@@ -651,8 +857,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ── KPI Cards (5 cards: 2+3 grid) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KPICard
           icon={<Building2 size={18} style={{ color: P.blue }} />}
           iconBg={P.blueLt} label="見込み受注残"
@@ -687,6 +893,15 @@ export default function AdminPage() {
           color={(t?.remainingAmount ?? 0) > 0 ? P.orange : P.green}
           isAlert={(t?.remainingAmount ?? 0) > 0 && rankedSites.some(s => s.remainingAmount > 0 && s.progressPct >= 90)}
         />
+        {/* ★ 新規: 営業成約率 */}
+        <KPICard
+          icon={<Target size={18} style={{ color: P.purple }} />}
+          iconBg="rgba(139,92,246,0.08)"
+          label="営業成約率"
+          value={`${conversionRate}%`}
+          sub={`見積 ${totalAllCount}件 / 受注 ${wonCount}件`}
+          color={P.purple}
+        />
       </div>
 
       {/* ── Chart Area ── */}
@@ -704,11 +919,14 @@ export default function AdminPage() {
           <MonthlyChart data={fd?.monthlyData ?? {}} />
         </div>
 
-        {/* Donut chart (2/5) */}
+        {/* ★ 拡張: ドーナツ + ドリルダウン凡例 (2/5) */}
         <div className="lg:col-span-2 rounded-xl p-5" style={{ background: P.white, border: `1px solid ${P.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div className="flex items-center gap-2 mb-4">
             <DollarSign size={16} style={{ color: P.orange }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: P.text }}>原価構造</span>
+            {pieSlices.length > 0 && (
+              <span style={{ fontSize: 11, color: P.muted, marginLeft: "auto" }}>クリックで内訳</span>
+            )}
           </div>
           {pieSlices.length > 0 ? (
             <div className="flex flex-col items-center gap-4">
@@ -719,18 +937,17 @@ export default function AdminPage() {
                   <p className="font-bold" style={{ fontSize: 16, color: P.text }}>{fmt(totalCost)}</p>
                 </div>
               </div>
-              <div className="w-full flex flex-col gap-2">
-                {pieSlices.map(({ label, value, color }) => {
-                  const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
-                  return (
-                    <div key={label} className="flex items-center gap-2">
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                      <span className="text-xs flex-1" style={{ color: P.sub }}>{label}</span>
-                      <span className="text-xs font-bold" style={{ color: P.muted }}>{fmt(value)}</span>
-                      <span className="text-xs font-bold w-8 text-right" style={{ color }}>{pct}%</span>
-                    </div>
-                  );
-                })}
+              <div className="w-full flex flex-col gap-0.5">
+                {pieSlices.map(({ label, value, color }) => (
+                  <CostLegendItem
+                    key={label}
+                    label={label}
+                    value={value}
+                    color={color}
+                    totalCost={totalCost}
+                    subItems={expenseSubCats[label]}
+                  />
+                ))}
               </div>
             </div>
           ) : (
@@ -743,7 +960,6 @@ export default function AdminPage() {
 
       {/* ── Site List ── */}
       <div className="rounded-xl overflow-hidden" style={{ background: P.white, border: `1px solid ${P.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3" style={{ background: P.bg, borderBottom: `1px solid ${P.border}` }}>
           <div className="flex items-center gap-2">
             <Receipt size={14} style={{ color: P.blue }} />
@@ -771,6 +987,20 @@ export default function AdminPage() {
             <SiteRow key={site.id} site={site} rank={rank} />
           ))
         )}
+      </div>
+
+      {/* ★ 新規セクション: 処理場別 産廃搬出実績 */}
+      <div className="rounded-xl overflow-hidden" style={{ background: P.white, border: `1px solid ${P.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div className="flex items-center gap-2 px-5 py-3" style={{ background: P.bg, borderBottom: `1px solid ${P.border}` }}>
+          <Truck size={14} style={{ color: P.teal }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: P.text }}>処理場別 産廃搬出実績</span>
+          <span className="px-2 py-0.5 rounded-md text-xs font-bold" style={{ background: "rgba(20,184,166,0.08)", color: P.teal }}>
+            {fd?.processorWasteData?.length ?? 0}件
+          </span>
+        </div>
+        <div className="p-5">
+          <ProcessorWasteSection data={fd?.processorWasteData ?? []} />
+        </div>
       </div>
     </div>
   );

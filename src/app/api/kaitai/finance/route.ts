@@ -203,6 +203,58 @@ export async function GET(req: NextRequest) {
   const activeStatuses = ["着工・内装解体", "上屋解体・基礎", "施工中", "解体中"];
   const activeSiteCount = sites.filter(s => activeStatuses.includes(s.status)).length;
 
+  // Completed site count (for conversion rate)
+  const completedStatuses = ["完工", "完工・更地確認", "産廃書類完了", "入金確認"];
+  const wonSiteCount = allSites.filter(s =>
+    completedStatuses.includes(s.status) || activeStatuses.includes(s.status)
+  ).length;
+  const totalSiteCountAll = allSites.length;
+
+  // ── Waste dispatch grouped by processor ──
+  type ProcessorWasteItem = {
+    processorId: string | null;
+    processorName: string;
+    wasteType: string;
+    unit: string;
+    totalQuantity: number;
+    totalCost: number;
+    direction: string;
+    count: number;
+  };
+
+  const processorWasteMap = new Map<string, ProcessorWasteItem>();
+  for (const w of allWasteDispatches) {
+    const key = `${w.processorId ?? "unknown"}_${w.wasteType}`;
+    const existing = processorWasteMap.get(key);
+    const cost = w.direction === "buyback" ? -(w.cost ?? 0) : (w.cost ?? 0);
+    if (existing) {
+      existing.totalQuantity += w.quantity ?? 0;
+      existing.totalCost += cost;
+      existing.count += 1;
+    } else {
+      processorWasteMap.set(key, {
+        processorId: w.processorId,
+        processorName: w.processorName ?? "不明",
+        wasteType: w.wasteType,
+        unit: w.unit ?? "t",
+        totalQuantity: w.quantity ?? 0,
+        totalCost: cost,
+        direction: w.direction ?? "cost",
+        count: 1,
+      });
+    }
+  }
+  const processorWasteData = Array.from(processorWasteMap.values());
+
+  // ── Expense sub-categories ──
+  const expenseSubCategories: Record<string, Record<string, number>> = {};
+  for (const log of [...expenseLogs, ...generalExpenses]) {
+    const cat = log.category ?? "その他";
+    const desc = log.description ?? "その他";
+    if (!expenseSubCategories[cat]) expenseSubCategories[cat] = {};
+    expenseSubCategories[cat][desc] = (expenseSubCategories[cat][desc] ?? 0) + (log.amount ?? 0);
+  }
+
   return NextResponse.json({
     ok: true,
     totals: {
@@ -225,5 +277,9 @@ export async function GET(req: NextRequest) {
     monthlyData,
     activeSiteCount,
     totalSiteCount: sites.length,
+    wonSiteCount,
+    totalSiteCountAll,
+    processorWasteData,
+    expenseSubCategories,
   });
 }
