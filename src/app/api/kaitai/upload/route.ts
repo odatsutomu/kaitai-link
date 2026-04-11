@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const maxDuration = 30; // Vercel function timeout
 
 // GET /api/kaitai/upload?siteId=xxx — list images for a site
+// GET /api/kaitai/upload?recent=1&days=30 — list all recent images for the company
 // GET /api/kaitai/upload?uploadedBy=xxx&reportType=xxx&from=xxx&to=xxx — list images by filters
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -17,6 +18,26 @@ export async function GET(req: NextRequest) {
   const reportType = req.nextUrl.searchParams.get("reportType");
   const from       = req.nextUrl.searchParams.get("from");
   const to         = req.nextUrl.searchParams.get("to");
+  const recent     = req.nextUrl.searchParams.get("recent");
+  const days       = parseInt(req.nextUrl.searchParams.get("days") ?? "30") || 30;
+
+  // "recent" mode — fetch all images for the company within N days
+  if (recent === "1") {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const images = await prisma.kaitaiImage.findMany({
+      where: {
+        companyId: session.companyId,
+        createdAt: { gte: since },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, url: true, reportType: true, uploadedBy: true, createdAt: true },
+      take: 500,
+    });
+
+    return NextResponse.json({ ok: true, images });
+  }
 
   // At least one filter required
   if (!siteId && !uploadedBy && !reportType) {

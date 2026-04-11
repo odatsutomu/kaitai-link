@@ -5,7 +5,7 @@ import {
   ClipboardList, Clock, Fuel, AlertTriangle, Truck, Wrench, Coffee,
   ChevronRight, ChevronLeft, Calendar, Users, MapPin,
   X, Search, CheckCircle, LogIn, LogOut,
-  FileText, DollarSign, Trash2, Loader2,
+  FileText, DollarSign, Trash2, ImageIcon,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -186,75 +186,36 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-// ─── Report type mapping for image search ────────────────────────────────────
-
-function categoryToReportTypes(category: ReportCategory): string[] {
-  switch (category) {
-    case "expense":   return ["expense", "fuel"];
-    case "irregular": return ["irregular"];
-    case "finish":    return ["finish"];
-    case "daily":     return ["daily", "equipment_check"];
-    default:          return [];
-  }
-}
-
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 type ReportImage = { id: string; url: string; reportType: string | null; uploadedBy: string; createdAt: string };
 
 function DetailModal({
-  log, parsed, expenses, wastes, onClose, onDelete,
+  log, parsed, expenses, wastes, allImages, onClose, onDelete,
 }: {
   log: OperationLog;
   parsed: ParsedReport;
   expenses: ExpenseLog[];
   wastes: WasteDispatch[];
+  allImages: ReportImage[];
   onClose: () => void;
   onDelete: (id: string) => void;
 }) {
-  // ── Fetch related images ──
-  const [images, setImages] = useState<ReportImage[]>([]);
-  const [imagesLoading, setImagesLoading] = useState(false);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Find images uploaded by the same user around the same time
-    const logTime = new Date(log.createdAt);
-    const from = new Date(logTime.getTime() - 5 * 60 * 1000); // 5 min before
-    const to   = new Date(logTime.getTime() + 5 * 60 * 1000); // 5 min after
+  // ── Match images client-side: same user within ±15 min of log ──
+  const images = useMemo(() => {
+    const logTime = new Date(log.createdAt).getTime();
+    const WINDOW = 15 * 60 * 1000; // 15 minutes
 
-    const reportTypes = categoryToReportTypes(parsed.category);
-    if (reportTypes.length === 0 && !log.action.startsWith("image_upload:")) {
-      // Also try to find images by user+time even without reportType match
-      // (covers marked_photo and misc uploads near the report time)
-    }
-
-    setImagesLoading(true);
-
-    const params = new URLSearchParams();
-    params.set("uploadedBy", log.user);
-    params.set("from", from.toISOString());
-    params.set("to", to.toISOString());
-    if (reportTypes.length === 1) {
-      params.set("reportType", reportTypes[0]);
-    }
-
-    // Fetch images matching this report
-    fetch(`/api/kaitai/upload?${params}`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.images) {
-          let imgs = data.images as ReportImage[];
-          // If multiple reportTypes, filter client-side
-          if (reportTypes.length > 1) {
-            imgs = imgs.filter((img: ReportImage) => img.reportType && reportTypes.includes(img.reportType));
-          }
-          setImages(imgs);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setImagesLoading(false));
-  }, [log.createdAt, log.user, parsed.category, log.action]);
+    return allImages.filter(img => {
+      const imgTime = new Date(img.createdAt).getTime();
+      if (Math.abs(imgTime - logTime) > WINDOW) return false;
+      // Match by user name (loose: either uploadedBy matches log.user, or both empty)
+      if (log.user && img.uploadedBy && img.uploadedBy !== log.user) return false;
+      return true;
+    });
+  }, [allImages, log.createdAt, log.user]);
 
   // Find related expense or waste records
   const relatedExpenses = useMemo(() => {
@@ -346,13 +307,7 @@ function DetailModal({
           </div>
 
           {/* 添付写真 */}
-          {imagesLoading && (
-            <div className="flex items-center gap-2 py-3">
-              <Loader2 size={16} className="animate-spin" style={{ color: C.muted }} />
-              <span style={{ fontSize: 13, color: C.muted }}>写真を読み込み中...</span>
-            </div>
-          )}
-          {!imagesLoading && images.length > 0 && (
+          {images.length > 0 && (
             <div>
               <p style={{ fontSize: 12, fontWeight: 700, color: C.sub, marginBottom: 6 }}>
                 添付写真（{images.length}枚）
@@ -380,6 +335,11 @@ function DetailModal({
                       alt=""
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       loading="lazy"
+                      onError={(e) => {
+                        const el = e.currentTarget;
+                        el.style.display = "none";
+                        el.parentElement!.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${C.muted};font-size:11px">読込失敗</div>`;
+                      }}
                     />
                   </button>
                 ))}
@@ -471,6 +431,7 @@ export default function AdminReportsPage() {
   const [logs, setLogs] = useState<OperationLog[]>([]);
   const [expenses, setExpenses] = useState<ExpenseLog[]>([]);
   const [wastes, setWastes] = useState<WasteDispatch[]>([]);
+  const [allImages, setAllImages] = useState<ReportImage[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [category, setCategory] = useState<ReportCategory>("all");
@@ -486,18 +447,20 @@ export default function AdminReportsPage() {
   });
   const [dateTo, setDateTo] = useState(() => now.toISOString().slice(0, 10));
 
-  // Fetch data
+  // Fetch data (including all recent images for instant display)
   useEffect(() => {
     setLoading(true);
     Promise.all([
       fetch("/api/kaitai/operation-logs?type=reports&limit=1000", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/expense", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/waste-dispatch?all=1", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch("/api/kaitai/upload?recent=1&days=30", { credentials: "include" }).then(r => r.ok ? r.json() : null),
     ])
-      .then(([logData, expData, wasteData]) => {
+      .then(([logData, expData, wasteData, imgData]) => {
         if (logData?.logs) setLogs(logData.logs);
         if (expData?.logs) setExpenses(expData.logs);
         if (wasteData?.dispatches) setWastes(wasteData.dispatches);
+        if (imgData?.images) setAllImages(imgData.images);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -662,6 +625,24 @@ export default function AdminReportsPage() {
     const inRange = wastes.filter(w => w.date >= dateFrom && w.date <= dateTo);
     return inRange.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
   }, [wastes, dateFrom, dateTo]);
+
+  // Precompute image counts for each log (for showing icon in list)
+  const logImageCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const WINDOW = 15 * 60 * 1000;
+    for (const log of allLogs) {
+      const logTime = new Date(log.createdAt).getTime();
+      let count = 0;
+      for (const img of allImages) {
+        const imgTime = new Date(img.createdAt).getTime();
+        if (Math.abs(imgTime - logTime) > WINDOW) continue;
+        if (log.user && img.uploadedBy && img.uploadedBy !== log.user) continue;
+        count++;
+      }
+      if (count > 0) map.set(log.id, count);
+    }
+    return map;
+  }, [allLogs, allImages]);
 
   // Selected log parsed
   const selectedParsed = selectedLog ? parseAction(selectedLog.action) : null;
@@ -872,6 +853,12 @@ export default function AdminReportsPage() {
                           <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{fmt(wc.total)}</span>
                         );
                       })()}
+                      {logImageCountMap.has(log.id) && (
+                        <span className="flex items-center gap-0.5" style={{ color: C.muted }}>
+                          <ImageIcon size={12} />
+                          <span style={{ fontSize: 11, fontWeight: 600 }}>{logImageCountMap.get(log.id)}</span>
+                        </span>
+                      )}
                     </div>
                     <p className="truncate" style={{ fontSize: 13, color: C.sub, maxWidth: "100%" }}>
                       {parsed.detail}
@@ -906,6 +893,7 @@ export default function AdminReportsPage() {
           parsed={selectedParsed}
           expenses={expenses}
           wastes={wastes}
+          allImages={allImages}
           onClose={() => setSelectedLog(null)}
           onDelete={async (id) => {
             if (!confirm("この報告を削除しますか？関連する経費・廃材データも削除されます。")) return;
