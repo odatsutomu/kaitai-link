@@ -123,12 +123,25 @@ function drawLegend(
 
 // ─── Canvas → Blob (no base64, memory efficient) ──────────────────────────
 
-function canvasToBlob(canvas: HTMLCanvasElement, quality = 0.75): Promise<Blob> {
+function canvasToBlob(canvas: HTMLCanvasElement, quality = 0.6): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("Blob 変換に失敗しました"));
+        if (blob) {
+          resolve(blob);
+        } else {
+          // Fallback: extract from dataUrl if toBlob fails
+          try {
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            const b64 = dataUrl.split(",")[1];
+            const bytes = atob(b64);
+            const arr = new Uint8Array(bytes.length);
+            for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+            resolve(new Blob([arr], { type: "image/jpeg" }));
+          } catch {
+            reject(new Error("Blob 変換に失敗しました"));
+          }
+        }
       },
       "image/jpeg",
       quality,
@@ -359,7 +372,7 @@ export default function PhotoMarkingOverlay({
       }
 
       // Export as Blob (not data URL — no base64 overhead)
-      const blob = await canvasToBlob(outCanvas, 0.75);
+      const blob = await canvasToBlob(outCanvas, 0.6);
       onComplete(blob);
     } catch {
       alert("マーキングの適用に失敗しました");

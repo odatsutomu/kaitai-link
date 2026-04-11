@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/kaitai/session";
-import { uploadKaitaiImage, uploadKaitaiImageBinary } from "@/lib/kaitai/storage";
+import { uploadKaitaiImageBinary } from "@/lib/kaitai/storage";
 import { calcImageExpiry } from "@/lib/kaitai/plans";
 import { prisma } from "@/lib/prisma";
 
@@ -24,30 +24,36 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // ── Step 1: 認証 ──
+  let session;
   try {
-    // 認証チェック
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
-    }
+    session = await getSessionFromRequest(req);
+  } catch (err) {
+    console.error("upload auth error:", err);
+    return NextResponse.json({ error: "認証処理エラー", detail: String(err) }, { status: 500 });
+  }
+  if (!session) {
+    return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+  }
 
+  // ── Step 2: リクエストボディ解析 ──
+  let buffer: Buffer;
+  let mimeType = "image/jpeg";
+  let siteId: string | undefined;
+  let reportType: string | undefined;
+  let uploadedBy: string | undefined;
+
+  try {
     const contentType = req.headers.get("content-type") ?? "";
 
-    let uploadResult: { key: string; url: string };
-    let siteId: string | undefined;
-    let reportType: string | undefined;
-    let uploadedBy: string | undefined;
-
     if (contentType.includes("multipart/form-data")) {
-      // ━━━ NEW: FormData (binary) upload ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // ── FormData (binary) ──
       const formData = await req.formData();
       const file = formData.get("file");
 
       if (!file || !(file instanceof Blob)) {
         return NextResponse.json({ error: "ファイルが不正です" }, { status: 400 });
       }
-
-      // 10MB limit
       if (file.size > 10 * 1024 * 1024) {
         return NextResponse.json({ error: "画像サイズが大きすぎます（最大10MB）" }, { status: 413 });
       }
@@ -55,17 +61,11 @@ export async function POST(req: NextRequest) {
       siteId     = formData.get("siteId")?.toString() || undefined;
       reportType = formData.get("reportType")?.toString() || undefined;
       uploadedBy = formData.get("uploadedBy")?.toString() || undefined;
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const mimeType = file.type || "image/jpeg";
-
-      uploadResult = await uploadKaitaiImageBinary(buffer, mimeType, session.companyId, {
-        siteId,
-        reportType,
-      });
+      mimeType   = file.type || "image/jpeg";
+      buffer     = Buffer.from(await file.arrayBuffer());
 
     } else {
-      // ━━━ LEGACY: JSON (base64 dataURL) upload ━━━━━━━━━━━━━━━━━━━━━━
+      // ── JSON (base64 dataURL) ──
       const body = await req.json();
       const { dataUrl } = body;
       siteId     = body.siteId;
@@ -75,19 +75,42 @@ export async function POST(req: NextRequest) {
       if (!dataUrl || typeof dataUrl !== "string") {
         return NextResponse.json({ error: "画像データが不正です" }, { status: 400 });
       }
-
-      // サイズ制限（14MB base64 ≒ 10MB 実データ）
       if (dataUrl.length > 14_000_000) {
         return NextResponse.json({ error: "画像サイズが大きすぎます（最大10MB）" }, { status: 413 });
       }
 
-      uploadResult = await uploadKaitaiImage(dataUrl, session.companyId, {
-        siteId,
-        reportType,
-      });
+      const match = dataUrl.match(/^data:(image\/[\w+]+);base64,(.+)$/);
+      if (!match) {
+        return NextResponse.json({ error: "画像データ形式が不正です" }, { status: 400 });
+      }
+      mimeType = match[1];
+      buffer   = Buffer.from(match[2], "base64");
     }
+  } catch (err) {
+    console.error("upload parse error:", err);
+    return NextResponse.json(
+      { error: "リクエスト解析エラー", detail: String(err) },
+      { status: 400 },
+    );
+  }
 
-    // DB に保存（プランに応じた有効期限）
+  // ── Step 3: R2 にアップロード ──
+  let uploadResult: { key: string; url: string };
+  try {
+    uploadResult = await uploadKaitaiImageBinary(buffer, mimeType, session.companyId, {
+      siteId,
+      reportType,
+    });
+  } catch (err) {
+    console.error("upload R2 error:", err);
+    return NextResponse.json(
+      { error: "ストレージアップロードエラー", detail: String(err) },
+      { status: 500 },
+    );
+  }
+
+  // ── Step 4: DB に保存 ──
+  try {
     const plan      = session.plan as Parameters<typeof calcImageExpiry>[0];
     const expiresAt = calcImageExpiry(plan);
 
@@ -103,15 +126,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.kaitaiOperationLog.create({
-      data: {
-        companyId: session.companyId,
-        action:    `image_upload:${reportType ?? "misc"}`,
-        user:      uploadedBy ?? session.adminName,
-        siteId:    siteId ?? null,
-        device:    req.headers.get("user-agent")?.slice(0, 120) ?? "",
-      },
-    });
+    // ログ記録（失敗しても画像保存自体は成功扱い）
+    try {
+      await prisma.kaitaiOperationLog.create({
+        data: {
+          companyId: session.companyId,
+          action:    `image_upload:${reportType ?? "misc"}`,
+          user:      uploadedBy ?? session.adminName,
+          siteId:    siteId ?? null,
+          device:    req.headers.get("user-agent")?.slice(0, 120) ?? "",
+        },
+      });
+    } catch { /* ログ失敗は無視 */ }
 
     return NextResponse.json({
       ok: true,
@@ -119,7 +145,10 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (err) {
-    console.error("kaitai/upload error:", err);
-    return NextResponse.json({ error: "アップロードに失敗しました" }, { status: 500 });
+    console.error("upload DB error:", err);
+    return NextResponse.json(
+      { error: "データベース保存エラー", detail: String(err) },
+      { status: 500 },
+    );
   }
 }
