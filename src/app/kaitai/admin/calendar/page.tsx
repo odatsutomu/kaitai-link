@@ -42,6 +42,8 @@ type Assignment = {
   siteId: string;
   startDate: string;
   endDate: string;
+  startTime?: string; // "HH:MM"
+  endTime?: string;   // "HH:MM"
   confirmed: boolean;
 };
 
@@ -49,6 +51,8 @@ type Assignment = {
 type ModalPreset = {
   startDate?: string;
   endDate?: string;
+  startTime?: string;
+  endTime?: string;
   resourceType?: "member" | "equipment";
   resourceId?: string;
 };
@@ -86,9 +90,19 @@ function rangeOverlaps(aStart: string, aEnd: string, bStart: string, bEnd: strin
   return aStart <= bEnd && bStart <= aEnd;
 }
 
+function timeOverlaps(a: Assignment, b: Assignment): boolean {
+  // If both have time fields, check time overlap on overlapping dates
+  if (a.startTime && a.endTime && b.startTime && b.endTime) {
+    return a.startTime < b.endTime && b.startTime < a.endTime;
+  }
+  // If either has no time → full-day assignment → always overlaps
+  return true;
+}
+
 function dateInRange(date: string, start: string, end: string): boolean {
   return date >= start && date <= end;
 }
+
 
 let _assignId = 0;
 function nextId() { return `a-${Date.now()}-${_assignId++}`; }
@@ -99,6 +113,8 @@ function makeDateStr(year: number, month: number, day: number): string {
 
 // ─── Generate demo assignments ────────────────────────────────────────────────
 
+const DEMO_TIMES: [string, string][] = [["08:00", "12:00"], ["13:00", "17:00"], ["09:00", "15:00"], ["08:30", "11:30"], ["13:30", "17:30"]];
+
 function generateAssignments(sites: SiteRow[], members: MemberRow[], equipment: EquipmentRow[]): Assignment[] {
   const assignments: Assignment[] = [];
   let idCounter = 0;
@@ -108,7 +124,8 @@ function generateAssignments(sites: SiteRow[], members: MemberRow[], equipment: 
     const memberCount = Math.min(members.length, 2 + (siteIdx % 3));
     for (let i = 0; i < memberCount; i++) {
       const mIdx = (siteIdx * 2 + i) % members.length;
-      assignments.push({ id: `seed-${idCounter++}`, resourceType: "member", resourceId: members[mIdx].id, siteId: site.id, startDate: site.startDate, endDate: site.endDate, confirmed: site.status === "施工中" });
+      const [startTime, endTime] = DEMO_TIMES[(siteIdx + i) % DEMO_TIMES.length];
+      assignments.push({ id: `seed-${idCounter++}`, resourceType: "member", resourceId: members[mIdx].id, siteId: site.id, startDate: site.startDate, endDate: site.endDate, startTime, endTime, confirmed: site.status === "施工中" });
     }
     const eqCount = Math.min(equipment.length, 1 + (siteIdx % 2));
     for (let i = 0; i < eqCount; i++) {
@@ -121,7 +138,7 @@ function generateAssignments(sites: SiteRow[], members: MemberRow[], equipment: 
 
 // ─── Conflict detection ───────────────────────────────────────────────────────
 
-type Conflict = { resourceId: string; resourceType: "member" | "equipment"; resourceName: string; assignments: Assignment[]; overlapStart: string; overlapEnd: string };
+type Conflict = { resourceId: string; resourceType: "member" | "equipment"; resourceName: string; assignments: Assignment[]; overlapStart: string; overlapEnd: string; timeInfo?: string };
 
 function detectConflicts(assignments: Assignment[], members: MemberRow[], equipment: EquipmentRow[]): Conflict[] {
   const conflicts: Conflict[] = [];
@@ -135,12 +152,13 @@ function detectConflicts(assignments: Assignment[], members: MemberRow[], equipm
     if (group.length < 2) return;
     for (let i = 0; i < group.length; i++) {
       for (let j = i + 1; j < group.length; j++) {
-        if (rangeOverlaps(group[i].startDate, group[i].endDate, group[j].startDate, group[j].endDate)) {
+        if (rangeOverlaps(group[i].startDate, group[i].endDate, group[j].startDate, group[j].endDate) && timeOverlaps(group[i], group[j])) {
           const [type, id] = key.split(":");
           const name = type === "member" ? members.find(m => m.id === id)?.name ?? "不明" : equipment.find(e => e.id === id)?.name ?? "不明";
           const oS = group[i].startDate > group[j].startDate ? group[i].startDate : group[j].startDate;
           const oE = group[i].endDate < group[j].endDate ? group[i].endDate : group[j].endDate;
-          conflicts.push({ resourceId: id, resourceType: type as "member" | "equipment", resourceName: name, assignments: [group[i], group[j]], overlapStart: oS, overlapEnd: oE });
+          const timeInfo = (group[i].startTime && group[j].startTime) ? `${group[i].startTime}〜${group[i].endTime} / ${group[j].startTime}〜${group[j].endTime}` : undefined;
+          conflicts.push({ resourceId: id, resourceType: type as "member" | "equipment", resourceName: name, assignments: [group[i], group[j]], overlapStart: oS, overlapEnd: oE, timeInfo });
         }
       }
     }
@@ -163,6 +181,9 @@ function AssignmentModal({
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [startDate, setStartDate] = useState(preset?.startDate ?? "");
   const [endDate, setEndDate] = useState(preset?.endDate ?? "");
+  const [startTime, setStartTime] = useState(preset?.startTime ?? "08:00");
+  const [endTime, setEndTime] = useState(preset?.endTime ?? "17:00");
+  const [useTimeSlot, setUseTimeSlot] = useState(true);
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(
     () => preset?.resourceType === "member" && preset.resourceId ? new Set([preset.resourceId]) : new Set()
   );
@@ -195,11 +216,15 @@ function AssignmentModal({
 
   const canSave = selectedSiteId && startDate && endDate && (selectedMembers.size > 0 || selectedEquipment.size > 0);
 
+  const timeWarning = useTimeSlot && startTime >= endTime;
+
   const handleSave = () => {
     if (!canSave) return;
     const out: Assignment[] = [];
-    selectedMembers.forEach(mid => out.push({ id: nextId(), resourceType: "member", resourceId: mid, siteId: selectedSiteId, startDate, endDate, confirmed }));
-    selectedEquipment.forEach(eid => out.push({ id: nextId(), resourceType: "equipment", resourceId: eid, siteId: selectedSiteId, startDate, endDate, confirmed }));
+    const timeStart = useTimeSlot ? startTime : undefined;
+    const timeEnd = useTimeSlot ? endTime : undefined;
+    selectedMembers.forEach(mid => out.push({ id: nextId(), resourceType: "member", resourceId: mid, siteId: selectedSiteId, startDate, endDate, startTime: timeStart, endTime: timeEnd, confirmed }));
+    selectedEquipment.forEach(eid => out.push({ id: nextId(), resourceType: "equipment", resourceId: eid, siteId: selectedSiteId, startDate, endDate, startTime: timeStart, endTime: timeEnd, confirmed }));
     onSave(out);
   };
 
@@ -228,6 +253,37 @@ function AssignmentModal({
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full rounded-xl outline-none" style={{ height: 48, fontSize: 14, padding: "0 14px", border: `1px solid ${T.border}`, color: T.text }} />
             </div>
           </div>
+          {/* Time slot toggle and inputs */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <button onClick={() => setUseTimeSlot(v => !v)} className="flex items-center justify-center rounded-lg" style={{ width: 28, height: 28, background: useTimeSlot ? T.primary : "#fff", border: useTimeSlot ? `2px solid ${T.primary}` : `2px solid ${T.border}` }}>
+                {useTimeSlot && <Check size={16} color="#fff" strokeWidth={3} />}
+              </button>
+              <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
+                <Clock size={14} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />
+                時間帯を指定
+              </span>
+            </div>
+            {useTimeSlot && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>開始時間</label>
+                  <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full rounded-xl outline-none" style={{ height: 48, fontSize: 14, padding: "0 14px", border: `1px solid ${T.border}`, color: T.text }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: T.text, display: "block", marginBottom: 6 }}>終了時間</label>
+                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full rounded-xl outline-none" style={{ height: 48, fontSize: 14, padding: "0 14px", border: `1px solid ${T.border}`, color: T.text }} />
+                </div>
+              </div>
+            )}
+            {timeWarning && (
+              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <AlertTriangle size={14} style={{ color: "#EF4444" }} />
+                <span style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>終了時間は開始時間より後に設定してください</span>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-3">
             <button onClick={() => setConfirmed(v => !v)} className="flex items-center justify-center rounded-lg" style={{ width: 28, height: 28, background: confirmed ? T.primary : "#fff", border: confirmed ? `2px solid ${T.primary}` : `2px solid ${T.border}` }}>
               {confirmed && <Check size={16} color="#fff" strokeWidth={3} />}
@@ -407,6 +463,8 @@ function GanttTimelineView({
       siteId,
       startDate,
       endDate,
+      startTime: "08:00",
+      endTime: "17:00",
       confirmed: true,
     });
     setSitePicker(null);
@@ -486,7 +544,7 @@ function GanttTimelineView({
                 </div>
 
                 {/* Timeline cells */}
-                <div className="flex-1 relative" style={{ height: 52 }}>
+                <div className="flex-1 relative" style={{ height: Math.max(52, rowAssignments.length * 28 + 8) }}>
                   <div className="absolute inset-0 flex">
                     {Array.from({ length: days }, (_, i) => {
                       const day = i + 1;
@@ -524,8 +582,8 @@ function GanttTimelineView({
                     })}
                   </div>
 
-                  {/* Assignment bars */}
-                  {rowAssignments.map(a => {
+                  {/* Assignment bars — stacked when multiple */}
+                  {rowAssignments.map((a, barIdx) => {
                     const site = sites.find(s => s.id === a.siteId);
                     if (!site) return null;
                     const barStart = a.startDate < monthStart ? monthStart : a.startDate;
@@ -536,11 +594,15 @@ function GanttTimelineView({
                     const width = (endDay - startDay + 1) * COL_W - 4;
                     const isConflictBar = hasConflict;
                     const barColor = isConflictBar ? "#EF4444" : a.confirmed ? STATUS_COLOR[site.status] ?? T.primary : "#CBD5E1";
+                    const barH = rowAssignments.length > 1 ? 24 : 32;
+                    const topPos = rowAssignments.length > 1 ? 4 + barIdx * 28 : 10;
+                    const timeLabel = a.startTime && a.endTime ? `${a.startTime}〜${a.endTime}` : "";
                     return (
-                      <div key={a.id} className="absolute truncate rounded group pointer-events-auto" style={{ left, width: Math.max(width, 20), top: 10, height: 32, background: barColor, opacity: a.confirmed ? 1 : 0.7, color: a.confirmed ? "#fff" : T.text, fontSize: 11, fontWeight: 700, lineHeight: "32px", paddingLeft: 8, paddingRight: 24, border: isConflictBar ? "2px solid #EF4444" : "none", zIndex: 5 }} title={`${site.name}（${a.startDate} 〜 ${a.endDate}）`}>
+                      <div key={a.id} className="absolute truncate rounded group pointer-events-auto" style={{ left, width: Math.max(width, 20), top: topPos, height: barH, background: barColor, opacity: a.confirmed ? 1 : 0.7, color: a.confirmed ? "#fff" : T.text, fontSize: 10, fontWeight: 700, lineHeight: `${barH}px`, paddingLeft: 6, paddingRight: 24, border: isConflictBar ? "2px solid #EF4444" : "none", zIndex: 5 }} title={`${site.name}${timeLabel ? ` (${timeLabel})` : ""}（${a.startDate} 〜 ${a.endDate}）`}>
+                        {timeLabel && <span style={{ opacity: 0.85, marginRight: 4, fontSize: 9 }}>{timeLabel}</span>}
                         {site.name}
-                        <button onClick={(e) => { e.stopPropagation(); onDeleteAssignment(a.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex items-center justify-center" style={{ width: 20, height: 20, background: "rgba(0,0,0,0.3)" }}>
-                          <X size={12} color="#fff" />
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteAssignment(a.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex items-center justify-center" style={{ width: 18, height: 18, background: "rgba(0,0,0,0.3)" }}>
+                          <X size={10} color="#fff" />
                         </button>
                       </div>
                     );
@@ -553,7 +615,7 @@ function GanttTimelineView({
                       style={{
                         left: (selRange.start - 1) * COL_W + 1,
                         width: (selRange.end - selRange.start + 1) * COL_W - 2,
-                        top: 8, height: 36,
+                        top: 4, height: Math.max(44, rowAssignments.length * 28 + 4),
                         border: `2px dashed ${T.primary}`,
                         borderRadius: 6,
                         zIndex: 10,
@@ -622,11 +684,11 @@ function MonthlyCalendarView({
     return map;
   }, [year, month, days, sites]);
 
-  const assignCountPerDay = useMemo(() => {
-    const map = new Map<number, number>();
+  const assignmentsPerDay = useMemo(() => {
+    const map = new Map<number, Assignment[]>();
     for (let day = 1; day <= days; day++) {
       const dateStr = makeDateStr(year, month, day);
-      map.set(day, assignments.filter(a => dateInRange(dateStr, a.startDate, a.endDate)).length);
+      map.set(day, assignments.filter(a => dateInRange(dateStr, a.startDate, a.endDate)));
     }
     return map;
   }, [year, month, days, assignments]);
@@ -648,33 +710,48 @@ function MonthlyCalendarView({
           const dateStr = isValid ? makeDateStr(year, month, day) : "";
           const isToday = dateStr === today;
           const dayOfWeek = i % 7;
-          const activeSites = isValid ? sitesPerDay.get(day) ?? [] : [];
-          const assignCount = isValid ? assignCountPerDay.get(day) ?? 0 : 0;
+          const dayAssignments = isValid ? assignmentsPerDay.get(day) ?? [] : [];
           const hasConflict = isValid && conflictDates.has(dateStr);
+          // Group assignments by site, show time for each
+          const siteAssignMap = new Map<string, Assignment[]>();
+          for (const a of dayAssignments) {
+            if (!siteAssignMap.has(a.siteId)) siteAssignMap.set(a.siteId, []);
+            siteAssignMap.get(a.siteId)!.push(a);
+          }
+          const siteEntries = Array.from(siteAssignMap.entries()).map(([siteId, assigns]) => ({
+            site: sites.find(s => s.id === siteId),
+            assigns,
+            time: assigns[0]?.startTime && assigns[0]?.endTime ? `${assigns[0].startTime}〜${assigns[0].endTime}` : "",
+            memberCount: assigns.filter(a => a.resourceType === "member").length,
+          })).filter(e => e.site);
           return (
             <div
               key={i}
               className="relative cursor-pointer hover:bg-amber-50 transition-colors"
-              style={{ minHeight: 90, padding: "4px 6px", borderRight: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: !isValid ? "#F8FAFC" : hasConflict ? "rgba(239,68,68,0.06)" : isToday ? "rgba(180,83,9,0.04)" : "#fff" }}
+              style={{ minHeight: 100, padding: "4px 6px", borderRight: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: !isValid ? "#F8FAFC" : hasConflict ? "rgba(239,68,68,0.06)" : isToday ? "rgba(180,83,9,0.04)" : "#fff" }}
               onDoubleClick={() => { if (isValid) onDayDoubleClick(dateStr); }}
             >
               {isValid && (
                 <>
                   <div className="flex items-center justify-between mb-1">
                     <span className="inline-flex items-center justify-center" style={{ width: 24, height: 24, borderRadius: 12, fontSize: 13, fontWeight: isToday ? 800 : 600, color: isToday ? "#fff" : dayOfWeek === 0 ? "#EF4444" : dayOfWeek === 6 ? "#3B82F6" : T.text, background: isToday ? T.primary : "transparent" }}>{day}</span>
-                    {hasConflict && <AlertTriangle size={14} style={{ color: "#EF4444" }} />}
+                    <div className="flex items-center gap-1">
+                      {hasConflict && <AlertTriangle size={14} style={{ color: "#EF4444" }} />}
+                      {siteEntries.length > 1 && (
+                        <span className="rounded-full px-1.5" style={{ fontSize: 9, fontWeight: 800, background: siteEntries.length >= 3 ? "rgba(239,68,68,0.15)" : "rgba(180,83,9,0.1)", color: siteEntries.length >= 3 ? "#EF4444" : T.primary, lineHeight: "16px" }}>{siteEntries.length}現場</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {activeSites.slice(0, 3).map(site => (
-                      <div key={site.id} className="truncate rounded px-1" style={{ fontSize: 10, fontWeight: 600, lineHeight: "16px", color: "#fff", background: STATUS_COLOR[site.status] ?? T.muted }}>{site.name}</div>
+                    {siteEntries.slice(0, 4).map((entry, idx) => (
+                      <div key={idx} className="truncate rounded px-1 flex items-center gap-0.5" style={{ fontSize: 10, fontWeight: 600, lineHeight: "16px", color: "#fff", background: STATUS_COLOR[entry.site!.status] ?? T.muted }}>
+                        {entry.time && <span style={{ fontSize: 8, opacity: 0.85 }}>{entry.time.split("〜")[0]}</span>}
+                        {entry.site!.name}
+                        {entry.memberCount > 0 && <span style={{ fontSize: 8, opacity: 0.8, marginLeft: "auto" }}>{entry.memberCount}名</span>}
+                      </div>
                     ))}
-                    {activeSites.length > 3 && <span style={{ fontSize: 10, color: T.sub }}>+{activeSites.length - 3}件</span>}
+                    {siteEntries.length > 4 && <span style={{ fontSize: 10, color: T.sub }}>+{siteEntries.length - 4}件</span>}
                   </div>
-                  {assignCount > 0 && (
-                    <div className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded-full px-1.5" style={{ fontSize: 10, fontWeight: 700, background: "rgba(180,83,9,0.1)", color: T.primary, lineHeight: "16px" }}>
-                      <Users size={9} />{assignCount}
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -704,6 +781,7 @@ function AlertsPanel({ conflicts, sites }: { conflicts: Conflict[]; sites: SiteR
               <div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>二重配置：{c.resourceName}</p>
                 <p style={{ fontSize: 12, color: T.sub }}>{c.overlapStart.replace(/-/g, "/")} 〜 {c.overlapEnd.replace(/-/g, "/")} に {siteNames} で重複</p>
+                {c.timeInfo && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>⏰ 時間帯: {c.timeInfo}</p>}
               </div>
             </div>
           );
