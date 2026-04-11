@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   MapPin, Calendar, Edit3, ChevronRight, ChevronLeft, Search,
-  Building2, CheckCircle, Clock, FileText, Handshake,
-  ShieldCheck, Hammer, Truck, CreditCard, ClipboardCheck, Trash2,
+  Building2, CheckCircle, FileText, Handshake,
+  Hammer, CreditCard, ClipboardCheck, Trash2,
+  AlertCircle, XCircle, TrendingUp, TrendingDown, Minus,
+  DollarSign, Banknote, AlertTriangle,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -17,25 +19,26 @@ type SiteRow = {
   startDate: string;
   endDate: string;
   contractAmount: number;
+  paidAmount: number;
   costAmount: number;
   progressPct: number;
   structureType: string;
 };
 
-// ─── 8-stage status system ──────────────────────────────────────────────────
+// ─── 9-stage status system (with 失注) ─────────────────────────────────────
 
 const STATUSES = [
-  { key: "調査・見積",     label: "調査・見積",     group: "pre",    icon: Search,         color: "#6B7280", bg: "rgba(107,114,128,0.1)" },
-  { key: "契約・申請",     label: "契約・申請",     group: "pre",    icon: FileText,       color: "#6366F1", bg: "rgba(99,102,241,0.1)" },
-  { key: "近隣挨拶・養生", label: "近隣挨拶・養生", group: "pre",    icon: Handshake,      color: "#3B82F6", bg: "rgba(59,130,246,0.1)" },
-  { key: "着工・内装解体", label: "着工・内装解体", group: "active", icon: Hammer,         color: T.primary, bg: "rgba(180,83,9,0.1)" },
-  { key: "上屋解体・基礎", label: "上屋解体・基礎", group: "active", icon: Building2,      color: "#B45309", bg: "rgba(180,83,9,0.15)" },
-  { key: "完工・更地確認", label: "完工・更地確認", group: "post",   icon: CheckCircle,    color: "#10B981", bg: "rgba(16,185,129,0.1)" },
-  { key: "産廃書類完了",   label: "産廃書類完了",   group: "post",   icon: ClipboardCheck, color: "#0D9488", bg: "rgba(13,148,136,0.1)" },
-  { key: "入金確認",       label: "入金確認",       group: "done",   icon: CreditCard,     color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  { key: "調査・見積",       label: "調査・見積",       group: "pre",    icon: Search,         color: "#6B7280", bg: "rgba(107,114,128,0.08)" },
+  { key: "契約・申請",       label: "契約・申請",       group: "pre",    icon: FileText,       color: "#6366F1", bg: "rgba(99,102,241,0.08)" },
+  { key: "近隣挨拶・養生",   label: "近隣挨拶・養生",   group: "pre",    icon: Handshake,      color: "#3B82F6", bg: "rgba(59,130,246,0.08)" },
+  { key: "着工・内装解体",   label: "着工・内装解体",   group: "active", icon: Hammer,         color: T.primary, bg: "rgba(180,83,9,0.08)" },
+  { key: "上屋解体・基礎",   label: "上屋解体・基礎",   group: "active", icon: Building2,      color: "#B45309", bg: "rgba(180,83,9,0.12)" },
+  { key: "完工・更地確認",   label: "完工・更地確認",   group: "post",   icon: CheckCircle,    color: "#10B981", bg: "rgba(16,185,129,0.08)" },
+  { key: "産廃書類完了",     label: "産廃書類完了",     group: "post",   icon: ClipboardCheck, color: "#0D9488", bg: "rgba(13,148,136,0.08)" },
+  { key: "入金確認",         label: "入金確認",         group: "done",   icon: CreditCard,     color: "#059669", bg: "rgba(5,150,105,0.08)" },
+  { key: "失注（契約不成立）", label: "失注",           group: "lost",   icon: XCircle,        color: "#9CA3AF", bg: "rgba(156,163,175,0.10)" },
 ] as const;
 
-// Legacy status mapping (backward compat with existing DB values)
 const LEGACY_MAP: Record<string, string> = {
   "着工前": "調査・見積",
   "施工中": "着工・内装解体",
@@ -54,23 +57,28 @@ function statusIndex(raw: string): number {
   return idx >= 0 ? idx : 0;
 }
 
-// ─── Groups for summary cards ───────────────────────────────────────────────
+// ─── Groups for summary cards (5 groups) ──────────────────────────────────
 
 const GROUPS = [
-  { key: "pre",    label: "施工前",   color: "#3B82F6",  statuses: ["調査・見積", "契約・申請", "近隣挨拶・養生"] },
-  { key: "active", label: "施工中",   color: T.primary,  statuses: ["着工・内装解体", "上屋解体・基礎"] },
-  { key: "post",   label: "完工処理", color: "#10B981",  statuses: ["完工・更地確認", "産廃書類完了"] },
-  { key: "done",   label: "入金済",   color: "#059669",  statuses: ["入金確認"] },
+  { key: "pre",    label: "施工前",         color: "#3B82F6", icon: FileText,     statuses: ["調査・見積", "契約・申請", "近隣挨拶・養生"] },
+  { key: "active", label: "施工中",         color: T.primary, icon: Hammer,       statuses: ["着工・内装解体", "上屋解体・基礎"] },
+  { key: "post",   label: "完工処理",       color: "#10B981", icon: CheckCircle,  statuses: ["完工・更地確認", "産廃書類完了"] },
+  { key: "done",   label: "入金済",         color: "#059669", icon: CreditCard,   statuses: ["入金確認"] },
+  { key: "lost",   label: "失注",           color: "#9CA3AF", icon: XCircle,      statuses: ["失注（契約不成立）"] },
 ];
 
 function siteGroup(raw: string): string {
-  const s = resolveStatus(raw);
-  return s.group;
+  return resolveStatus(raw).group;
 }
 
 const fmt = (n: number) => n > 0 ? `¥${Math.round(n).toLocaleString("ja-JP")}` : "—";
+const fmtMan = (n: number) => {
+  if (n === 0) return "¥0";
+  if (Math.abs(n) >= 10000) return `¥${(n / 10000).toFixed(n % 10000 === 0 ? 0 : 1)}万`;
+  return `¥${n.toLocaleString("ja-JP")}`;
+};
 
-// ─── Period filter ─────────────────────────────────────────────────────────
+// ─── Period filter ──────────────────────────────────────────────────────────
 
 type ViewMode = "all" | "month" | "year";
 
@@ -114,11 +122,13 @@ function PeriodPicker({
           <button
             key={m}
             onClick={() => onModeChange(m)}
-            className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
-            style={mode === m
-              ? { background: T.primary, color: T.surface }
-              : { color: T.sub }
-            }
+            className="px-4 py-2 rounded-md font-bold transition-all"
+            style={{
+              fontSize: 14,
+              ...(mode === m
+                ? { background: T.primary, color: T.surface }
+                : { color: T.sub }),
+            }}
           >
             {label}
           </button>
@@ -128,18 +138,18 @@ function PeriodPicker({
       {mode !== "all" && (
         <div className="flex items-center gap-2">
           <button onClick={() => onYearChange(year - 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg"
+            className="w-9 h-9 flex items-center justify-center rounded-lg"
             style={{ border: `1px solid ${T.border}`, color: T.sub }}>
-            <ChevronLeft size={16} />
+            <ChevronLeft size={18} />
           </button>
-          <span style={{ fontSize: 16, fontWeight: 800, color: T.text, minWidth: 60, textAlign: "center" }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: T.text, minWidth: 70, textAlign: "center" }}>
             {year}年
           </span>
           <button onClick={() => onYearChange(Math.min(year + 1, currentYear))}
             disabled={year >= currentYear}
-            className="w-8 h-8 flex items-center justify-center rounded-lg"
+            className="w-9 h-9 flex items-center justify-center rounded-lg"
             style={{ border: `1px solid ${T.border}`, color: year >= currentYear ? T.muted : T.sub, opacity: year >= currentYear ? 0.4 : 1 }}>
-            <ChevronRight size={16} />
+            <ChevronRight size={18} />
           </button>
         </div>
       )}
@@ -153,13 +163,15 @@ function PeriodPicker({
                 key={m}
                 onClick={() => !isFuture && onMonthChange(m)}
                 disabled={isFuture}
-                className="py-1.5 rounded-md text-sm font-bold transition-all"
-                style={month === m
-                  ? { background: T.primary, color: "#FFF" }
-                  : isFuture
-                  ? { color: T.muted, opacity: 0.3 }
-                  : { color: T.sub, background: T.bg }
-                }
+                className="py-2 rounded-md font-bold transition-all"
+                style={{
+                  fontSize: 14,
+                  ...(month === m
+                    ? { background: T.primary, color: "#FFF" }
+                    : isFuture
+                    ? { color: T.muted, opacity: 0.3 }
+                    : { color: T.sub, background: T.bg }),
+                }}
               >
                 {m}月
               </button>
@@ -181,8 +193,8 @@ function PeriodPicker({
           { label: `${currentYear - 1}年`, action: () => { onModeChange("year"); onYearChange(currentYear - 1); } },
         ].map(q => (
           <button key={q.label} onClick={q.action}
-            className="px-2.5 py-1 rounded-md text-xs font-bold transition-all"
-            style={{ background: T.bg, color: T.sub, border: `1px solid ${T.border}` }}>
+            className="px-3 py-1.5 rounded-md font-bold transition-all"
+            style={{ fontSize: 13, background: T.bg, color: T.sub, border: `1px solid ${T.border}` }}>
             {q.label}
           </button>
         ))}
@@ -191,7 +203,7 @@ function PeriodPicker({
   );
 }
 
-// ─── Status Dropdown ────────────────────────────────────────────────────────
+// ─── Status Dropdown ───────────────────────────────────────────────────────
 
 function StatusDropdown({
   siteId, currentStatus, onStatusChange,
@@ -227,27 +239,376 @@ function StatusDropdown({
       onChange={handleChange}
       disabled={saving}
       style={{
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 700,
         color: resolved.color,
         background: resolved.bg,
-        border: `1px solid ${resolved.color}20`,
+        border: `1px solid ${resolved.color}30`,
         borderRadius: 8,
-        padding: "5px 8px",
+        padding: "6px 10px",
         cursor: "pointer",
         outline: "none",
         opacity: saving ? 0.5 : 1,
-        maxWidth: 160,
+        maxWidth: 200,
       }}
     >
       {STATUSES.map(s => (
-        <option key={s.key} value={s.key}>{s.label}</option>
+        <option key={s.key} value={s.key}>{s.key}</option>
       ))}
     </select>
   );
 }
 
-// ─── Page ───────────────────────────────────────────────────────────────────
+// ─── Payment Bar (mini inline visualization) ───────────────────────────────
+
+function PaymentBar({ paid, total }: { paid: number; total: number }) {
+  if (total <= 0) return null;
+  const pct = Math.min(Math.round((paid / total) * 100), 100);
+  return (
+    <div className="flex items-center gap-2" style={{ minWidth: 120 }}>
+      <div style={{
+        flex: 1, height: 6, borderRadius: 3,
+        background: "#E5E7EB", overflow: "hidden",
+      }}>
+        <div style={{
+          width: `${pct}%`, height: "100%", borderRadius: 3,
+          background: pct >= 100 ? "#059669" : pct >= 50 ? "#3B82F6" : "#F59E0B",
+        }} />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 700, color: pct >= 100 ? "#059669" : "#3B82F6" }}>
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
+// ─── Summary Card ──────────────────────────────────────────────────────────
+
+function SummaryCard({
+  label, count, color, icon: Icon, prevCount,
+}: {
+  label: string; count: number; color: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  prevCount?: number;
+}) {
+  const trend = prevCount !== undefined ? count - prevCount : undefined;
+  return (
+    <div
+      className="rounded-xl"
+      style={{
+        background: "#fff",
+        border: `1px solid ${T.border}`,
+        padding: "20px 20px 16px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Color accent line at top */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 3,
+        background: color,
+      }} />
+
+      <div className="flex items-start justify-between">
+        <div>
+          <p style={{ fontSize: 14, color: T.sub, fontWeight: 600, marginBottom: 8 }}>{label}</p>
+          <p style={{ fontSize: 36, fontWeight: 800, color, lineHeight: 1 }}>
+            {count}
+            <span style={{ fontSize: 16, fontWeight: 500, marginLeft: 4, color: T.sub }}>件</span>
+          </p>
+        </div>
+        <div
+          className="flex items-center justify-center rounded-lg"
+          style={{ width: 44, height: 44, background: `${color}12` }}
+        >
+          <Icon size={22} style={{ color }} />
+        </div>
+      </div>
+
+      {/* Trend badge */}
+      {trend !== undefined && (
+        <div className="flex items-center gap-1 mt-3">
+          {trend > 0 ? (
+            <TrendingUp size={13} style={{ color: "#10B981" }} />
+          ) : trend < 0 ? (
+            <TrendingDown size={13} style={{ color: "#EF4444" }} />
+          ) : (
+            <Minus size={13} style={{ color: T.muted }} />
+          )}
+          <span style={{
+            fontSize: 12, fontWeight: 600,
+            color: trend > 0 ? "#10B981" : trend < 0 ? "#EF4444" : T.muted,
+          }}>
+            前月比 {trend > 0 ? "+" : ""}{trend}件
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Site Card ─────────────────────────────────────────────────────────────
+
+function SiteCard({
+  site, onStatusChange, onDelete,
+}: {
+  site: SiteRow;
+  onStatusChange: (siteId: string, newStatus: string) => void;
+  onDelete: (siteId: string, siteName: string) => void;
+}) {
+  const ss = resolveStatus(site.status);
+  const isLost = ss.group === "lost";
+  const isActive = ss.group === "active";
+  const remaining = site.contractAmount - site.paidAmount;
+  const paidPct = site.contractAmount > 0 ? Math.round((site.paidAmount / site.contractAmount) * 100) : 0;
+  const profit = site.contractAmount > 0 && site.costAmount > 0
+    ? site.contractAmount - site.costAmount : null;
+  const profitPct = profit !== null && site.contractAmount > 0
+    ? Math.round((profit / site.contractAmount) * 100) : null;
+
+  return (
+    <div
+      className="rounded-xl transition-all"
+      style={{
+        background: isLost ? "#F9FAFB" : "#fff",
+        border: `1px solid ${isLost ? "#D1D5DB" : T.border}`,
+        opacity: isLost ? 0.7 : 1,
+      }}
+    >
+      <div style={{ padding: "20px 24px 16px" }}>
+        {/* Row 1: status + name + actions */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <StatusDropdown
+                siteId={site.id}
+                currentStatus={site.status}
+                onStatusChange={onStatusChange}
+              />
+              {site.structureType && (
+                <span style={{
+                  fontSize: 13, color: T.muted, fontWeight: 500,
+                  padding: "2px 8px", background: T.bg, borderRadius: 6,
+                }}>
+                  {site.structureType}
+                </span>
+              )}
+              {isLost && (
+                <span style={{
+                  fontSize: 13, fontWeight: 700, color: "#9CA3AF",
+                  padding: "2px 10px", background: "rgba(156,163,175,0.12)", borderRadius: 6,
+                }}>
+                  契約不成立
+                </span>
+              )}
+            </div>
+            <p style={{
+              fontSize: 18, fontWeight: 700, color: isLost ? T.muted : T.text,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              textDecoration: isLost ? "line-through" : "none",
+            }}>
+              {site.name}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href={`/kaitai/sites/${site.id}/edit`}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-bold"
+              style={{
+                fontSize: 14,
+                background: T.primaryLt,
+                color: T.primary,
+                textDecoration: "none",
+                border: `1px solid ${T.primaryMd}`,
+              }}
+            >
+              <Edit3 size={14} />
+              編集
+            </Link>
+            <button
+              onClick={(e) => { e.preventDefault(); onDelete(site.id, site.name); }}
+              className="flex items-center justify-center rounded-lg"
+              style={{
+                width: 40, height: 40,
+                background: "rgba(239,68,68,0.06)",
+                color: "#EF4444",
+                border: "1px solid rgba(239,68,68,0.12)",
+                cursor: "pointer",
+              }}
+              title="削除"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: address */}
+        {site.address && (
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin size={14} style={{ color: T.muted, flexShrink: 0 }} />
+            <p style={{
+              fontSize: 16, color: "#4B5563",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {site.address}
+            </p>
+          </div>
+        )}
+
+        {/* Row 3: dates */}
+        {(site.startDate || site.endDate) && (
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={14} style={{ color: T.muted }} />
+            <span style={{ fontSize: 16, color: "#4B5563" }}>
+              {site.startDate?.replace(/-/g, "/")} 〜 {site.endDate?.replace(/-/g, "/")}
+            </span>
+          </div>
+        )}
+
+        {/* Row 4: financial info (main feature) */}
+        {site.contractAmount > 0 && !isLost && (
+          <div
+            className="rounded-lg"
+            style={{
+              background: "#F8FAFC",
+              border: `1px solid ${T.border}`,
+              padding: "14px 16px",
+              marginBottom: 4,
+            }}
+          >
+            <div className="grid grid-cols-3 gap-4">
+              {/* 受注額 */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <DollarSign size={13} style={{ color: "#3B82F6" }} />
+                  <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>受注額</span>
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "#3B82F6", lineHeight: 1.2 }}>
+                  {fmtMan(site.contractAmount)}
+                </p>
+              </div>
+
+              {/* 入金済 */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Banknote size={13} style={{ color: "#10B981" }} />
+                  <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>入金済</span>
+                  {paidPct > 0 && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 700,
+                      color: paidPct >= 100 ? "#059669" : "#3B82F6",
+                      background: paidPct >= 100 ? "rgba(5,150,105,0.1)" : "rgba(59,130,246,0.1)",
+                      borderRadius: 4, padding: "1px 5px",
+                    }}>
+                      {paidPct}%
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "#10B981", lineHeight: 1.2 }}>
+                  {site.paidAmount > 0 ? fmtMan(site.paidAmount) : "—"}
+                </p>
+              </div>
+
+              {/* 未入金 */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  {remaining > 0 && <AlertTriangle size={13} style={{ color: T.primary }} />}
+                  <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>未入金</span>
+                </div>
+                <p style={{
+                  fontSize: 18, fontWeight: 800, lineHeight: 1.2,
+                  color: remaining > 0 ? T.primary : "#059669",
+                }}>
+                  {remaining > 0 ? fmtMan(remaining) : "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* Payment progress bar */}
+            <div style={{ marginTop: 12 }}>
+              <PaymentBar paid={site.paidAmount} total={site.contractAmount} />
+            </div>
+          </div>
+        )}
+
+        {/* Row 5: meta badges */}
+        <div className="flex items-center gap-3 flex-wrap mt-3">
+          {/* 粗利 */}
+          {profitPct !== null && !isLost && (
+            <span style={{
+              fontSize: 14, fontWeight: 700,
+              color: profitPct >= 20 ? "#10B981" : profitPct >= 10 ? "#D97706" : "#EF4444",
+              padding: "3px 10px",
+              background: profitPct >= 20 ? "rgba(16,185,129,0.08)" : profitPct >= 10 ? "rgba(217,119,6,0.08)" : "rgba(239,68,68,0.08)",
+              borderRadius: 6,
+            }}>
+              粗利 {profitPct}%
+            </span>
+          )}
+
+          {/* 進捗 */}
+          {isActive && site.progressPct > 0 && (
+            <span style={{
+              fontSize: 14, fontWeight: 600, color: T.sub,
+              padding: "3px 10px", background: T.bg, borderRadius: 6,
+            }}>
+              進捗 {site.progressPct}%
+            </span>
+          )}
+
+          {/* 入金ステータス badge */}
+          {ss.key === "入金確認" && (
+            <span
+              className="font-bold px-3 py-1 rounded-full"
+              style={{ fontSize: 13, background: "#059669", color: "#fff" }}
+            >
+              ✓ 入金済
+            </span>
+          )}
+          {ss.key === "産廃書類完了" && (
+            <span
+              className="font-bold px-3 py-1 rounded-full"
+              style={{ fontSize: 13, background: "rgba(13,148,136,0.12)", color: "#0D9488" }}
+            >
+              請求可
+            </span>
+          )}
+        </div>
+
+        {/* Progress bar for active sites */}
+        {isActive && site.progressPct > 0 && (
+          <div className="mt-3 h-2 rounded-full overflow-hidden" style={{ background: T.border }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${site.progressPct}%`,
+                background: `linear-gradient(90deg, ${T.primary}, ${T.primaryDk})`,
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Footer: detail link */}
+      <Link
+        href={`/kaitai/site/${site.id}`}
+        className="flex items-center justify-between rounded-b-xl"
+        style={{
+          borderTop: `1px solid ${T.border}`,
+          textDecoration: "none",
+          background: isLost ? "#F3F4F6" : "#F8FAFC",
+          padding: "14px 24px",
+        }}
+      >
+        <span style={{ fontSize: 15, color: T.sub, fontWeight: 500 }}>現場詳細を見る</span>
+        <ChevronRight size={16} style={{ color: T.muted }} />
+      </Link>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function AdminSitesPage() {
   const now = new Date();
@@ -261,6 +622,9 @@ export default function AdminSitesPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Group filter (click on summary card)
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/kaitai/sites", { credentials: "include" })
@@ -276,6 +640,7 @@ export default function AdminSitesPage() {
             startDate: (s.startDate as string) ?? "",
             endDate: (s.endDate as string) ?? "",
             contractAmount: (s.contractAmount as number) ?? 0,
+            paidAmount: (s.paidAmount as number) ?? 0,
             costAmount: (s.costAmount as number) ?? 0,
             progressPct: (s.progressPct as number) ?? 0,
             structureType: (s.structureType as string) ?? "",
@@ -320,11 +685,12 @@ export default function AdminSitesPage() {
     }
   }
 
-  // Apply period filter then text search
+  // Apply period filter, then group filter, then text search
   const periodFiltered = filterByPeriod(sites, mode, year, month);
 
   const filtered = periodFiltered
     .filter(s => {
+      if (activeGroupFilter && siteGroup(s.status) !== activeGroupFilter) return false;
       if (!search) return true;
       const q = search.toLowerCase();
       return s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q);
@@ -337,44 +703,62 @@ export default function AdminSitesPage() {
     sites: filtered.filter(s => siteGroup(s.status) === g.key),
   }));
 
+  // Counts for summary (based on period filter only, not group or search filter)
+  const summaryFiltered = periodFiltered;
+  const groupCounts = GROUPS.map(g => ({
+    ...g,
+    count: summaryFiltered.filter(s => siteGroup(s.status) === g.key).length,
+  }));
+
+  // Financial totals
+  const totalContract = periodFiltered.filter(s => siteGroup(s.status) !== "lost").reduce((sum, s) => sum + s.contractAmount, 0);
+  const totalPaid = periodFiltered.filter(s => siteGroup(s.status) !== "lost").reduce((sum, s) => sum + s.paidAmount, 0);
+  const totalRemaining = totalContract - totalPaid;
+
   if (loading) {
     return (
-      <div className="py-20 text-center" style={{ color: T.sub }}>
+      <div className="py-20 text-center" style={{ color: T.sub, fontSize: 18 }}>
         読み込み中...
       </div>
     );
   }
 
   return (
-    <div className="py-6 flex flex-col gap-6">
+    <div className="py-8 flex flex-col gap-8">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text }}>現場管理</h1>
-          <p style={{ fontSize: 14, marginTop: 4, color: T.sub }}>
-            登録現場の確認・ステータス管理（{filtered.length}/{sites.length}件表示）
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: T.heading, lineHeight: 1.2 }}>
+            現場管理
+          </h1>
+          <p style={{ fontSize: 16, marginTop: 6, color: T.sub, fontWeight: 500 }}>
+            登録現場の確認・ステータス管理
+            <span style={{ marginLeft: 8, color: T.muted }}>
+              （{filtered.length}/{sites.length}件表示）
+            </span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* Period picker */}
           <div className="relative" ref={pickerRef}>
             <button
               onClick={() => setShowPicker(!showPicker)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold transition-all"
+              className="flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all"
               style={{
-                background: showPicker ? "rgba(180,83,9,0.08)" : T.bg,
+                fontSize: 15,
+                background: showPicker ? "rgba(180,83,9,0.08)" : "#fff",
                 border: `1px solid ${showPicker ? T.primary : T.border}`,
                 color: showPicker ? T.primary : T.sub,
               }}
             >
-              <Calendar size={15} />
+              <Calendar size={16} />
               {periodLabel(mode, year, month)}
             </button>
             {showPicker && (
               <div
-                className="absolute right-0 top-full mt-2 z-50 p-4 rounded-xl"
-                style={{ background: "#fff", border: `1px solid ${T.border}`, minWidth: 280 }}
+                className="absolute right-0 top-full mt-2 z-50 p-5 rounded-xl"
+                style={{ background: "#fff", border: `1px solid ${T.border}`, minWidth: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
               >
                 <PeriodPicker
                   mode={mode} year={year} month={month}
@@ -387,19 +771,90 @@ export default function AdminSitesPage() {
           </div>
           <Link
             href="/kaitai/sites/new"
-            className="px-5 py-2.5 rounded-lg text-sm font-bold"
-            style={{ background: T.primary, color: "#fff", textDecoration: "none" }}
+            className="px-6 py-3 rounded-xl font-bold"
+            style={{ fontSize: 16, background: T.primary, color: "#fff", textDecoration: "none" }}
           >
             + 新規現場登録
           </Link>
         </div>
       </div>
 
+      {/* ── Summary cards (5 groups) ── */}
+      <div className="grid grid-cols-5 gap-4">
+        {groupCounts.map(g => (
+          <button
+            key={g.key}
+            onClick={() => setActiveGroupFilter(activeGroupFilter === g.key ? null : g.key)}
+            style={{
+              textAlign: "left", cursor: "pointer", outline: "none",
+              border: activeGroupFilter === g.key ? `2px solid ${g.color}` : "none",
+              borderRadius: T.cardRadius,
+            }}
+          >
+            <SummaryCard
+              label={g.label}
+              count={g.count}
+              color={g.color}
+              icon={g.icon}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Active group filter indicator */}
+      {activeGroupFilter && (
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 14, color: T.sub }}>
+            フィルタ: <strong>{GROUPS.find(g => g.key === activeGroupFilter)?.label}</strong>
+          </span>
+          <button
+            onClick={() => setActiveGroupFilter(null)}
+            className="px-2 py-1 rounded-md"
+            style={{ fontSize: 13, color: T.primary, background: T.primaryLt, fontWeight: 600, cursor: "pointer" }}
+          >
+            解除
+          </button>
+        </div>
+      )}
+
+      {/* ── Financial summary bar ── */}
+      {totalContract > 0 && (
+        <div
+          className="rounded-xl flex items-center gap-6 flex-wrap"
+          style={{
+            background: "#fff", border: `1px solid ${T.border}`,
+            padding: "16px 24px",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <DollarSign size={16} style={{ color: "#3B82F6" }} />
+            <span style={{ fontSize: 15, color: T.sub }}>受注合計</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#3B82F6" }}>{fmtMan(totalContract)}</span>
+          </div>
+          <div style={{ width: 1, height: 28, background: T.border }} />
+          <div className="flex items-center gap-2">
+            <Banknote size={16} style={{ color: "#10B981" }} />
+            <span style={{ fontSize: 15, color: T.sub }}>入金済</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#10B981" }}>{fmtMan(totalPaid)}</span>
+          </div>
+          <div style={{ width: 1, height: 28, background: T.border }} />
+          <div className="flex items-center gap-2">
+            {totalRemaining > 0 && <AlertTriangle size={16} style={{ color: T.primary }} />}
+            <span style={{ fontSize: 15, color: T.sub }}>未入金</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: totalRemaining > 0 ? T.primary : "#059669" }}>
+              {fmtMan(totalRemaining)}
+            </span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <PaymentBar paid={totalPaid} total={totalContract} />
+        </div>
+      )}
+
       {/* ── Search ── */}
       <div className="relative">
         <Search
-          size={16}
-          style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.muted }}
+          size={18}
+          style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: T.muted }}
         />
         <input
           value={search}
@@ -410,55 +865,44 @@ export default function AdminSitesPage() {
             background: "#fff",
             border: `1px solid ${T.border}`,
             color: T.text,
-            padding: "12px 14px 12px 40px",
-            fontSize: 14,
+            padding: "14px 16px 14px 48px",
+            fontSize: 16,
           }}
         />
       </div>
 
-      {/* ── Summary cards ── */}
-      <div className="grid grid-cols-4 gap-3">
-        {grouped.map(g => (
-          <div
-            key={g.key}
-            className="px-4 py-3 rounded-xl"
-            style={{ background: "#fff", border: `1px solid ${T.border}` }}
-          >
-            <p style={{ fontSize: 12, color: T.sub, marginBottom: 4 }}>{g.label}</p>
-            <p style={{ fontSize: 28, fontWeight: 800, color: g.color, lineHeight: 1 }}>
-              {g.sites.length}<span style={{ fontSize: 14, fontWeight: 500, marginLeft: 2, color: T.sub }}>件</span>
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── 8-stage progress indicator ── */}
+      {/* ── 9-stage progress indicator ── */}
       <div
         className="flex items-center gap-0 rounded-xl overflow-hidden"
-        style={{ background: "#fff", border: `1px solid ${T.border}`, padding: "12px 16px" }}
+        style={{ background: "#fff", border: `1px solid ${T.border}`, padding: "14px 20px" }}
       >
         {STATUSES.map((s, i) => {
-          const count = filtered.filter(site => resolveStatus(site.status).key === s.key).length;
+          const count = periodFiltered.filter(site => resolveStatus(site.status).key === s.key).length;
           return (
             <div key={s.key} className="flex items-center" style={{ flex: 1 }}>
-              <div className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
+              <div className="flex flex-col items-center gap-1.5" style={{ flex: 1 }}>
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  className="flex items-center justify-center rounded-full"
                   style={{
+                    width: 32, height: 32,
                     background: count > 0 ? s.bg : T.bg,
                     border: `2px solid ${count > 0 ? s.color : T.border}`,
                   }}
                 >
-                  <span style={{ fontSize: 10, fontWeight: 800, color: count > 0 ? s.color : T.muted }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: count > 0 ? s.color : T.muted }}>
                     {count}
                   </span>
                 </div>
-                <span style={{ fontSize: 9, color: count > 0 ? s.color : T.muted, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
-                  {s.label.length > 5 ? s.label.replace("・", "\n") : s.label}
+                <span style={{
+                  fontSize: 10, color: count > 0 ? s.color : T.muted,
+                  fontWeight: 600, textAlign: "center", lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}>
+                  {s.label}
                 </span>
               </div>
               {i < STATUSES.length - 1 && (
-                <div style={{ width: 12, height: 2, background: T.border, flexShrink: 0 }} />
+                <div style={{ width: 14, height: 2, background: T.border, flexShrink: 0 }} />
               )}
             </div>
           );
@@ -470,195 +914,34 @@ export default function AdminSitesPage() {
         if (group.sites.length === 0) return null;
         return (
           <section key={group.key}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-5 rounded-full" style={{ background: group.color }} />
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 rounded-full" style={{ background: group.color }} />
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text }}>
                 {group.label}
-                <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, marginLeft: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 500, color: T.sub, marginLeft: 10 }}>
                   {group.sites.length}件
                 </span>
               </h2>
             </div>
 
-            <div className="flex flex-col gap-2">
-              {group.sites.map(site => {
-                const ss = resolveStatus(site.status);
-                const profit = site.contractAmount > 0 && site.costAmount > 0
-                  ? site.contractAmount - site.costAmount
-                  : null;
-                const profitPct = profit !== null && site.contractAmount > 0
-                  ? Math.round((profit / site.contractAmount) * 100)
-                  : null;
-                const isActive = ss.group === "active";
-
-                return (
-                  <div
-                    key={site.id}
-                    className="rounded-xl transition-colors"
-                    style={{
-                      background: "#fff",
-                      border: `1px solid ${T.border}`,
-                    }}
-                  >
-                    <div className="px-5 py-4">
-                      {/* Row 1: status dropdown + name + edit */}
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <StatusDropdown
-                              siteId={site.id}
-                              currentStatus={site.status}
-                              onStatusChange={handleStatusChange}
-                            />
-                            {site.structureType && (
-                              <span style={{ fontSize: 12, color: T.muted }}>
-                                {site.structureType}
-                              </span>
-                            )}
-                          </div>
-                          <p style={{
-                            fontSize: 15, fontWeight: 700, color: T.text,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>
-                            {site.name}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <Link
-                            href={`/kaitai/sites/${site.id}/edit`}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold"
-                            style={{
-                              background: T.primaryLt,
-                              color: T.primary,
-                              textDecoration: "none",
-                              border: `1px solid ${T.primaryMd}`,
-                            }}
-                          >
-                            <Edit3 size={12} />
-                            編集
-                          </Link>
-                          <button
-                            onClick={(e) => { e.preventDefault(); handleDelete(site.id, site.name); }}
-                            className="flex items-center justify-center rounded-lg"
-                            style={{
-                              width: 34, height: 34,
-                              background: "rgba(239,68,68,0.06)",
-                              color: "#EF4444",
-                              border: "1px solid rgba(239,68,68,0.15)",
-                              cursor: "pointer",
-                            }}
-                            title="削除"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Row 2: address */}
-                      {site.address && (
-                        <div className="flex items-center gap-1.5 mb-3">
-                          <MapPin size={12} style={{ color: T.muted, flexShrink: 0 }} />
-                          <p style={{ fontSize: 13, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {site.address}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Row 3: meta */}
-                      <div className="flex items-center gap-4 flex-wrap">
-                        {/* 工期 */}
-                        {(site.startDate || site.endDate) && (
-                          <div className="flex items-center gap-1.5">
-                            <Calendar size={12} style={{ color: T.muted }} />
-                            <span style={{ fontSize: 12, color: T.sub }}>
-                              {site.startDate.replace(/-/g, "/")} 〜 {site.endDate.replace(/-/g, "/")}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* 受注金額 */}
-                        {site.contractAmount > 0 && (
-                          <span style={{ fontSize: 12, color: T.sub }}>
-                            受注 {fmt(site.contractAmount)}
-                          </span>
-                        )}
-
-                        {/* 粗利 */}
-                        {profitPct !== null && (
-                          <span style={{
-                            fontSize: 12, fontWeight: 700,
-                            color: profitPct >= 20 ? "#10B981" : profitPct >= 10 ? "#D97706" : "#EF4444",
-                          }}>
-                            粗利 {profitPct}%
-                          </span>
-                        )}
-
-                        {/* 進捗 */}
-                        {isActive && site.progressPct > 0 && (
-                          <span style={{ fontSize: 12, color: T.sub }}>
-                            進捗 {site.progressPct}%
-                          </span>
-                        )}
-
-                        {/* 入金ステータス badge (for post/done) */}
-                        {ss.key === "入金確認" && (
-                          <span
-                            className="text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "#059669", color: "#fff" }}
-                          >
-                            入金済
-                          </span>
-                        )}
-                        {ss.key === "産廃書類完了" && (
-                          <span
-                            className="text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "rgba(13,148,136,0.15)", color: "#0D9488" }}
-                          >
-                            請求可
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Progress bar for active sites */}
-                      {isActive && site.progressPct > 0 && (
-                        <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: T.border }}>
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${site.progressPct}%`,
-                              background: `linear-gradient(90deg, ${T.primary}, ${T.primaryDk})`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer: detail link */}
-                    <Link
-                      href={`/kaitai/site/${site.id}`}
-                      className="flex items-center justify-between px-5 py-3 rounded-b-xl"
-                      style={{
-                        borderTop: `1px solid ${T.border}`,
-                        textDecoration: "none",
-                        background: "#F8FAFC",
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: T.sub }}>現場詳細を見る</span>
-                      <ChevronRight size={14} style={{ color: T.muted }} />
-                    </Link>
-                  </div>
-                );
-              })}
+            <div className="flex flex-col gap-3">
+              {group.sites.map(site => (
+                <SiteCard
+                  key={site.id}
+                  site={site}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
+                />
+              ))}
             </div>
           </section>
         );
       })}
 
       {filtered.length === 0 && !loading && (
-        <div className="py-16 text-center">
-          <Building2 size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
-          <p style={{ fontSize: 15, color: T.sub }}>
+        <div className="py-20 text-center">
+          <Building2 size={44} style={{ color: T.muted, margin: "0 auto 16px" }} />
+          <p style={{ fontSize: 18, color: T.sub }}>
             {search ? "検索条件に一致する現場がありません" : "登録されている現場がありません"}
           </p>
         </div>
