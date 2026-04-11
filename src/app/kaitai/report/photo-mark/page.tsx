@@ -70,28 +70,30 @@ type Stroke = {
 
 function fileToDataUrl(file: File, maxDim = 1920): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let w = img.width;
-        let h = img.height;
-        if (w > maxDim || h > maxDim) {
-          if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
-          else { w = Math.round(w * (maxDim / h)); h = maxDim; }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.88));
-      };
-      img.onerror = reject;
-      img.src = reader.result as string;
+    // Use createObjectURL for better memory efficiency (avoids base64 in FileReader)
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      // Clean up object URL to free memory
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("画像の読み込みに失敗しました"));
+    };
+    img.src = objectUrl;
   });
 }
 
@@ -340,19 +342,32 @@ function MarkingCanvas({
     setSaving(true);
 
     try {
-      // Create output canvas at original image resolution
+      // Cap output resolution to prevent oversized uploads on smartphones
+      const MAX_OUTPUT_DIM = 2048;
+      let outW = img.width;
+      let outH = img.height;
+      if (outW > MAX_OUTPUT_DIM || outH > MAX_OUTPUT_DIM) {
+        if (outW > outH) {
+          outH = Math.round(outH * (MAX_OUTPUT_DIM / outW));
+          outW = MAX_OUTPUT_DIM;
+        } else {
+          outW = Math.round(outW * (MAX_OUTPUT_DIM / outH));
+          outH = MAX_OUTPUT_DIM;
+        }
+      }
+
       const outCanvas = document.createElement("canvas");
-      outCanvas.width = img.width;
-      outCanvas.height = img.height;
+      outCanvas.width = outW;
+      outCanvas.height = outH;
       const ctx = outCanvas.getContext("2d")!;
 
-      // Draw original image
-      ctx.drawImage(img, 0, 0, img.width, img.height);
+      // Draw image scaled to output size
+      ctx.drawImage(img, 0, 0, outW, outH);
 
-      // Scale strokes from display coords to original coords
+      // Scale strokes from display coords to output coords
       const { displayW, displayH, offsetX, offsetY } = imgDims.current;
-      const scaleX = img.width / displayW;
-      const scaleY = img.height / displayH;
+      const scaleX = outW / displayW;
+      const scaleY = outH / displayH;
 
       // Compute scaled brush width
       const scaledBrushWidth = BRUSH_WIDTH * Math.max(scaleX, scaleY);
@@ -381,11 +396,11 @@ function MarkingCanvas({
 
       // Draw legend watermark
       if (usedPenIds.size > 0) {
-        drawLegend(ctx, img.width, img.height, usedPenIds);
+        drawLegend(ctx, outW, outH, usedPenIds);
       }
 
-      // Export as dataUrl
-      const dataUrl = outCanvas.toDataURL("image/jpeg", 0.90);
+      // Export as dataUrl (0.80 quality to keep file size manageable for mobile upload)
+      const dataUrl = outCanvas.toDataURL("image/jpeg", 0.80);
 
       // Upload
       const res = await fetch("/api/kaitai/upload", {
