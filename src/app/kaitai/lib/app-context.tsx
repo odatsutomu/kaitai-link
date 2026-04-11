@@ -128,14 +128,17 @@ export interface ExpenseLog {
   pricePerLiter?: number;
 }
 
+export type ClientContact = { name: string; phone: string; role?: string };
+
 export interface Client {
   id: string;
   name: string;          // 会社名 / 屋号 / 個人名（必須）
-  contactName?: string;  // 担当者名
+  contactName?: string;  // 担当者名（後方互換）
   phone?: string;
   email?: string;
   address?: string;
   memo?: string;
+  contacts?: ClientContact[];  // 複数担当者
   status: ClientStatus;
   archived: boolean;
   createdAt: string;

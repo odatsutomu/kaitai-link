@@ -119,6 +119,7 @@ model KaitaiClient {
   email       String?
   address     String?
   memo        String?
+  contacts    Json?                         // [{name, phone, role?}]
   status      String   @default("active")
   archived    Boolean  @default(false)
   createdAt   DateTime @default(now())

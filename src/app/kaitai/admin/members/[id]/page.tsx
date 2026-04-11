@@ -6,6 +6,7 @@ import {
   ArrowLeft, Award, Phone, MapPin, Calendar,
   Briefcase, TrendingUp, Download, Clock,
   ClipboardList, BookOpen, Activity, BarChart2, User, BarChart,
+  Edit3, X, Check, Save,
 } from "lucide-react";
 import { LICENSE_LABELS, type License } from "../../../lib/members";
 import { T } from "../../../lib/design-tokens";
@@ -80,6 +81,207 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12, color: T.sub }}>
       {children}
     </p>
+  );
+}
+
+// ─── Edit Modal ──────────────────────────────────────────────────────────────
+
+function MemberEditModal({
+  member,
+  onSave,
+  onClose,
+}: {
+  member: ApiMember;
+  onSave: (data: Partial<ApiMember>) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: member.name ?? "",
+    kana: member.kana ?? "",
+    type: member.type ?? "直用",
+    company2: member.company2 ?? "",
+    role: member.role ?? "作業員",
+    birthDate: member.birthDate ?? "",
+    hireDate: member.hireDate ?? "",
+    address: member.address ?? "",
+    emergency: member.emergency ?? "",
+    dayRate: member.dayRate ?? 0,
+    preYears: member.preYears ?? 0,
+    licenses: (member.licenses ?? []) as string[],
+    avatar: member.avatar ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set<K extends keyof typeof form>(k: K, v: typeof form[K]) {
+    setForm(prev => ({ ...prev, [k]: v }));
+  }
+
+  function toggleLicense(lic: string) {
+    setForm(prev => ({
+      ...prev,
+      licenses: prev.licenses.includes(lic)
+        ? prev.licenses.filter(l => l !== lic)
+        : [...prev.licenses, lic],
+    }));
+  }
+
+  async function submit() {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    onSave(form);
+  }
+
+  const inputStyle = {
+    height: 44, fontSize: 14,
+    background: T.surface,
+    border: `1.5px solid ${T.border}`,
+    color: T.text,
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(15,23,42,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full rounded-2xl flex flex-col"
+        style={{ background: T.surface, border: `1px solid ${T.border}`, maxWidth: 640, maxHeight: "90dvh" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 pt-5 pb-4" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <p style={{ fontSize: 18, fontWeight: 900, color: T.text }}>従業員情報の編集</p>
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl" style={{ background: T.bg }}>
+            <X size={18} color={T.sub} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
+          {/* 名前 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>氏名 <span style={{ color: "#EF4444" }}>*</span></label>
+              <input value={form.name} onChange={e => set("name", e.target.value)}
+                className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>フリガナ</label>
+              <input value={form.kana} onChange={e => set("kana", e.target.value)}
+                className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+          </div>
+
+          {/* 雇用形態・役職 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>雇用形態</label>
+              <div className="flex gap-2">
+                {["直用", "外注"].map(t => (
+                  <button key={t} onClick={() => set("type", t)}
+                    className="flex-1 py-2 rounded-xl text-sm font-bold"
+                    style={form.type === t
+                      ? { background: ACCENT_LT, color: ACCENT, border: `1.5px solid ${ACCENT}40` }
+                      : { background: T.bg, color: T.sub, border: `1.5px solid ${T.border}` }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>役職</label>
+              <input value={form.role} onChange={e => set("role", e.target.value)}
+                placeholder="作業員" className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+          </div>
+
+          {/* 外注先 */}
+          {form.type === "外注" && (
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>外注先会社名</label>
+              <input value={form.company2} onChange={e => set("company2", e.target.value)}
+                className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+          )}
+
+          {/* 日付 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>生年月日</label>
+              <input type="date" value={form.birthDate} onChange={e => set("birthDate", e.target.value)}
+                className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>入社日</label>
+              <input type="date" value={form.hireDate} onChange={e => set("hireDate", e.target.value)}
+                className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+          </div>
+
+          {/* 住所・緊急連絡先 */}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>住所</label>
+            <input value={form.address} onChange={e => set("address", e.target.value)}
+              placeholder="岡山県..." className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>緊急連絡先</label>
+            <input value={form.emergency} onChange={e => set("emergency", e.target.value)}
+              placeholder="090-0000-0000" className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+          </div>
+
+          {/* 日当・経験年数 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>日当（円）</label>
+              <input type="number" value={form.dayRate || ""} onChange={e => set("dayRate", Number(e.target.value) || 0)}
+                placeholder="15000" className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>入社前経験年数</label>
+              <input type="number" value={form.preYears || ""} onChange={e => set("preYears", Number(e.target.value) || 0)}
+                placeholder="0" className="w-full rounded-xl px-3 outline-none" style={inputStyle} />
+            </div>
+          </div>
+
+          {/* 絵文字アバター */}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>アバター（絵文字）</label>
+            <input value={form.avatar} onChange={e => set("avatar", e.target.value)}
+              placeholder="👷" className="w-full rounded-xl px-3 outline-none" style={{ ...inputStyle, width: 80 }} />
+          </div>
+
+          {/* 資格 */}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: T.muted, display: "block", marginBottom: 4 }}>保有資格</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(LICENSE_LABELS).map(([key, label]) => {
+                const on = form.licenses.includes(key);
+                return (
+                  <button key={key} onClick={() => toggleLicense(key)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-bold transition-all"
+                    style={on
+                      ? { background: ACCENT_LT, color: ACCENT, border: `1.5px solid ${ACCENT}40` }
+                      : { background: T.bg, color: T.muted, border: `1.5px solid ${T.border}` }}>
+                    {on ? "✓ " : ""}{label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 pb-6 pt-3 flex gap-3" style={{ borderTop: `1px solid ${T.border}` }}>
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl font-bold text-sm"
+            style={{ background: T.bg, color: T.sub }}>キャンセル</button>
+          <button onClick={submit} disabled={saving || !form.name.trim()}
+            className="flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
+            style={{ background: saving ? T.muted : ACCENT, color: "#FFF" }}>
+            <Save size={16} />
+            {saving ? "保存中..." : "保存する"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -160,6 +362,7 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("基本情報");
+  const [showEdit, setShowEdit] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -264,7 +467,14 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
             <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text, margin: 0 }}>{member.name}</h1>
             {member.kana && <p style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{member.kana}</p>}
           </div>
-          <ScoreBadge score={score} />
+          <div className="flex items-start gap-2 flex-shrink-0">
+            <button onClick={() => setShowEdit(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+              style={{ background: ACCENT_LT, color: ACCENT, border: `1.5px solid ${ACCENT}30` }}>
+              <Edit3 size={14} /> 編集
+            </button>
+            <ScoreBadge score={score} />
+          </div>
         </div>
 
         {/* Quick stats row */}
@@ -777,6 +987,29 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
             </Card>
           )}
         </div>
+      )}
+
+      {/* ── Edit Modal ── */}
+      {showEdit && (
+        <MemberEditModal
+          member={member}
+          onSave={async (data) => {
+            try {
+              const res = await fetch("/api/kaitai/members", {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: member.id, ...data }),
+              });
+              if (res.ok) {
+                const result = await res.json();
+                if (result.member) setMember(result.member);
+                setShowEdit(false);
+              }
+            } catch { /* ignore */ }
+          }}
+          onClose={() => setShowEdit(false)}
+        />
       )}
     </div>
   );

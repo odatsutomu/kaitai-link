@@ -4,9 +4,9 @@ import { useState, useMemo } from "react";
 import {
   Plus, Search, Edit3, Archive,
   ArchiveRestore, Phone, Mail, MapPin, User, X, Check,
-  Building2, ChevronDown,
+  Building2, ChevronDown, Trash2, UserPlus,
 } from "lucide-react";
-import { useAppContext, Client, ClientStatus } from "../lib/app-context";
+import { useAppContext, Client, ClientStatus, ClientContact } from "../lib/app-context";
 import { T } from "../lib/design-tokens";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -26,9 +26,12 @@ const STATUS_META: Record<ClientStatus, { label: string; bg: string; color: stri
   suspended: { label: "停止",     bg: "#FEF2F2", color: "#EF4444" },
 };
 
+const EMPTY_CONTACT: ClientContact = { name: "", phone: "", role: "" };
+
 const EMPTY_FORM = {
   name: "", contactName: "", phone: "", email: "",
   address: "", memo: "", status: "active" as ClientStatus, archived: false,
+  contacts: [{ ...EMPTY_CONTACT }] as ClientContact[],
 };
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -42,7 +45,12 @@ function ClientModal({
   onSave: (data: Omit<Client, "id" | "createdAt" | "updatedAt">) => void;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState({ ...EMPTY_FORM, ...initial });
+  const initContacts = initial?.contacts?.length
+    ? initial.contacts
+    : initial?.contactName
+    ? [{ name: initial.contactName, phone: initial.phone ?? "", role: "" }]
+    : [{ ...EMPTY_CONTACT }];
+  const [form, setForm] = useState({ ...EMPTY_FORM, ...initial, contacts: initContacts });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function set<K extends keyof typeof form>(k: K, v: typeof form[K]) {
@@ -50,12 +58,35 @@ function ClientModal({
     setErrors(prev => ({ ...prev, [k]: "" }));
   }
 
+  function setContact(idx: number, field: keyof ClientContact, val: string) {
+    setForm(prev => ({
+      ...prev,
+      contacts: prev.contacts.map((c, i) => i === idx ? { ...c, [field]: val } : c),
+    }));
+  }
+
+  function addContact() {
+    setForm(prev => ({ ...prev, contacts: [...prev.contacts, { ...EMPTY_CONTACT }] }));
+  }
+
+  function removeContact(idx: number) {
+    setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }));
+  }
+
   function submit() {
     if (!form.name.trim()) {
       setErrors({ name: "元請け名は必須です" });
       return;
     }
-    onSave(form);
+    // contactsから空のものを除外、後方互換のためcontactName/phoneも設定
+    const validContacts = form.contacts.filter(c => c.name.trim());
+    const out = {
+      ...form,
+      contacts: validContacts,
+      contactName: validContacts[0]?.name ?? "",
+      phone: validContacts[0]?.phone ?? form.phone,
+    };
+    onSave(out);
   }
 
   return (
@@ -115,28 +146,55 @@ function ClientModal({
             <p style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>会社名・屋号・個人名のどれでも登録できます</p>
           </div>
 
-          {/* Contact */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>担当者名</label>
-              <input
-                value={form.contactName}
-                onChange={e => set("contactName", e.target.value)}
-                placeholder="例：前田 健二"
-                className="w-full rounded-xl px-3 outline-none"
-                style={{ height: 44, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
-              />
+          {/* Contacts (multiple) */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label style={{ fontSize: 14, fontWeight: 700, color: C.muted }}>担当者</label>
+              <button onClick={addContact}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95"
+                style={{ background: C.bg, color: C.amber, border: `1px solid ${C.border}` }}>
+                <UserPlus size={12} /> 追加
+              </button>
             </div>
-            <div>
-              <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>電話番号</label>
-              <input
-                value={form.phone}
-                onChange={e => set("phone", e.target.value)}
-                placeholder="03-0000-0000"
-                type="tel"
-                className="w-full rounded-xl px-3 outline-none"
-                style={{ height: 44, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
-              />
+            <div className="flex flex-col gap-2">
+              {form.contacts.map((contact, idx) => (
+                <div key={idx} className="flex items-start gap-2 rounded-xl p-3"
+                  style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={contact.name}
+                        onChange={e => setContact(idx, "name", e.target.value)}
+                        placeholder="担当者名"
+                        className="w-full rounded-lg px-3 outline-none"
+                        style={{ height: 40, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
+                      />
+                      <input
+                        value={contact.phone}
+                        onChange={e => setContact(idx, "phone", e.target.value)}
+                        placeholder="電話番号"
+                        type="tel"
+                        className="w-full rounded-lg px-3 outline-none"
+                        style={{ height: 40, fontSize: 14, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
+                      />
+                    </div>
+                    <input
+                      value={contact.role ?? ""}
+                      onChange={e => setContact(idx, "role", e.target.value)}
+                      placeholder="役職（任意）例：現場監督、営業担当"
+                      className="w-full rounded-lg px-3 outline-none"
+                      style={{ height: 36, fontSize: 13, background: C.card, border: `1.5px solid ${C.border}`, color: C.text }}
+                    />
+                  </div>
+                  {form.contacts.length > 1 && (
+                    <button onClick={() => removeContact(idx)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0 mt-1"
+                      style={{ background: "#FEF2F2", color: C.red }}>
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -246,9 +304,12 @@ export default function ClientsPage() {
       .filter(c => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
+        const contactsMatch = ((c.contacts as ClientContact[] | undefined) ?? [])
+          .some(ct => ct.name.toLowerCase().includes(q) || (ct.phone ?? "").includes(q));
         return c.name.toLowerCase().includes(q) ||
           (c.contactName ?? "").toLowerCase().includes(q) ||
-          (c.phone ?? "").includes(q);
+          (c.phone ?? "").includes(q) ||
+          contactsMatch;
       })
       .sort((a, b) => {
         if (sortBy === "name") return a.name.localeCompare(b.name, "ja");
@@ -401,12 +462,6 @@ export default function ClientsPage() {
                   </div>
                   <div className="min-w-0">
                     <p style={{ fontSize: 15, fontWeight: 800, color: C.text }} className="truncate">{c.name}</p>
-                    {c.contactName && (
-                      <p style={{ fontSize: 14, color: C.sub }}>
-                        <User size={12} style={{ display: "inline", marginRight: 3 }} />
-                        {c.contactName}
-                      </p>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -436,14 +491,32 @@ export default function ClientsPage() {
                 </div>
               </div>
 
-              {/* Contact info */}
-              <div className="flex flex-col gap-1">
-                {c.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={11} color={C.muted} />
-                    <span style={{ fontSize: 14, color: C.sub }}>{c.phone}</span>
+              {/* Contacts */}
+              {(() => {
+                const contacts: ClientContact[] = (c.contacts as ClientContact[] | undefined)?.length
+                  ? (c.contacts as ClientContact[])
+                  : c.contactName ? [{ name: c.contactName, phone: c.phone ?? "" }] : [];
+                return contacts.length > 0 ? (
+                  <div className="flex flex-col gap-1.5 mb-1">
+                    {contacts.map((ct, ci) => (
+                      <div key={ci} className="flex items-center gap-2 flex-wrap">
+                        <User size={11} color={C.muted} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{ct.name}</span>
+                        {ct.role && <span style={{ fontSize: 12, color: C.muted }}>({ct.role})</span>}
+                        {ct.phone && (
+                          <>
+                            <Phone size={10} color={C.muted} />
+                            <span style={{ fontSize: 13, color: C.sub }}>{ct.phone}</span>
+                          </>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
+                ) : null;
+              })()}
+
+              {/* Other contact info */}
+              <div className="flex flex-col gap-1">
                 {c.email && (
                   <div className="flex items-center gap-2">
                     <Mail size={11} color={C.muted} />
