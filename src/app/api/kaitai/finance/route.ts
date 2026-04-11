@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma";
  *
  * Returns financial summary computed from real DB data:
  * - sites: contractAmount, paidAmount, costAmount per site
- * - expenses: aggregated from KaitaiExpenseLog by category
- * - totals: overall見込み受注額, 売上額, 原価, 粗利
+ * - expenses: aggregated from KaitaiExpenseLog + KaitaiWasteDispatch
+ * - totals: overall見込み受注額, 売上額, 原価(経費+産廃), 粗利
  *
  * Optional query params:
  *   year=2026  — filter to sites active in that year
@@ -50,28 +50,29 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── Expense logs by category ──
+  // ── Expense logs ──
   const siteIds = sites.map(s => s.id);
   const expenseLogs = siteIds.length > 0
     ? await prisma.kaitaiExpenseLog.findMany({
-        where: {
-          companyId: session.companyId,
-          siteId: { in: siteIds },
-        },
+        where: { companyId: session.companyId, siteId: { in: siteIds } },
       })
     : [];
 
-  // Also fetch expenses not tied to specific sites (company-wide)
   const generalExpenses = await prisma.kaitaiExpenseLog.findMany({
-    where: {
-      companyId: session.companyId,
-      siteId: null,
-    },
+    where: { companyId: session.companyId, siteId: null },
   });
 
-  // ── Aggregate expenses by category ──
+  // ── Waste dispatch logs ──
+  const allWasteDispatches = await prisma.kaitaiWasteDispatch.findMany({
+    where: { companyId: session.companyId },
+  });
+
+  const wasteDispatches = allWasteDispatches.filter(w => siteIds.includes(w.siteId));
+
+  // ── Aggregate expenses by category (including waste) ──
   const expenseByCategory: Record<string, number> = {};
   const expenseBySite: Record<string, number> = {};
+
   for (const log of [...expenseLogs, ...generalExpenses]) {
     const cat = log.category ?? "その他";
     expenseByCategory[cat] = (expenseByCategory[cat] ?? 0) + (log.amount ?? 0);
@@ -80,57 +81,87 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── Site-level summary ──
-  const siteSummaries = sites.map(s => ({
-    id: s.id,
-    name: s.name,
-    status: s.status,
-    contractAmount: s.contractAmount,    // 契約金額（見込み受注額）
-    paidAmount: s.paidAmount,            // 入金済み（売上額）
-    remainingAmount: s.contractAmount - s.paidAmount, // 未入金残高
-    costAmount: s.costAmount,            // 手入力原価
-    expenseTotal: expenseBySite[s.id] ?? 0, // 報告経費合計
-    startDate: s.startDate,
-    endDate: s.endDate,
-    progressPct: s.progressPct,
-  }));
+  // Aggregate waste dispatch costs into "産廃処分費" category and per-site totals
+  const wasteBySite: Record<string, number> = {};
+  let totalWasteDispatchCost = 0;
+
+  for (const w of wasteDispatches) {
+    const cost = w.direction === "buyback" ? -(w.cost ?? 0) : (w.cost ?? 0);
+    totalWasteDispatchCost += cost;
+    wasteBySite[w.siteId] = (wasteBySite[w.siteId] ?? 0) + cost;
+  }
+
+  // Add waste to expenseByCategory
+  if (totalWasteDispatchCost !== 0) {
+    expenseByCategory["産廃処分費"] = (expenseByCategory["産廃処分費"] ?? 0) + totalWasteDispatchCost;
+  }
+
+  // ── Site-level summary (including both expense + waste costs) ──
+  const siteSummaries = sites.map(s => {
+    const expTotal = expenseBySite[s.id] ?? 0;
+    const wasteTotal = wasteBySite[s.id] ?? 0;
+    return {
+      id: s.id,
+      name: s.name,
+      status: s.status,
+      contractAmount: s.contractAmount,
+      paidAmount: s.paidAmount,
+      remainingAmount: s.contractAmount - s.paidAmount,
+      costAmount: s.costAmount,
+      expenseTotal: expTotal + wasteTotal, // 経費 + 産廃 = 現場原価合計
+      wasteTotal,
+      startDate: s.startDate,
+      endDate: s.endDate,
+      progressPct: s.progressPct,
+    };
+  });
 
   // ── Company totals ──
   const totalContract = sites.reduce((sum, s) => sum + s.contractAmount, 0);
   const totalPaid = sites.reduce((sum, s) => sum + s.paidAmount, 0);
   const totalRemaining = totalContract - totalPaid;
-  const totalExpense = [...expenseLogs, ...generalExpenses].reduce(
+  const totalExpenseOnly = [...expenseLogs, ...generalExpenses].reduce(
     (sum, log) => sum + (log.amount ?? 0), 0
   );
+  const totalCost = totalExpenseOnly + totalWasteDispatchCost;
 
   // Cost categories
-  const wasteCost = expenseByCategory["燃料費"] ?? 0;
-  const laborCost = 0; // 労務費は経費カテゴリには含まれない（将来拡張用）
+  const wasteCost = totalWasteDispatchCost;
+  const fuelCost = expenseByCategory["燃料費"] ?? 0;
+  const laborCost = 0;
   const vehicleCost = expenseByCategory["交通費"] ?? 0;
   const materialCost = (expenseByCategory["資材購入"] ?? 0) + (expenseByCategory["工具・消耗品"] ?? 0);
   const otherCost = (expenseByCategory["食費・雑費"] ?? 0) + (expenseByCategory["その他"] ?? 0);
-  const totalCost = totalExpense;
 
   const profit = totalPaid - totalCost;
   const profitRate = totalPaid > 0 ? Math.round((profit / totalPaid) * 1000) / 10 : 0;
 
   // ── Monthly breakdown (for charts) ──
-  // Fetch ALL company expenses for monthly chart (not limited to filtered sites)
   const allExpenses = await prisma.kaitaiExpenseLog.findMany({
     where: { companyId: session.companyId },
   });
 
   const monthlyData: Record<string, { revenue: number; cost: number; paid: number }> = {};
+
+  // Expenses by month
   for (const log of allExpenses) {
     if (!log.date) continue;
-    const monthKey = log.date.slice(0, 7); // "YYYY-MM"
+    const monthKey = log.date.slice(0, 7);
     if (!monthlyData[monthKey]) monthlyData[monthKey] = { revenue: 0, cost: 0, paid: 0 };
     monthlyData[monthKey].cost += log.amount ?? 0;
   }
-  // Add paid amounts from sites by their completion/payment timing
+
+  // Waste dispatches by month
+  for (const w of allWasteDispatches) {
+    if (!w.date) continue;
+    const monthKey = w.date.slice(0, 7);
+    if (!monthlyData[monthKey]) monthlyData[monthKey] = { revenue: 0, cost: 0, paid: 0 };
+    monthlyData[monthKey].cost += w.direction === "buyback" ? -(w.cost ?? 0) : (w.cost ?? 0);
+  }
+
+  // Revenue/paid by site timing
   for (const s of allSites) {
     if (s.paidAmount > 0) {
-      // Use endDate or startDate as proxy for when revenue was recognized
       const dateKey = (s.endDate || s.startDate || s.createdAt?.toISOString()?.slice(0, 7) || "");
       const mk = dateKey.slice(0, 7);
       if (mk) {
@@ -157,9 +188,12 @@ export async function GET(req: NextRequest) {
     });
     const prevSiteIds = prevSites.map(s => s.id);
     const prevExpenses = allExpenses.filter(e => prevSiteIds.includes(e.siteId ?? ""));
+    const prevWastes = allWasteDispatches.filter(w => prevSiteIds.includes(w.siteId));
     const prevContract = prevSites.reduce((sum, s) => sum + s.contractAmount, 0);
     const prevPaid = prevSites.reduce((sum, s) => sum + s.paidAmount, 0);
-    const prevCost = prevExpenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    const prevExpenseCost = prevExpenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+    const prevWasteCost = prevWastes.reduce((sum, w) => sum + (w.direction === "buyback" ? -(w.cost ?? 0) : (w.cost ?? 0)), 0);
+    const prevCost = prevExpenseCost + prevWasteCost;
     const prevProfit = prevPaid - prevCost;
     const prevProfitRate = prevPaid > 0 ? Math.round((prevProfit / prevPaid) * 1000) / 10 : 0;
     prevTotals = { contractAmount: prevContract, paidAmount: prevPaid, totalCost: prevCost, profit: prevProfit, profitRate: prevProfitRate };
@@ -179,6 +213,7 @@ export async function GET(req: NextRequest) {
       profit,
       profitRate,
       wasteCost,
+      fuelCost,
       laborCost,
       vehicleCost,
       materialCost,

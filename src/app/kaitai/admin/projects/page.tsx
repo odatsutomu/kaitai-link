@@ -6,6 +6,7 @@ import { T } from "../../lib/design-tokens";
 
 type SiteRow = {
   id: string; name: string; status: string; contract: number; paid: number; cost: number;
+  wasteTotal: number;
   progressPct: number; endDate: string; startDate: string; type: string; address: string;
 };
 
@@ -167,6 +168,7 @@ export default function AdminProjectsPage() {
   const [sort, setSort] = useState<SortKey>("status");
   const [dir, setDir]   = useState<1 | -1>(1);
   const [rawSites, setRawSites] = useState<SiteRow[]>([]);
+  const [expenseByCategory, setExpenseByCategory] = useState<Record<string, number>>({});
 
   // Period state
   const [mode, setMode] = useState<ViewMode>("all");
@@ -175,27 +177,54 @@ export default function AdminProjectsPage() {
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  // Fetch from finance API (includes waste dispatch costs aggregated per site)
   useEffect(() => {
-    fetch("/api/kaitai/sites", { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data?.sites) return;
-        setRawSites(data.sites.map((s: Record<string, unknown>) => ({
+    const params = new URLSearchParams();
+    if (mode === "month") {
+      params.set("year", String(year));
+      params.set("month", String(month));
+    } else if (mode === "year") {
+      params.set("year", String(year));
+    }
+    // For "all" mode, also fetch with just current year to get all sites
+    const url = mode === "all"
+      ? "/api/kaitai/finance"
+      : `/api/kaitai/finance?${params}`;
+
+    Promise.all([
+      fetch(url, { credentials: "include" }).then(r => r.ok ? r.json() : null),
+      fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+    ])
+      .then(([finData, siteData]) => {
+        if (!finData?.ok) return;
+        if (finData.expenseByCategory) setExpenseByCategory(finData.expenseByCategory);
+
+        // Build address map from sites API
+        const addrMap = new Map<string, string>();
+        if (siteData?.sites) {
+          for (const s of siteData.sites) {
+            addrMap.set(s.id, s.address ?? "");
+          }
+        }
+
+        // Map finance API sites (which include aggregated expense + waste costs)
+        setRawSites((finData.sites ?? []).map((s: Record<string, unknown>) => ({
           id: s.id as string,
           name: s.name as string,
           status: (s.status as string) ?? "",
           contract: (s.contractAmount as number) ?? 0,
           paid: (s.paidAmount as number) ?? 0,
-          cost: (s.costAmount as number) ?? 0,
+          cost: (s.expenseTotal as number) ?? 0,  // expenseTotal = 経費 + 産廃
+          wasteTotal: (s.wasteTotal as number) ?? 0,
           progressPct: (s.progressPct as number) ?? 0,
           endDate: (s.endDate as string) ?? "",
           startDate: (s.startDate as string) ?? "",
-          type: (s.structureType as string) ?? "",
-          address: (s.address as string) ?? "",
+          type: "",
+          address: addrMap.get(s.id as string) ?? "",
         })));
       })
       .catch(() => {});
-  }, []);
+  }, [mode, year, month]);
 
   // Close picker on outside click
   useEffect(() => {
@@ -213,8 +242,8 @@ export default function AdminProjectsPage() {
     else { setSort(key); setDir(1); }
   }
 
-  // Apply period filter
-  const filteredSites = filterByPeriod(rawSites, mode, year, month);
+  // Finance API already returns period-filtered sites, so use rawSites directly
+  const filteredSites = rawSites;
 
   const sites = [...filteredSites].sort((a: SiteRow, b: SiteRow) => {
     if (sort === "name")     return dir * a.name.localeCompare(b.name);
@@ -481,25 +510,34 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
-      {/* ── Cost breakdown ── */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px",
- }}>
+      {/* ── Cost breakdown (real data from finance API) ── */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px" }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: C.sub, marginBottom: 16 }}>原価内訳（{periodLabel(mode, year, month)}・全現場合計）</p>
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "産廃コスト",   value: Math.round(totalCost * 0.4),  color: C.red   },
-            { label: "労務費",       value: Math.round(totalCost * 0.45), color: C.blue  },
-            { label: "その他経費",   value: Math.round(totalCost * 0.15), color: C.muted },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ background: T.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
-              <p style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{label}</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>{fmt(value)}</p>
-              <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                {totalCost > 0 ? `原価比 ${Math.round((value / totalCost) * 100)}%` : "—"}
-              </p>
-            </div>
-          ))}
-        </div>
+        {totalCost > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {Object.entries(expenseByCategory)
+              .filter(([, v]) => v > 0)
+              .sort(([, a], [, b]) => b - a)
+              .map(([label, value]) => {
+                const colorMap: Record<string, string> = {
+                  "産廃処分費": C.red, "燃料費": "#F87171", "交通費": "#8B5CF6",
+                  "資材購入": "#FB923C", "工具・消耗品": "#FBBF24", "食費・雑費": "#94A3B8",
+                };
+                const color = colorMap[label] ?? C.muted;
+                return (
+                  <div key={label} style={{ background: T.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
+                    <p style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{label}</p>
+                    <p style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1 }}>{fmt(value)}</p>
+                    <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+                      原価比 {Math.round((value / totalCost) * 100)}%
+                    </p>
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, color: C.muted }}>経費・産廃データがまだありません</p>
+        )}
       </div>
 
     </div>

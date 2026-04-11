@@ -105,7 +105,7 @@ function generateMockData(): FinanceData {
     },
     prevTotals: { contractAmount: 11800000, paidAmount: 11800000, totalCost: 6100000, profit: 5700000, profitRate: 48.3 },
     sites,
-    expenseByCategory: { "燃料費": 3200000, "交通費": 1800000, "資材購入": 1900000, "工具・消耗品": 1000000, "食費・雑費": 900000, "その他": 500000 },
+    expenseByCategory: { "産廃処分費": 3800000, "燃料費": 2400000, "交通費": 1200000, "資材購入": 1100000, "工具・消耗品": 600000, "食費・雑費": 500000, "その他": 300000 },
     monthlyData: months,
     activeSiteCount: 4,
     totalSiteCount: 5,
@@ -393,6 +393,7 @@ function SiteRow({ site, rank }: {
 
 // ─── Cost category colors ───────────────────────────────────────────────────
 const COST_COLORS: Record<string, string> = {
+  "産廃処分費": "#EF4444",
   "燃料費": "#F87171",
   "交通費": "#A78BFA",
   "資材購入": "#FB923C",
