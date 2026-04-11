@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ClipboardList, Clock, Fuel, AlertTriangle, Truck, Wrench, Coffee,
   ChevronRight, ChevronLeft, Calendar, Users, MapPin,
   X, Search, CheckCircle, LogIn, LogOut,
-  FileText, DollarSign, Trash2, ImageIcon,
+  FileText, DollarSign, Trash2, ImageIcon, Send,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -16,6 +16,26 @@ const C = {
   amber: T.primary, amberDk: T.primaryDk,
   green: "#10B981", red: "#EF4444", blue: "#3B82F6",
   orange: "#F97316", purple: "#8B5CF6", teal: "#14B8A6",
+};
+
+// ─── Reaction status config ──────────────────────────────────────────────────
+
+type ReactionStatus = "confirmed" | "approved" | "action_required" | "call_required";
+
+type Reaction = {
+  id: string;
+  logId: string;
+  status: ReactionStatus;
+  comment: string | null;
+  adminName: string;
+  createdAt: string;
+};
+
+const REACTION_CONFIG: Record<ReactionStatus, { label: string; bg: string; fg: string; border: string }> = {
+  confirmed:       { label: "確認済",   bg: "#F3F4F6", fg: "#4B5563", border: "#D1D5DB" },
+  approved:        { label: "承 認",   bg: "#EFF6FF", fg: "#1D4ED8", border: "#BFDBFE" },
+  action_required: { label: "要対応",   bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" },
+  call_required:   { label: "電話連絡", bg: "#1F2937", fg: "#FFFFFF", border: "#374151" },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -192,17 +212,23 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
 type ReportImage = { id: string; url: string; reportType: string | null; uploadedBy: string; createdAt: string };
 
 function DetailModal({
-  log, parsed, expenses, wastes, allImages, onClose, onDelete,
+  log, parsed, expenses, wastes, allImages, reaction, onClose, onDelete, onReact,
 }: {
   log: OperationLog;
   parsed: ParsedReport;
   expenses: ExpenseLog[];
   wastes: WasteDispatch[];
   allImages: ReportImage[];
+  reaction: Reaction | null;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onReact: (logId: string, status: ReactionStatus, comment?: string) => Promise<void>;
 }) {
   const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [comment, setComment] = useState(reaction?.comment ?? "");
+  const [sending, setSending] = useState(false);
+  const [activeStatus, setActiveStatus] = useState<ReactionStatus | null>(reaction?.status as ReactionStatus ?? null);
+  const commentRef = useRef<HTMLTextAreaElement>(null);
 
   // ── Match images by direct imageIds link ──
   const images = useMemo(() => {
@@ -411,6 +437,127 @@ function DetailModal({
               </p>
             </div>
           )}
+
+          {/* ── 既存リアクション表示 ── */}
+          {activeStatus && (
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded-lg"
+              style={{
+                background: REACTION_CONFIG[activeStatus].bg,
+                border: `1.5px solid ${REACTION_CONFIG[activeStatus].border}`,
+              }}
+            >
+              <span style={{
+                fontSize: 14, fontWeight: 800,
+                color: REACTION_CONFIG[activeStatus].fg,
+              }}>
+                {REACTION_CONFIG[activeStatus].label}
+              </span>
+              {reaction?.adminName && (
+                <span style={{ fontSize: 12, color: REACTION_CONFIG[activeStatus].fg, opacity: 0.7 }}>
+                  — {reaction.adminName}
+                </span>
+              )}
+              {reaction?.comment && (
+                <p style={{
+                  fontSize: 13, color: REACTION_CONFIG[activeStatus].fg,
+                  flex: 1, opacity: 0.85,
+                }}>
+                  {reaction.comment}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── 業務リアクションバー ── */}
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 24px 20px" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 1 }}>
+            業務判断
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+            {(Object.entries(REACTION_CONFIG) as [ReactionStatus, typeof REACTION_CONFIG[ReactionStatus]][]).map(([key, cfg]) => {
+              const isActive = activeStatus === key;
+              return (
+                <button
+                  key={key}
+                  disabled={sending}
+                  onClick={async () => {
+                    if (key === "action_required") {
+                      setActiveStatus(key);
+                      setTimeout(() => commentRef.current?.focus(), 100);
+                      return;
+                    }
+                    setSending(true);
+                    await onReact(log.id, key, comment || undefined);
+                    setActiveStatus(key);
+                    setSending(false);
+                  }}
+                  style={{
+                    padding: "10px 4px",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    borderRadius: 6,
+                    border: `1.5px solid ${isActive ? cfg.border : C.border}`,
+                    background: isActive ? cfg.bg : "#fff",
+                    color: isActive ? cfg.fg : C.sub,
+                    cursor: sending ? "wait" : "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* コメント入力 */}
+          <div style={{ marginTop: 12 }}>
+            <textarea
+              ref={commentRef}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="※詳細な指示や返信事項を入力"
+              rows={2}
+              style={{
+                width: "100%",
+                fontSize: 14,
+                padding: "10px 14px",
+                borderRadius: 6,
+                border: `1.5px solid ${C.border}`,
+                color: C.text,
+                background: "#fff",
+                resize: "vertical",
+                outline: "none",
+              }}
+            />
+            <button
+              disabled={sending || (!activeStatus && !comment.trim())}
+              onClick={async () => {
+                if (!activeStatus && !comment.trim()) return;
+                setSending(true);
+                await onReact(log.id, activeStatus ?? "confirmed", comment || undefined);
+                setSending(false);
+              }}
+              className="flex items-center justify-center gap-2"
+              style={{
+                marginTop: 8,
+                width: "100%",
+                height: 44,
+                borderRadius: 6,
+                fontSize: 14,
+                fontWeight: 800,
+                background: activeStatus ? REACTION_CONFIG[activeStatus].fg === "#FFFFFF" ? "#1F2937" : REACTION_CONFIG[activeStatus].fg : C.sub,
+                color: "#fff",
+                border: "none",
+                cursor: sending ? "wait" : "pointer",
+                opacity: sending || (!activeStatus && !comment.trim()) ? 0.5 : 1,
+              }}
+            >
+              <Send size={16} />
+              送信
+            </button>
+          </div>
         </div>
       </div>
 
@@ -427,6 +574,7 @@ export default function AdminReportsPage() {
   const [expenses, setExpenses] = useState<ExpenseLog[]>([]);
   const [wastes, setWastes] = useState<WasteDispatch[]>([]);
   const [allImages, setAllImages] = useState<ReportImage[]>([]);
+  const [reactions, setReactions] = useState<Map<string, Reaction>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const [category, setCategory] = useState<ReportCategory>("all");
@@ -451,14 +599,51 @@ export default function AdminReportsPage() {
       fetch("/api/kaitai/waste-dispatch?all=1", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/upload?recent=1&days=30", { credentials: "include" }).then(r => r.ok ? r.json() : null),
     ])
-      .then(([logData, expData, wasteData, imgData]) => {
-        if (logData?.logs) setLogs(logData.logs);
+      .then(async ([logData, expData, wasteData, imgData]) => {
+        const fetchedLogs: OperationLog[] = logData?.logs ?? [];
+        if (fetchedLogs.length > 0) setLogs(fetchedLogs);
         if (expData?.logs) setExpenses(expData.logs);
         if (wasteData?.dispatches) setWastes(wasteData.dispatches);
         if (imgData?.images) setAllImages(imgData.images);
+
+        // Fetch reactions for all logs (batch)
+        if (fetchedLogs.length > 0) {
+          const logIds = fetchedLogs.map(l => l.id).join(",");
+          try {
+            const rRes = await fetch(`/api/kaitai/reactions?logIds=${logIds}`, { credentials: "include" });
+            if (rRes.ok) {
+              const rData = await rRes.json();
+              const map = new Map<string, Reaction>();
+              for (const r of (rData.reactions ?? [])) {
+                map.set(r.logId, r);
+              }
+              setReactions(map);
+            }
+          } catch { /* best effort */ }
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+
+  // Handle reaction submission
+  const handleReact = useCallback(async (logId: string, status: ReactionStatus, comment?: string) => {
+    try {
+      const res = await fetch("/api/kaitai/reactions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logId, status, comment }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReactions(prev => {
+          const next = new Map(prev);
+          next.set(logId, data.reaction);
+          return next;
+        });
+      }
+    } catch { /* ignore */ }
   }, []);
 
   // Find orphaned waste dispatches (no matching operation log)
@@ -848,6 +1033,23 @@ export default function AdminReportsPage() {
                           <span style={{ fontSize: 11, fontWeight: 600 }}>{logImageCountMap.get(log.id)}</span>
                         </span>
                       )}
+                      {reactions.has(log.id) && (() => {
+                        const r = reactions.get(log.id)!;
+                        const cfg = REACTION_CONFIG[r.status as ReactionStatus];
+                        if (!cfg) return null;
+                        return (
+                          <span
+                            className="px-1.5 py-0.5 rounded"
+                            style={{
+                              fontSize: 11, fontWeight: 800,
+                              background: cfg.bg, color: cfg.fg,
+                              border: `1px solid ${cfg.border}`,
+                            }}
+                          >
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="truncate" style={{ fontSize: 13, color: C.sub, maxWidth: "100%" }}>
                       {parsed.detail}
@@ -883,7 +1085,9 @@ export default function AdminReportsPage() {
           expenses={expenses}
           wastes={wastes}
           allImages={allImages}
+          reaction={reactions.get(selectedLog.id) ?? null}
           onClose={() => setSelectedLog(null)}
+          onReact={handleReact}
           onDelete={async (id) => {
             if (!confirm("この報告を削除しますか？関連する経費・廃材データも削除されます。")) return;
             try {

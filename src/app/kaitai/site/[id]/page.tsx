@@ -154,6 +154,22 @@ type ParsedLog = {
   imageIds: string[];
 };
 
+type ReactionData = {
+  id: string;
+  logId: string;
+  status: string;
+  comment: string | null;
+  adminName: string;
+  createdAt: string;
+};
+
+const REACTION_BADGE: Record<string, { label: string; bg: string; fg: string; border: string }> = {
+  confirmed:       { label: "確認済",   bg: "#F3F4F6", fg: "#4B5563", border: "#D1D5DB" },
+  approved:        { label: "承 認",   bg: "#EFF6FF", fg: "#1D4ED8", border: "#BFDBFE" },
+  action_required: { label: "要対応",   bg: "#FEF2F2", fg: "#DC2626", border: "#FECACA" },
+  call_required:   { label: "電話連絡", bg: "#1F2937", fg: "#FFFFFF", border: "#374151" },
+};
+
 function parseOperationLog(log: OperationLog): ParsedLog {
   const d = new Date(log.createdAt);
   const dateStr = d.toISOString().slice(0, 10);
@@ -661,11 +677,12 @@ function TabBasic({
 // ─── Tab 2: History & Reports ───────────────────────────────────────────────
 
 function TabHistory({
-  logs, siteId, images, onViewImage,
+  logs, siteId, images, reactions, onViewImage,
 }: {
   logs: ParsedLog[];
   siteId: string;
   images: SiteImage[];
+  reactions: Map<string, ReactionData>;
   onViewImage: (url: string) => void;
 }) {
   // Build image lookup map for fast access
@@ -771,11 +788,46 @@ function TabHistory({
                         {log.user}
                       </span>
                       <span style={{ fontSize: 13, color: T.muted }}>{log.time}</span>
+                      {reactions.has(log.id) && (() => {
+                        const r = reactions.get(log.id)!;
+                        const cfg = REACTION_BADGE[r.status];
+                        if (!cfg) return null;
+                        return (
+                          <span
+                            className="px-1.5 py-0.5 rounded"
+                            style={{
+                              fontSize: 11, fontWeight: 800,
+                              background: cfg.bg, color: cfg.fg,
+                              border: `1px solid ${cfg.border}`,
+                            }}
+                          >
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {log.detail && (
                       <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, wordBreak: "break-word" }}>
                         {log.detail}
                       </p>
+                    )}
+                    {/* 管理者コメント */}
+                    {reactions.has(log.id) && reactions.get(log.id)!.comment && (
+                      <div
+                        className="rounded-md"
+                        style={{
+                          marginTop: 6, padding: "8px 12px",
+                          background: "#F8FAFC",
+                          border: `1px solid ${T.border}`,
+                        }}
+                      >
+                        <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 2 }}>
+                          管理者 ({reactions.get(log.id)!.adminName})
+                        </p>
+                        <p style={{ fontSize: 14, color: T.text, lineHeight: 1.5 }}>
+                          {reactions.get(log.id)!.comment}
+                        </p>
+                      </div>
                     )}
                     {/* 添付写真サムネイル */}
                     {log.imageIds.length > 0 && (() => {
@@ -1066,6 +1118,7 @@ export default function SiteDetailPage() {
   const [images, setImages] = useState<SiteImage[]>([]);
   const [siteNotes, setSiteNotes] = useState<SiteNotes>({});
   const [viewImageUrl, setViewImageUrl] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Map<string, ReactionData>>(new Map());
 
   // Swipe handling
   const touchStartX = useRef(0);
@@ -1147,10 +1200,23 @@ export default function SiteDetailPage() {
         // Operation logs (filter for this site)
         if (logsRes.ok) {
           const ld = await logsRes.json();
-          const siteLogs = (ld?.logs ?? [])
-            .filter((l: OperationLog) => l.siteId === id)
-            .map(parseOperationLog);
+          const rawLogs = (ld?.logs ?? []).filter((l: OperationLog) => l.siteId === id);
+          const siteLogs = rawLogs.map(parseOperationLog);
           setLogs(siteLogs);
+
+          // Fetch reactions for these logs
+          if (rawLogs.length > 0) {
+            const logIds = rawLogs.map((l: OperationLog) => l.id).join(",");
+            try {
+              const rRes = await fetch(`/api/kaitai/reactions?logIds=${logIds}`, { credentials: "include" });
+              if (rRes.ok) {
+                const rData = await rRes.json();
+                const map = new Map<string, ReactionData>();
+                for (const r of (rData.reactions ?? [])) map.set(r.logId, r);
+                setReactions(map);
+              }
+            } catch { /* best effort */ }
+          }
         }
 
         // Images
@@ -1296,6 +1362,7 @@ export default function SiteDetailPage() {
               logs={logs}
               siteId={site.id}
               images={images}
+              reactions={reactions}
               onViewImage={setViewImageUrl}
             />
           )}

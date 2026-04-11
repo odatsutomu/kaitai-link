@@ -42,6 +42,7 @@ model KaitaiCompany {
   contractData     KaitaiContractData[]
   wasteCategories  KaitaiWasteCategory[]
   wasteDispatches  KaitaiWasteDispatch[]
+  reportReactions  KaitaiReportReaction[]
 }
 
 model KaitaiSession {
@@ -362,10 +363,28 @@ model KaitaiOperationLog {
   imageIds  Json     @default("[]")
   createdAt DateTime @default(now())
 
-  company KaitaiCompany? @relation(fields: [companyId], references: [id])
+  company   KaitaiCompany?        @relation(fields: [companyId], references: [id])
+  reactions KaitaiReportReaction[]
 
   @@index([companyId])
   @@index([createdAt])
+}
+
+// 管理者 → 現場報告へのリアクション・コメント
+model KaitaiReportReaction {
+  id        String   @id @default(cuid())
+  companyId String
+  logId     String
+  status    String   // "confirmed" | "approved" | "action_required" | "call_required"
+  comment   String?
+  adminName String
+  createdAt DateTime @default(now())
+
+  company KaitaiCompany?      @relation(fields: [companyId], references: [id])
+  log     KaitaiOperationLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([logId])
+  @@index([companyId])
 }
 
 model KaitaiContractData {
