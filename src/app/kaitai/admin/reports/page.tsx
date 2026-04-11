@@ -5,7 +5,7 @@ import {
   ClipboardList, Clock, Fuel, AlertTriangle, Truck, Wrench, Coffee,
   ChevronRight, ChevronLeft, Calendar, Users, MapPin,
   X, Search, CheckCircle, LogIn, LogOut,
-  FileText, DollarSign, Trash2,
+  FileText, DollarSign, Trash2, Loader2,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -158,7 +158,49 @@ function fmt(n: number) {
   return `¥${Math.round(n).toLocaleString("ja-JP")}`;
 }
 
+// ─── Fullscreen Image Viewer ──────────────────────────────────────────────────
+
+function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[300] flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.9)" }}
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 flex items-center justify-center rounded-full"
+        style={{ width: 44, height: 44, background: "rgba(255,255,255,0.2)" }}
+      >
+        <X size={22} style={{ color: "#fff" }} />
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt=""
+        className="max-w-full max-h-full object-contain"
+        style={{ touchAction: "pinch-zoom" }}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ─── Report type mapping for image search ────────────────────────────────────
+
+function categoryToReportTypes(category: ReportCategory): string[] {
+  switch (category) {
+    case "expense":   return ["expense", "fuel"];
+    case "irregular": return ["irregular"];
+    case "finish":    return ["finish"];
+    case "daily":     return ["daily", "equipment_check"];
+    default:          return [];
+  }
+}
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
+
+type ReportImage = { id: string; url: string; reportType: string | null; uploadedBy: string; createdAt: string };
 
 function DetailModal({
   log, parsed, expenses, wastes, onClose, onDelete,
@@ -170,6 +212,50 @@ function DetailModal({
   onClose: () => void;
   onDelete: (id: string) => void;
 }) {
+  // ── Fetch related images ──
+  const [images, setImages] = useState<ReportImage[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Find images uploaded by the same user around the same time
+    const logTime = new Date(log.createdAt);
+    const from = new Date(logTime.getTime() - 5 * 60 * 1000); // 5 min before
+    const to   = new Date(logTime.getTime() + 5 * 60 * 1000); // 5 min after
+
+    const reportTypes = categoryToReportTypes(parsed.category);
+    if (reportTypes.length === 0 && !log.action.startsWith("image_upload:")) {
+      // Also try to find images by user+time even without reportType match
+      // (covers marked_photo and misc uploads near the report time)
+    }
+
+    setImagesLoading(true);
+
+    const params = new URLSearchParams();
+    params.set("uploadedBy", log.user);
+    params.set("from", from.toISOString());
+    params.set("to", to.toISOString());
+    if (reportTypes.length === 1) {
+      params.set("reportType", reportTypes[0]);
+    }
+
+    // Fetch images matching this report
+    fetch(`/api/kaitai/upload?${params}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.images) {
+          let imgs = data.images as ReportImage[];
+          // If multiple reportTypes, filter client-side
+          if (reportTypes.length > 1) {
+            imgs = imgs.filter((img: ReportImage) => img.reportType && reportTypes.includes(img.reportType));
+          }
+          setImages(imgs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setImagesLoading(false));
+  }, [log.createdAt, log.user, parsed.category, log.action]);
+
   // Find related expense or waste records
   const relatedExpenses = useMemo(() => {
     if (parsed.category !== "expense") return [];
@@ -259,6 +345,48 @@ function DetailModal({
             </div>
           </div>
 
+          {/* 添付写真 */}
+          {imagesLoading && (
+            <div className="flex items-center gap-2 py-3">
+              <Loader2 size={16} className="animate-spin" style={{ color: C.muted }} />
+              <span style={{ fontSize: 13, color: C.muted }}>写真を読み込み中...</span>
+            </div>
+          )}
+          {!imagesLoading && images.length > 0 && (
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: C.sub, marginBottom: 6 }}>
+                添付写真（{images.length}枚）
+              </p>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+                gap: 8,
+              }}>
+                {images.map(img => (
+                  <button
+                    key={img.id}
+                    onClick={() => setViewUrl(img.url)}
+                    className="relative rounded-xl overflow-hidden"
+                    style={{
+                      aspectRatio: "1",
+                      border: `1px solid ${C.border}`,
+                      cursor: "pointer",
+                      background: C.bg,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 関連経費 */}
           {relatedExpenses.length > 0 && (
             <div>
@@ -330,6 +458,9 @@ function DetailModal({
           )}
         </div>
       </div>
+
+      {/* Fullscreen image viewer */}
+      {viewUrl && <ImageViewer url={viewUrl} onClose={() => setViewUrl(null)} />}
     </div>
   );
 }

@@ -7,17 +7,38 @@ import { prisma } from "@/lib/prisma";
 export const maxDuration = 30; // Vercel function timeout
 
 // GET /api/kaitai/upload?siteId=xxx — list images for a site
+// GET /api/kaitai/upload?uploadedBy=xxx&reportType=xxx&from=xxx&to=xxx — list images by filters
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
-  const siteId = req.nextUrl.searchParams.get("siteId");
-  if (!siteId) return NextResponse.json({ error: "siteId が必要です" }, { status: 400 });
+  const siteId     = req.nextUrl.searchParams.get("siteId");
+  const uploadedBy = req.nextUrl.searchParams.get("uploadedBy");
+  const reportType = req.nextUrl.searchParams.get("reportType");
+  const from       = req.nextUrl.searchParams.get("from");
+  const to         = req.nextUrl.searchParams.get("to");
+
+  // At least one filter required
+  if (!siteId && !uploadedBy && !reportType) {
+    return NextResponse.json({ error: "siteId, uploadedBy, または reportType が必要です" }, { status: 400 });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { companyId: session.companyId };
+  if (siteId)     where.siteId     = siteId;
+  if (uploadedBy) where.uploadedBy = uploadedBy;
+  if (reportType) where.reportType = reportType;
+  if (from || to) {
+    where.createdAt = {};
+    if (from) where.createdAt.gte = new Date(from);
+    if (to)   where.createdAt.lte = new Date(to);
+  }
 
   const images = await prisma.kaitaiImage.findMany({
-    where: { companyId: session.companyId, siteId },
+    where,
     orderBy: { createdAt: "desc" },
     select: { id: true, url: true, reportType: true, uploadedBy: true, createdAt: true },
+    take: 50,
   });
 
   return NextResponse.json({ ok: true, images });
