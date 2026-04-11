@@ -1029,8 +1029,7 @@ export default function AdminReportsPage() {
             {group.logs.map(log => {
               const parsed = parseAction(log.action);
               const reaction = reactions.get(log.id);
-              const isHandled = reaction && (reaction.status === "confirmed" || reaction.status === "approved");
-              const isAlert = reaction && (reaction.status === "action_required" || reaction.status === "call_required");
+              const isHandled = !!reaction;
 
               return (
                 <button
@@ -1039,10 +1038,7 @@ export default function AdminReportsPage() {
                   className="w-full flex items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-gray-50 relative"
                   style={{
                     borderBottom: `1px solid #F1F5F9`,
-                    opacity: isHandled ? 0.55 : 1,
-                    background: isAlert
-                      ? reaction.status === "call_required" ? "rgba(31,41,55,0.03)" : "rgba(239,68,68,0.03)"
-                      : "transparent",
+                    opacity: isHandled ? 0.8 : 1,
                   }}
                 >
                   {/* Icon */}
@@ -1123,24 +1119,29 @@ export default function AdminReportsPage() {
                   <ChevronRight size={16} style={{ color: C.muted, flexShrink: 0 }} />
 
                   {/* Handled stamp overlay */}
-                  {isHandled && (
-                    <div
-                      className="absolute flex items-center justify-center pointer-events-none"
-                      style={{
-                        right: 50, top: "50%", transform: "translateY(-50%) rotate(-12deg)",
-                      }}
-                    >
-                      <span style={{
-                        fontSize: 16, fontWeight: 900, letterSpacing: "0.1em",
-                        color: reaction.status === "approved" ? "rgba(29,78,216,0.25)" : "rgba(107,114,128,0.2)",
-                        border: `2.5px solid ${reaction.status === "approved" ? "rgba(29,78,216,0.2)" : "rgba(107,114,128,0.18)"}`,
-                        borderRadius: 6,
-                        padding: "2px 10px",
-                      }}>
-                        {reaction.status === "approved" ? "承認済" : "確認済"}
-                      </span>
-                    </div>
-                  )}
+                  {isHandled && (() => {
+                    const stampMap: Record<string, { label: string; color: string; border: string }> = {
+                      confirmed:       { label: "確認済",   color: "rgba(107,114,128,0.25)", border: "rgba(107,114,128,0.22)" },
+                      approved:        { label: "承認済",   color: "rgba(29,78,216,0.3)",    border: "rgba(29,78,216,0.25)" },
+                      action_required: { label: "要対応",   color: "rgba(220,38,38,0.25)",   border: "rgba(220,38,38,0.22)" },
+                      call_required:   { label: "電話連絡", color: "rgba(31,41,55,0.3)",     border: "rgba(31,41,55,0.25)" },
+                    };
+                    const s = stampMap[reaction!.status] ?? stampMap.confirmed;
+                    return (
+                      <div
+                        className="absolute flex items-center justify-center pointer-events-none"
+                        style={{ right: 50, top: "50%", transform: "translateY(-50%) rotate(-12deg)" }}
+                      >
+                        <span style={{
+                          fontSize: 16, fontWeight: 900, letterSpacing: "0.1em",
+                          color: s.color, border: `2.5px solid ${s.border}`,
+                          borderRadius: 6, padding: "2px 10px",
+                        }}>
+                          {s.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </button>
               );
             })}
