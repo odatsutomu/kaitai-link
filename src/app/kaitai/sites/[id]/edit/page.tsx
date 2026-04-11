@@ -17,7 +17,7 @@ import { T } from "../../../lib/design-tokens";
 
 const MapPicker = dynamic(
   () => import("../../../components/map-picker").then(m => m.MapPicker),
-  { ssr: false, loading: () => <div style={{ height: 300, background: T.bg, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: T.muted }}>地図を読み込み中...</span></div> }
+  { ssr: false, loading: () => <div style={{ width: "100%", aspectRatio: "1/1", maxHeight: 500, minHeight: 300, background: T.bg, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, color: T.muted }}>地図を読み込み中...</span></div> }
 );
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
