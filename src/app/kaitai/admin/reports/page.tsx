@@ -203,19 +203,17 @@ function DetailModal({
 }) {
   const [viewUrl, setViewUrl] = useState<string | null>(null);
 
-  // ── Match images client-side: same user within ±15 min of log ──
+  // ── Match images client-side: within ±30 min of log (time proximity only) ──
+  // Note: uploadedBy (session.adminName) ≠ log.user (selected reporter name) なのでユーザー名マッチングは行わない
   const images = useMemo(() => {
     const logTime = new Date(log.createdAt).getTime();
-    const WINDOW = 15 * 60 * 1000; // 15 minutes
+    const WINDOW = 30 * 60 * 1000; // 30 minutes
 
     return allImages.filter(img => {
       const imgTime = new Date(img.createdAt).getTime();
-      if (Math.abs(imgTime - logTime) > WINDOW) return false;
-      // Match by user name (loose: either uploadedBy matches log.user, or both empty)
-      if (log.user && img.uploadedBy && img.uploadedBy !== log.user) return false;
-      return true;
+      return Math.abs(imgTime - logTime) <= WINDOW;
     });
-  }, [allImages, log.createdAt, log.user]);
+  }, [allImages, log.createdAt]);
 
   // Find related expense or waste records
   const relatedExpenses = useMemo(() => {
@@ -626,17 +624,16 @@ export default function AdminReportsPage() {
     return inRange.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
   }, [wastes, dateFrom, dateTo]);
 
-  // Precompute image counts for each log (for showing icon in list)
+  // Precompute image counts for each log (time proximity only, ±30 min)
   const logImageCountMap = useMemo(() => {
     const map = new Map<string, number>();
-    const WINDOW = 15 * 60 * 1000;
+    const WINDOW = 30 * 60 * 1000;
     for (const log of allLogs) {
       const logTime = new Date(log.createdAt).getTime();
       let count = 0;
       for (const img of allImages) {
         const imgTime = new Date(img.createdAt).getTime();
         if (Math.abs(imgTime - logTime) > WINDOW) continue;
-        if (log.user && img.uploadedBy && img.uploadedBy !== log.user) continue;
         count++;
       }
       if (count > 0) map.set(log.id, count);
