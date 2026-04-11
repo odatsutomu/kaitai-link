@@ -5,10 +5,11 @@ import Link from "next/link";
 import {
   ArrowLeft, Award, Phone, MapPin, Calendar,
   Briefcase, TrendingUp, Download, Clock,
-  ClipboardList, BookOpen, Activity, BarChart2, User,
+  ClipboardList, BookOpen, Activity, BarChart2, User, BarChart,
 } from "lucide-react";
 import { LICENSE_LABELS, type License } from "../../../lib/members";
 import { T } from "../../../lib/design-tokens";
+import { useAppContext } from "../../../lib/app-context";
 
 const ACCENT = "#9A3412";
 const ACCENT_LT = "rgba(154,52,18,0.08)";
@@ -149,6 +150,8 @@ type Tab = "基本情報" | "スキル・教育" | "アクティビティ" | "�
 
 export default function AdminMemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { company } = useAppContext();
+  const isTestAccount = company?.adminEmail === "test@kaitai-link.demo";
   const [member, setMember] = useState<ApiMember | null>(null);
   const [score, setScore] = useState<ScoreData | null>(null);
   const [categories, setCategories] = useState<SkillCategory[]>([]);
@@ -658,105 +661,121 @@ export default function AdminMemberDetailPage({ params }: { params: Promise<{ id
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           <SectionLabel>アクティビティタイムライン</SectionLabel>
 
-          {/* Real logs from API */}
-          {logs.filter(l => l.action.includes(memberName)).length === 0 && DEMO_ACTIVITY.length === 0 ? (
-            <Card style={{ padding: 40, textAlign: "center" }}>
-              <Activity size={32} style={{ color: T.muted, marginBottom: 8 }} />
-              <p style={{ color: T.muted }}>アクティビティがありません</p>
-            </Card>
-          ) : (
-            <div>
-              {/* Demo + real combined */}
-              {DEMO_ACTIVITY.map((item, idx) => {
-                const iconConfig = item.type === "teach"
-                  ? { icon: BookOpen, bg: "rgba(124,58,237,0.08)", color: "#7C3AED", borderColor: "#7C3AED" }
-                  : item.type === "learn"
-                  ? { icon: Award, bg: "rgba(16,185,129,0.08)", color: "#10B981", borderColor: "#10B981" }
-                  : { icon: TrendingUp, bg: ACCENT_LT, color: ACCENT, borderColor: ACCENT };
-                const Icon = iconConfig.icon;
+          {/* Real logs from API + Demo activity for test account */}
+          {(() => {
+            const activityItems = isTestAccount ? DEMO_ACTIVITY : [];
+            const realLogs = logs.filter(l => l.action.includes(memberName));
+            if (realLogs.length === 0 && activityItems.length === 0) {
+              return (
+                <Card style={{ padding: 40, textAlign: "center" }}>
+                  <Activity size={32} style={{ color: T.muted, marginBottom: 8 }} />
+                  <p style={{ color: T.muted }}>アクティビティがありません</p>
+                </Card>
+              );
+            }
+            return (
+              <div>
+                {activityItems.map((item, idx) => {
+                  const iconConfig = item.type === "teach"
+                    ? { icon: BookOpen, bg: "rgba(124,58,237,0.08)", color: "#7C3AED", borderColor: "#7C3AED" }
+                    : item.type === "learn"
+                    ? { icon: Award, bg: "rgba(16,185,129,0.08)", color: "#10B981", borderColor: "#10B981" }
+                    : { icon: TrendingUp, bg: ACCENT_LT, color: ACCENT, borderColor: ACCENT };
+                  const Icon = iconConfig.icon;
 
-                return (
-                  <div key={idx} style={{
-                    display: "flex", gap: 16, padding: "16px 20px",
-                    background: T.surface,
-                    border: `1px solid ${T.border}`,
-                    borderLeftWidth: 3, borderLeftColor: iconConfig.borderColor,
-                    borderRadius: idx === 0 ? "12px 12px 0 0" : idx === DEMO_ACTIVITY.length - 1 ? "0 0 12px 12px" : 0,
-                    borderTop: idx === 0 ? undefined : "none",
-                  }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: iconConfig.bg,
+                  return (
+                    <div key={idx} style={{
+                      display: "flex", gap: 16, padding: "16px 20px",
+                      background: T.surface,
+                      border: `1px solid ${T.border}`,
+                      borderLeftWidth: 3, borderLeftColor: iconConfig.borderColor,
+                      borderRadius: idx === 0 ? "12px 12px 0 0" : idx === activityItems.length - 1 ? "0 0 12px 12px" : 0,
+                      borderTop: idx === 0 ? undefined : "none",
                     }}>
-                      <Icon size={20} style={{ color: iconConfig.color }} />
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: iconConfig.bg,
+                      }}>
+                        <Icon size={20} style={{ color: iconConfig.color }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{item.text}</p>
+                        <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>{item.date}</p>
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{item.text}</p>
-                      <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>{item.date}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
       {/* ── D. 評価履歴 ── */}
       {tab === "評価履歴" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Line chart */}
-          <section>
-            <SectionLabel>月次評価スコア推移（過去6ヶ月）</SectionLabel>
-            <Card style={{ padding: 20 }}>
-              <EvalLineChart data={DEMO_EVAL_HISTORY.map(e => ({ month: e.month, total: e.total }))} />
-            </Card>
-          </section>
+          {isTestAccount ? (
+            <>
+              {/* Line chart */}
+              <section>
+                <SectionLabel>月次評価スコア推移（過去6ヶ月）</SectionLabel>
+                <Card style={{ padding: 20 }}>
+                  <EvalLineChart data={DEMO_EVAL_HISTORY.map(e => ({ month: e.month, total: e.total }))} />
+                </Card>
+              </section>
 
-          {/* Detailed monthly breakdown */}
-          <section>
-            <SectionLabel>月別評価詳細</SectionLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {DEMO_EVAL_HISTORY.map(ev => {
-                const scores = [ev.score1, ev.score2, ev.score3, ev.score4, ev.score5];
-                const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
-                return (
-                  <Card key={ev.month} style={{ padding: 20, overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
-                          {ev.month.replace("-", "年")}月
-                        </span>
-                        {ev.confirmed && (
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "rgba(16,185,129,0.08)", color: "#10B981" }}>
-                            確定済
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: ACCENT }}>{ev.total}</span>
-                        <span style={{ fontSize: 12, color: T.muted }}> pt</span>
-                        <p style={{ fontSize: 12, color: T.muted }}>平均 {avg}/5.0</p>
-                      </div>
-                    </div>
-                    {/* Criteria bars */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {scores.map((val, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 12, color: T.sub, minWidth: 120 }}>{EVAL_LABELS[i]}</span>
-                          <div style={{ flex: 1, height: 8, borderRadius: 4, background: T.bg, overflow: "hidden" }}>
-                            <div style={{ height: "100%", borderRadius: 4, width: `${(val / 5) * 100}%`, background: ACCENT }} />
+              {/* Detailed monthly breakdown */}
+              <section>
+                <SectionLabel>月別評価詳細</SectionLabel>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {DEMO_EVAL_HISTORY.map(ev => {
+                    const scores = [ev.score1, ev.score2, ev.score3, ev.score4, ev.score5];
+                    const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+                    return (
+                      <Card key={ev.month} style={{ padding: 20, overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+                              {ev.month.replace("-", "年")}月
+                            </span>
+                            {ev.confirmed && (
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "rgba(16,185,129,0.08)", color: "#10B981" }}>
+                                確定済
+                              </span>
+                            )}
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, minWidth: 20, textAlign: "right" }}>{val}</span>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ fontSize: 22, fontWeight: 800, color: ACCENT }}>{ev.total}</span>
+                            <span style={{ fontSize: 12, color: T.muted }}> pt</span>
+                            <p style={{ fontSize: 12, color: T.muted }}>平均 {avg}/5.0</p>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
+                        {/* Criteria bars */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {scores.map((val, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 12, color: T.sub, minWidth: 120 }}>{EVAL_LABELS[i]}</span>
+                              <div style={{ flex: 1, height: 8, borderRadius: 4, background: T.bg, overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 4, width: `${(val / 5) * 100}%`, background: ACCENT }} />
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: ACCENT, minWidth: 20, textAlign: "right" }}>{val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
+          ) : (
+            <Card style={{ padding: 40, textAlign: "center" }}>
+              <BarChart2 size={32} style={{ color: T.muted, marginBottom: 8 }} />
+              <p style={{ color: T.muted }}>評価データがまだありません</p>
+              <p style={{ fontSize: 13, color: T.muted, marginTop: 8 }}>月次評価を実施するとデータが表示されます</p>
+            </Card>
+          )}
         </div>
       )}
     </div>

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target, ChevronLeft, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target, ChevronLeft, Calendar, BarChart2 } from "lucide-react";
 import { T } from "../lib/design-tokens";
+import { useAppContext } from "../lib/app-context";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -736,6 +737,9 @@ function PeriodPicker({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
+  const { company } = useAppContext();
+  const isTestAccount = company?.adminEmail === "test@kaitai-link.demo";
+
   const now = new Date();
   const [mode, setMode] = useState<ViewMode>("month");
   const [year, setYear] = useState(now.getFullYear());
@@ -744,6 +748,39 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<"profitRate" | "profitAmt">("profitRate");
   const [showPicker, setShowPicker] = useState(false);
   const [selectedBarIdx, setSelectedBarIdx] = useState<number | null>(null);
+
+  // テストアカウント以外はデータなし画面を表示
+  if (!isTestAccount) {
+    return (
+      <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: C.text }}>経営分析</h1>
+          <p className="text-sm mt-1" style={{ color: C.sub }}>収支・利益をリアルタイム集計</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4"
+          style={{ background: T.surface, borderRadius: 16, border: `1.5px dashed ${T.border}` }}>
+          <BarChart2 size={48} style={{ color: T.muted }} />
+          <p style={{ fontSize: 18, fontWeight: 800, color: T.sub }}>まだデータがありません</p>
+          <p style={{ fontSize: 14, color: T.muted, textAlign: "center", lineHeight: 1.8 }}>
+            現場・プロジェクトのデータが蓄積されると、<br />
+            売上・原価・利益率などの経営分析が表示されます。
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Link href="/kaitai/admin/sites"
+              className="px-5 py-3 rounded-xl font-bold text-sm"
+              style={{ background: T.primary, color: "#FFF" }}>
+              現場を登録する
+            </Link>
+            <Link href="/kaitai/admin/members"
+              className="px-5 py-3 rounded-xl font-bold text-sm"
+              style={{ background: T.bg, color: T.sub, border: `1.5px solid ${T.border}` }}>
+              従業員を登録する
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const s = mode === "year" ? generateYearStats(year) : generateMonthStats(year, month);
   const totalCost = s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost;
