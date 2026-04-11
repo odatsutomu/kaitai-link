@@ -10,7 +10,7 @@ import {
   Zap, Flame, Droplets, Trash2, AlertCircle,
   ParkingSquare, HardHat, Megaphone, Package,
   ClipboardList, Fuel, CircleStop, FolderOpen,
-  Image as ImageIcon, ZoomIn,
+  Image as ImageIcon, ZoomIn, Pencil,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
 
@@ -811,6 +811,19 @@ function TabHistory({
           }}
         >
           <Fuel size={18} /> 経費・燃料
+        </Link>
+        <Link
+          href={`/kaitai/report/photo-mark?siteId=${siteId}`}
+          className="flex items-center gap-2 px-4 py-3 rounded-full"
+          style={{
+            background: "#6366F1", color: "#fff",
+            fontSize: 14, fontWeight: 700,
+            boxShadow: "0 4px 14px rgba(99,102,241,0.35)",
+            textDecoration: "none",
+            minHeight: 48,
+          }}
+        >
+          <Pencil size={18} /> 写真マーキング
         </Link>
         <Link
           href={`/kaitai/report/finish?siteId=${siteId}`}

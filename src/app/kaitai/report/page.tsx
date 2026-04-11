@@ -501,6 +501,16 @@ export default function ReportPage() {
             onClick={() => router.push(`/kaitai/report/expense?${siteQs}`)}
             wide
           />
+          <ActionTile
+            emoji="🖊️"
+            label="写真マーキング"
+            sub="写真に危険・残置物などを意味付きペンで記録"
+            bg="#EFF6FF"
+            border="1.5px solid #BFDBFE"
+            textColor="#1E40AF"
+            onClick={() => router.push(`/kaitai/report/photo-mark?${siteQs}`)}
+            wide
+          />
         </div>
       </div>
 
