@@ -267,6 +267,7 @@ export default function SiteEditPage({
 
   // Tab 2
   const [contract, setContract] = useState("");
+  const [paidAmount, setPaidAmount] = useState("");
   const [wasteB, setWasteB]     = useState("");
   const [laborB, setLaborB]     = useState("");
   const [subB, setSubB]         = useState("");
@@ -295,6 +296,7 @@ export default function SiteEditPage({
         const contractStr = s.contractAmount ? String(s.contractAmount) : "";
         setContract(contractStr);
         setSavedContract(contractStr);
+        if (s.paidAmount) setPaidAmount(String(s.paidAmount));
         const endStr = (s.endDate as string) ?? "";
         setSavedEndDate(endStr);
         if (s.structureType) setStructureType(s.structureType as StructureType);
@@ -448,9 +450,43 @@ export default function SiteEditPage({
     setChangeReason("");
   }
 
-  function handleSave() {
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
     if (!name.trim()) { setTab(0); return; }
-    alert("更新しました（デモ）");
+    if (!id) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/kaitai/sites", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          name: name.trim(),
+          address: address.trim(),
+          status,
+          startDate: startDate || null,
+          endDate: endDate || null,
+          contractAmount: parseInt(contract) || 0,
+          paidAmount: parseInt(paidAmount) || 0,
+          structureType: structureType || null,
+          clientId: clientType === "registered" ? clientId : null,
+          lat: mapPos?.lat ?? null,
+          lng: mapPos?.lng ?? null,
+          progressPct: 0,
+        }),
+      });
+      if (res.ok) {
+        alert("更新しました");
+      } else {
+        alert("保存に失敗しました");
+      }
+    } catch {
+      alert("保存に失敗しました");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // ─── Contract data helpers ──────────────────────────────────────────────────
@@ -790,6 +826,33 @@ export default function SiteEditPage({
                             <span className="text-sm font-bold" style={{ color: C.text }}>¥{(contractNum + taxAmount).toLocaleString()}</span>
                           </div>
                         </>
+                      )}
+                    </div>
+
+                    <div>
+                      <FieldLabel>入金額（累計）</FieldLabel>
+                      <AmountInput value={paidAmount} onChange={setPaidAmount} placeholder="0" />
+                      {contractNum > 0 && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm" style={{ color: C.muted }}>入金率</span>
+                            <span className="text-sm font-bold" style={{ color: (parseInt(paidAmount) || 0) >= contractNum ? "#16A34A" : C.amber }}>
+                              {Math.round(((parseInt(paidAmount) || 0) / contractNum) * 100)}%
+                            </span>
+                          </div>
+                          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: C.border }}>
+                            <div className="h-full rounded-full transition-all" style={{
+                              width: `${Math.min(Math.round(((parseInt(paidAmount) || 0) / contractNum) * 100), 100)}%`,
+                              background: (parseInt(paidAmount) || 0) >= contractNum ? "#16A34A" : `linear-gradient(90deg, ${C.amber}, ${C.amberDk})`,
+                            }} />
+                          </div>
+                          <div className="flex items-center justify-between mt-1.5 px-3 py-2 rounded-xl" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
+                            <span className="text-sm" style={{ color: C.sub }}>未入金残高</span>
+                            <span className="text-sm font-bold" style={{ color: (contractNum - (parseInt(paidAmount) || 0)) > 0 ? C.amber : "#16A34A" }}>
+                              ¥{Math.max(contractNum - (parseInt(paidAmount) || 0), 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
 

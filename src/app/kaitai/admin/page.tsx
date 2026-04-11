@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, Target, ChevronLeft, Calendar, BarChart2 } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, ChevronRight, ArrowUpDown, ChevronLeft, Calendar, BarChart2, Banknote, Receipt, Wallet } from "lucide-react";
 import { T } from "../lib/design-tokens";
-import { useAppContext } from "../lib/app-context";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -13,191 +12,48 @@ const C = {
   amber: T.primary, amberDk: T.primaryDk,
   brand: T.primary,
   slate: "#475569",
-  green: "#10B981", red: "#EF4444",
+  green: "#10B981", red: "#EF4444", blue: "#3B82F6",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ViewMode = "month" | "year";
+type SiteSummary = {
+  id: string;
+  name: string;
+  status: string;
+  contractAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  costAmount: number;
+  expenseTotal: number;
+  startDate: string | null;
+  endDate: string | null;
+  progressPct: number;
+};
 
-type PeriodStats = {
-  revenue: number;
+type FinanceTotals = {
+  contractAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  totalCost: number;
+  profit: number;
+  profitRate: number;
   wasteCost: number;
   laborCost: number;
   vehicleCost: number;
+  materialCost: number;
   otherCost: number;
-  yoyRevenue: number;
-  yoyProfit: number;
-  forecast?: number;
-  target?: number;
 };
 
-type SiteRevenue = { name: string; amount: number; color: string };
-type CostBreakdown = { waste: number; labor: number; vehicle: number; other: number };
-
-type MonthBar = {
-  label: string;
-  revenue: number;
-  cost: number;
-  siteRevenues: SiteRevenue[];
-  costBreakdown: CostBreakdown;
-  prevRevenue?: number;
-  prevCost?: number;
+type FinanceData = {
+  totals: FinanceTotals;
+  sites: SiteSummary[];
+  expenseByCategory: Record<string, number>;
+  activeSiteCount: number;
+  totalSiteCount: number;
 };
 
-// Site color palette for stacked revenue bars
-const SITE_COLORS = [
-  "#B45309", "#D97706", "#F59E0B", "#FBBF24", "#92400E",
-  "#78350F", "#CA8A04", "#EAB308", "#A16207", "#854D0E",
-];
-
-type SiteRank = {
-  id: string;
-  name: string;
-  contract: number;
-  cost: number;
-  status: "解体中" | "完工" | "着工前";
-  alert?: string;
-};
-
-// ─── Mock data generator ─────────────────────────────────────────────────────
-
-function generateMonthStats(year: number, month: number): PeriodStats {
-  const seed = year * 100 + month;
-  const base = 6_000_000 + (seed % 17) * 400_000;
-  const seasonFactor = [0.8, 0.85, 1.1, 1.05, 0.95, 0.9, 0.85, 0.75, 0.9, 1.05, 1.15, 1.2][month - 1] ?? 1;
-  const yearFactor = 1 + (year - 2023) * 0.12;
-  const revenue = Math.round(base * seasonFactor * yearFactor);
-  const wastePct = 0.22 + (seed % 7) * 0.01;
-  const laborPct = 0.28 + (seed % 5) * 0.01;
-  const vehiclePct = 0.06 + (seed % 3) * 0.005;
-  const otherPct = 0.08 + (seed % 4) * 0.005;
-  return {
-    revenue,
-    wasteCost: Math.round(revenue * wastePct),
-    laborCost: Math.round(revenue * laborPct),
-    vehicleCost: Math.round(revenue * vehiclePct),
-    otherCost: Math.round(revenue * otherPct),
-    yoyRevenue: Math.round(revenue * 0.88),
-    yoyProfit: Math.round(revenue * 0.3 * 0.85),
-    forecast: month === new Date().getMonth() + 1 && year === new Date().getFullYear()
-      ? Math.round(revenue * 0.62) : undefined,
-    target: Math.round(revenue * 1.1),
-  };
-}
-
-function generateYearStats(year: number): PeriodStats {
-  const months = Array.from({ length: 12 }, (_, i) => generateMonthStats(year, i + 1));
-  const sum = (fn: (s: PeriodStats) => number) => months.reduce((a, m) => a + fn(m), 0);
-  return {
-    revenue: sum(m => m.revenue),
-    wasteCost: sum(m => m.wasteCost),
-    laborCost: sum(m => m.laborCost),
-    vehicleCost: sum(m => m.vehicleCost),
-    otherCost: sum(m => m.otherCost),
-    yoyRevenue: sum(m => m.yoyRevenue),
-    yoyProfit: sum(m => m.yoyProfit),
-    target: sum(m => m.target ?? 0),
-  };
-}
-
-// Site names for revenue breakdown
-const DEMO_SITES = ["山田邸解体", "旧田中倉庫", "旧工場棟(1期)", "松本AP解体"];
-
-function splitRevenueBySite(total: number, seed: number): SiteRevenue[] {
-  const n = 2 + (seed % 3); // 2-4 sites
-  const sites = DEMO_SITES.slice(0, n);
-  const weights = sites.map((_, i) => 1 + ((seed * (i + 3)) % 5));
-  const wSum = weights.reduce((a, b) => a + b, 0);
-  return sites.map((name, i) => ({
-    name,
-    amount: Math.round(total * weights[i] / wSum),
-    color: SITE_COLORS[i % SITE_COLORS.length],
-  }));
-}
-
-function splitCost(total: number, seed: number): CostBreakdown {
-  const wp = 0.32 + (seed % 7) * 0.01;
-  const lp = 0.38 + (seed % 5) * 0.01;
-  const vp = 0.12 + (seed % 3) * 0.005;
-  const sum = wp + lp + vp;
-  return {
-    waste:   Math.round(total * wp / (sum + 0.18)),
-    labor:   Math.round(total * lp / (sum + 0.18)),
-    vehicle: Math.round(total * vp / (sum + 0.18)),
-    other:   Math.round(total * 0.18 / (sum + 0.18)),
-  };
-}
-
-function generateMonthBars(year: number, month: number): MonthBar[] {
-  const s = generateMonthStats(year, month);
-  const weeks = 4;
-  return Array.from({ length: weeks }, (_, i) => {
-    const pct = [0.22, 0.28, 0.3, 0.2][i];
-    const rev = Math.round(s.revenue * pct);
-    const cost = Math.round((s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost) * pct);
-    const seed = year * 1000 + month * 10 + i;
-    return {
-      label: `W${i + 1}`,
-      revenue: rev,
-      cost,
-      siteRevenues: splitRevenueBySite(rev, seed),
-      costBreakdown: splitCost(cost, seed),
-    };
-  });
-}
-
-function generateYearBars(year: number): MonthBar[] {
-  const prevYear = year - 1;
-  return Array.from({ length: 12 }, (_, i) => {
-    const m = generateMonthStats(year, i + 1);
-    const pm = generateMonthStats(prevYear, i + 1);
-    const cost = m.wasteCost + m.laborCost + m.vehicleCost + m.otherCost;
-    const prevCost = pm.wasteCost + pm.laborCost + pm.vehicleCost + pm.otherCost;
-    const seed = year * 100 + i;
-    return {
-      label: `${i + 1}月`,
-      revenue: m.revenue,
-      cost,
-      siteRevenues: splitRevenueBySite(m.revenue, seed),
-      costBreakdown: splitCost(cost, seed),
-      prevRevenue: pm.revenue,
-      prevCost,
-    };
-  });
-}
-
-const SITE_RANKS: SiteRank[] = [
-  { id: "s4", name: "旧工場棟解体（第1期）", contract: 8_400_000, cost: 6_100_000, status: "完工", alert: "原価超過リスク" },
-  { id: "s1", name: "山田邸解体工事",        contract: 3_200_000, cost: 1_840_000, status: "解体中" },
-  { id: "s2", name: "旧田中倉庫解体",        contract: 5_600_000, cost: 2_100_000, status: "解体中" },
-  { id: "s3", name: "松本アパート解体",      contract: 2_800_000, cost:         0, status: "着工前" },
-];
-
-// ─── New panel data ───────────────────────────────────────────────────────────
-
-const GAP_DATA = [
-  { name: "山田邸", estimate: 1_600_000, actual: 1_840_000 },
-  { name: "旧田中", estimate: 2_400_000, actual: 2_100_000 },
-  { name: "旧工場", estimate: 5_200_000, actual: 6_100_000 },
-  { name: "松本AP", estimate: 2_200_000, actual: null },
-];
-
-const CLIENT_RANKS = [
-  { name: "ABC解体㈱",  revenue: 12_400_000, profit: 3_720_000 },
-  { name: "田中建設",   revenue:  8_800_000, profit: 2_288_000 },
-  { name: "個人（山田）",revenue:  3_200_000, profit: 1_360_000 },
-  { name: "関東工務店", revenue:  5_600_000, profit:   840_000 },
-];
-
-const WASTE_TREND = [
-  { month: "10月", cost: 1_840_000, unit: 38_000 },
-  { month: "11月", cost: 2_100_000, unit: 41_000 },
-  { month: "12月", cost: 1_980_000, unit: 39_500 },
-  { month: "1月",  cost: 1_720_000, unit: 37_000 },
-  { month: "2月",  cost: 2_040_000, unit: 42_000 },
-  { month: "3月",  cost: 2_040_000, unit: 40_800 },
-];
+type ViewMode = "month" | "year";
 
 const ALERT_THRESHOLD = 20;
 
@@ -245,371 +101,39 @@ function DonutChart({
   );
 }
 
-// ─── SVG Bar chart ───────────────────────────────────────────────────────────
+// ─── Revenue Flow Bar ─────────────────────────────────────────────────────────
 
-function fmtAxis(n: number): string {
-  if (n >= 10_000_000) return `${(n / 10_000_000).toFixed(n % 10_000_000 === 0 ? 0 : 1)}千万`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}百万`;
-  if (n >= 10_000) return `${Math.round(n / 10_000)}万`;
-  return `${n}`;
-}
-
-function niceStep(maxVal: number): number {
-  const raw = maxVal / 4;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const norm = raw / mag;
-  if (norm <= 1) return mag;
-  if (norm <= 2) return 2 * mag;
-  if (norm <= 5) return 5 * mag;
-  return 10 * mag;
-}
-
-const COST_COLORS = {
-  waste: "#F87171", labor: "#FB923C", vehicle: "#92400E", other: "#9CA3AF",
-};
-const COST_LABELS: Record<string, string> = {
-  waste: "産廃費", labor: "労務費", vehicle: "車両・燃料", other: "その他",
-};
-
-function BarChart({ bars, compare = false, selectedIdx, onSelect }: {
-  bars: MonthBar[]; compare?: boolean;
-  selectedIdx: number | null; onSelect: (i: number | null) => void;
-}) {
-  const H = 120;
-  const LPAD = 52;
-  const maxVal = Math.max(...bars.flatMap(b => [b.revenue, compare ? (b.prevRevenue ?? 0) : 0]), 1);
-  const n = bars.length;
-  const VW = 400;
-  const chartW = VW - LPAD;
-  const groupW = chartW / n;
-  const bw = compare ? 7 : 10;
-
-  const step = niceStep(maxVal);
-  const ticks: number[] = [];
-  for (let v = 0; v <= maxVal; v += step) ticks.push(v);
-  if (ticks[ticks.length - 1] < maxVal) ticks.push(ticks[ticks.length - 1] + step);
-  const yMax = ticks[ticks.length - 1] || 1;
-  const toY = (v: number) => H - (v / yMax) * H;
+function RevenueFlowBar({ contract, paid, cost }: { contract: number; paid: number; cost: number }) {
+  if (contract === 0) return null;
+  const paidPct = Math.min(Math.round((paid / contract) * 100), 100);
+  const costPct = contract > 0 ? Math.min(Math.round((cost / contract) * 100), 100) : 0;
 
   return (
-    <svg viewBox={`0 0 ${VW} ${H + 24}`} width="100%" style={{ display: "block" }}>
-      {/* Y-axis */}
-      {ticks.map(v => (
-        <g key={v}>
-          <line x1={LPAD} y1={toY(v)} x2={VW} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray={v === 0 ? undefined : "3,3"} />
-          <text x={LPAD - 6} y={toY(v) + 3.5} textAnchor="end" fontSize={8} fill={T.muted} fontWeight={500}>
-            ¥{fmtAxis(v)}
-          </text>
-        </g>
-      ))}
-
-      {bars.map((b, i) => {
-        const cx = LPAD + i * groupW + groupW / 2;
-        const isSelected = selectedIdx === i;
-        const opacity = selectedIdx !== null && !isSelected ? 0.35 : 1;
-
-        // ── Revenue: stacked by site ──
-        const revX = cx - bw - 2;
-        let revY = H;
-        const revSegments = b.siteRevenues.map(sr => {
-          const segH = Math.max((sr.amount / yMax) * H, 0.5);
-          revY -= segH;
-          return { ...sr, y: revY, h: segH };
-        });
-
-        // ── Cost: stacked by category ──
-        const costX = cx + 2;
-        let costY = H;
-        const cb = b.costBreakdown;
-        const costSegments = [
-          { key: "waste",   amount: cb.waste,   color: COST_COLORS.waste },
-          { key: "labor",   amount: cb.labor,   color: COST_COLORS.labor },
-          { key: "vehicle", amount: cb.vehicle, color: COST_COLORS.vehicle },
-          { key: "other",   amount: cb.other,   color: COST_COLORS.other },
-        ].map(seg => {
-          const segH = Math.max((seg.amount / yMax) * H, 0.5);
-          costY -= segH;
-          return { ...seg, y: costY, h: segH };
-        });
-
-        return (
-          <g key={i} opacity={opacity} style={{ cursor: "pointer" }} onClick={() => onSelect(isSelected ? null : i)}>
-            {/* Click area */}
-            <rect x={cx - groupW / 2} y={0} width={groupW} height={H + 20} fill="transparent" />
-
-            {/* Selected highlight */}
-            {isSelected && (
-              <rect x={cx - groupW / 2 + 2} y={0} width={groupW - 4} height={H} rx={4} fill={T.primaryLt} />
-            )}
-
-            {compare && b.prevRevenue ? (
-              <>
-                <rect
-                  x={cx - bw * 2 - 2} y={H - Math.max((b.prevRevenue / yMax) * H, 2)}
-                  width={bw} height={Math.max((b.prevRevenue / yMax) * H, 2)}
-                  rx={2} fill={T.primaryMd}
-                />
-                <rect
-                  x={cx - bw + 1} y={H - Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
-                  width={bw} height={Math.max(((b.prevCost ?? 0) / yMax) * H, 2)}
-                  rx={2} fill="rgba(71,85,105,0.2)"
-                />
-                {/* Stacked revenue */}
-                {revSegments.map((seg, si) => (
-                  <rect key={`r${si}`} x={cx + 2} y={seg.y} width={bw} height={seg.h} fill={seg.color}
-                    rx={si === 0 ? 2 : 0} />
-                ))}
-                {/* Stacked cost */}
-                {costSegments.map((seg, si) => (
-                  <rect key={`c${si}`} x={cx + bw + 4} y={seg.y} width={bw} height={seg.h} fill={seg.color}
-                    rx={si === 0 ? 2 : 0} />
-                ))}
-              </>
-            ) : (
-              <>
-                {/* Stacked revenue bar */}
-                {revSegments.map((seg, si) => (
-                  <rect key={`r${si}`} x={revX} y={seg.y} width={bw} height={seg.h} fill={seg.color}
-                    rx={si === 0 ? 2 : 0} />
-                ))}
-                {/* Stacked cost bar */}
-                {costSegments.map((seg, si) => (
-                  <rect key={`c${si}`} x={costX} y={seg.y} width={bw} height={seg.h} fill={seg.color}
-                    rx={si === 0 ? 2 : 0} />
-                ))}
-              </>
-            )}
-
-            <text x={cx} y={H + 14} textAnchor="middle" fontSize={9} fill={isSelected ? C.brand : T.muted} fontWeight={isSelected ? 700 : 400}>
-              {b.label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ─── Detail panel for selected bar ──────────────────────────────────────────
-
-function BarDetail({ bar }: { bar: MonthBar }) {
-  const cb = bar.costBreakdown;
-  const totalCost = cb.waste + cb.labor + cb.vehicle + cb.other;
-  const profit = bar.revenue - totalCost;
-  const profitRate = bar.revenue > 0 ? Math.round((profit / bar.revenue) * 100) : 0;
-
-  return (
-    <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${T.border}` }}>
-      <div className="grid grid-cols-2 gap-4">
-        {/* Revenue breakdown */}
-        <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.brand, marginBottom: 8 }}>
-            売上内訳 ¥{Math.round(bar.revenue).toLocaleString("ja-JP")}
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {bar.siteRevenues.map((sr, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: sr.color }} />
-                <span style={{ fontSize: 12, color: C.text, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {sr.name}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>
-                  ¥{Math.round(sr.amount).toLocaleString("ja-JP")}
-                </span>
-              </div>
-            ))}
-          </div>
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>受注 → 売上フロー</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.brand }}>{paidPct}% 入金済み</span>
+      </div>
+      {/* Contract → Paid bar */}
+      <div className="relative h-6 rounded-lg overflow-hidden" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
+        <div className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${paidPct}%`, background: `linear-gradient(90deg, ${C.green}, #34D399)` }} />
+        <div className="absolute inset-y-0 left-0 flex items-center justify-center w-full">
+          <span style={{ fontSize: 11, fontWeight: 700, color: paidPct > 50 ? "#fff" : C.text }}>
+            {fmt(paid)} / {fmt(contract)}
+          </span>
         </div>
-
-        {/* Cost breakdown */}
-        <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.slate, marginBottom: 8 }}>
-            原価内訳 ¥{Math.round(totalCost).toLocaleString("ja-JP")}
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {([
-              { key: "waste", amount: cb.waste, color: COST_COLORS.waste },
-              { key: "labor", amount: cb.labor, color: COST_COLORS.labor },
-              { key: "vehicle", amount: cb.vehicle, color: COST_COLORS.vehicle },
-              { key: "other", amount: cb.other, color: COST_COLORS.other },
-            ] as const).map(seg => (
-              <div key={seg.key} className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: seg.color }} />
-                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>
-                  {COST_LABELS[seg.key]}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>
-                  ¥{Math.round(seg.amount).toLocaleString("ja-JP")}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 pt-2" style={{ borderTop: `1px dashed ${T.border}` }}>
-            <div className="flex items-center justify-between">
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>粗利</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: profit >= 0 ? C.green : C.red }}>
-                ¥{Math.round(profit).toLocaleString("ja-JP")} ({profitRate}%)
-              </span>
-            </div>
-          </div>
+      </div>
+      {/* Cost bar overlay */}
+      <div className="mt-1.5">
+        <div className="flex items-center justify-between mb-0.5">
+          <span style={{ fontSize: 11, color: C.muted }}>原価率</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: costPct > 80 ? C.red : C.sub }}>{costPct}%</span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
+          <div className="h-full rounded-full" style={{ width: `${costPct}%`, background: costPct > 80 ? C.red : "#FB923C" }} />
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Panel A: Gap chart ─────────────────────────────────────────────────────
-
-function GapChart() {
-  const H = 90;
-  const LPAD = 48;
-  const VW = 340;
-  const n = GAP_DATA.length;
-  const chartW = VW - LPAD;
-  const groupW = chartW / n;
-  const bw = 10;
-  const maxVal = Math.max(...GAP_DATA.flatMap(d => [d.estimate, d.actual ?? 0]), 1);
-
-  const step = niceStep(maxVal);
-  const ticks: number[] = [];
-  for (let v = 0; v <= maxVal; v += step) ticks.push(v);
-  if (ticks[ticks.length - 1] < maxVal) ticks.push(ticks[ticks.length - 1] + step);
-  const yMax = ticks[ticks.length - 1] || 1;
-  const toY = (v: number) => H - (v / yMax) * H;
-
-  return (
-    <svg viewBox={`0 0 ${VW} ${H + 20}`} width="100%" style={{ display: "block" }}>
-      {ticks.map(v => (
-        <g key={v}>
-          <line x1={LPAD} y1={toY(v)} x2={VW} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray={v === 0 ? undefined : "3,3"} />
-          <text x={LPAD - 5} y={toY(v) + 3} textAnchor="end" fontSize={7} fill={T.muted}>
-            ¥{fmtAxis(v)}
-          </text>
-        </g>
-      ))}
-      {GAP_DATA.map((d, i) => {
-        const cx = LPAD + i * groupW + groupW / 2;
-        const estH = Math.max((d.estimate / yMax) * H, 2);
-        const actH = d.actual ? Math.max((d.actual / yMax) * H, 2) : 0;
-        const over = d.actual != null && d.actual > d.estimate;
-        return (
-          <g key={i}>
-            <rect x={cx - bw - 1} y={H - estH} width={bw} height={estH} rx={3} fill={T.primaryMd} />
-            {d.actual != null && d.actual > 0 && (
-              <rect x={cx + 1} y={H - actH} width={bw} height={actH} rx={3}
-                fill={over ? "#EF4444" : "#10B981"} fillOpacity={0.8} />
-            )}
-            {over && (
-              <circle cx={cx + 1 + bw / 2} cy={H - actH - 5} r={3} fill="#EF4444" />
-            )}
-            <text x={cx} y={H + 14} textAnchor="middle" fontSize={8} fill={T.muted}>
-              {d.name}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ─── Panel B: Client profit horizontal bars ─────────────────────────────────
-
-function ClientBars() {
-  const sorted = [...CLIENT_RANKS].sort((a, b) => (b.profit / b.revenue) - (a.profit / a.revenue));
-  const maxRev = Math.max(...sorted.map(c => c.revenue), 1);
-  return (
-    <div className="flex flex-col gap-3">
-      {sorted.map((c, i) => {
-        const rate = Math.round((c.profit / c.revenue) * 100);
-        const barPct = (c.revenue / maxRev) * 100;
-        const rateColor = rate >= 30 ? C.green : rate >= 20 ? C.amber : C.red;
-        return (
-          <div key={i}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-semibold" style={{ color: C.text }}>{c.name}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold font-numeric" style={{ color: C.sub }}>
-                  ¥{Math.round(c.revenue).toLocaleString("ja-JP")}
-                </span>
-                <span
-                  className="text-sm font-bold font-numeric px-1.5 py-0.5 rounded-md"
-                  style={{ background: `${rateColor}18`, color: rateColor, minWidth: 40, textAlign: "right" }}
-                >
-                  {rate}%
-                </span>
-              </div>
-            </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${barPct}%`, background: `linear-gradient(90deg, ${C.brand} 0%, ${C.amberDk} 100%)` }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Panel C: Waste trend line chart ────────────────────────────────────────
-
-function WasteTrendChart() {
-  const LPAD = 48;
-  const W = 340, H = 90, PAD = 8;
-  const n = WASTE_TREND.length;
-  const costs = WASTE_TREND.map(d => d.cost);
-  const rawMin = Math.min(...costs);
-  const rawMax = Math.max(...costs);
-
-  // Y-axis with nice ticks covering data range
-  const step = niceStep(rawMax);
-  const ticks: number[] = [];
-  const yFloor = Math.floor(rawMin / step) * step;
-  for (let v = yFloor; v <= rawMax + step * 0.5; v += step) ticks.push(v);
-  const minC = ticks[0];
-  const maxC = ticks[ticks.length - 1];
-
-  const toY = (v: number) => PAD + ((maxC - v) / (maxC - minC)) * (H - PAD);
-  const toX = (i: number) => LPAD + (i / (n - 1)) * (W - LPAD - 16) + 8;
-
-  const points = WASTE_TREND.map((d, i) => ({ x: toX(i), y: toY(d.cost) }));
-  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaD = `${pathD} L ${points[n-1].x} ${H} L ${points[0].x} ${H} Z`;
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H + 18}`} width="100%" style={{ display: "block" }}>
-      {/* Y-axis grid lines and labels */}
-      {ticks.map(v => (
-        <g key={v}>
-          <line x1={LPAD} y1={toY(v)} x2={W} y2={toY(v)} stroke={T.border} strokeWidth={0.5} strokeDasharray="3,3" />
-          <text x={LPAD - 5} y={toY(v) + 3} textAnchor="end" fontSize={7} fill={T.muted}>
-            ¥{fmtAxis(v)}
-          </text>
-        </g>
-      ))}
-      <path d={areaD} fill="url(#wasteGrad)" fillOpacity={0.3} />
-      <path d={pathD} fill="none" stroke={C.brand} strokeWidth={2} strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3} fill={C.brand} stroke="#fff" strokeWidth={1.5} />
-      ))}
-      {WASTE_TREND.map((d, i) => (
-        <text key={i} x={toX(i)} y={H + 14} textAnchor="middle" fontSize={8} fill={T.muted}>
-          {d.month}
-        </text>
-      ))}
-      {points.map((p, i) => (
-        <text key={i} x={p.x} y={p.y - 6} textAnchor="middle" fontSize={7} fill={C.amberDk} fontWeight={700}>
-          ¥{WASTE_TREND[i].unit.toLocaleString("ja-JP")}
-        </text>
-      ))}
-      <defs>
-        <linearGradient id="wasteGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={C.brand} />
-          <stop offset="100%" stopColor={C.brand} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-    </svg>
   );
 }
 
@@ -651,24 +175,18 @@ function PeriodPicker({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Mode toggle */}
       <div className="flex gap-1 p-1 rounded-lg" style={{ background: T.bg }}>
         {(["month", "year"] as const).map(m => (
           <button
             key={m}
             onClick={() => onModeChange(m)}
             className="px-3 py-1.5 rounded-md text-sm font-bold transition-all"
-            style={mode === m
-              ? { background: C.amber, color: T.surface }
-              : { color: C.sub }
-            }
+            style={mode === m ? { background: C.amber, color: T.surface } : { color: C.sub }}
           >
             {m === "month" ? "月別" : "年間"}
           </button>
         ))}
       </div>
-
-      {/* Year selector */}
       <div className="flex items-center gap-2">
         <button onClick={() => onYearChange(year - 1)}
           className="w-8 h-8 flex items-center justify-center rounded-lg"
@@ -685,8 +203,6 @@ function PeriodPicker({
           <ChevronRight size={16} />
         </button>
       </div>
-
-      {/* Month grid (only in month mode) */}
       {mode === "month" && (
         <div className="grid grid-cols-6 gap-1">
           {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
@@ -699,9 +215,7 @@ function PeriodPicker({
                 className="py-1.5 rounded-md text-sm font-bold transition-all"
                 style={month === m
                   ? { background: C.amber, color: "#FFF" }
-                  : isFuture
-                  ? { color: C.muted, opacity: 0.3 }
-                  : { color: C.sub, background: T.bg }
+                  : isFuture ? { color: C.muted, opacity: 0.3 } : { color: C.sub, background: T.bg }
                 }
               >
                 {m}月
@@ -710,8 +224,6 @@ function PeriodPicker({
           })}
         </div>
       )}
-
-      {/* Quick links */}
       <div className="flex gap-1 flex-wrap">
         {[
           { label: "今月", action: () => { onModeChange("month"); onYearChange(currentYear); onMonthChange(now.getMonth() + 1); } },
@@ -721,7 +233,6 @@ function PeriodPicker({
             onModeChange("month"); onYearChange(py); onMonthChange(pm);
           }},
           { label: `${currentYear}年`, action: () => { onModeChange("year"); onYearChange(currentYear); } },
-          { label: `${currentYear - 1}年`, action: () => { onModeChange("year"); onYearChange(currentYear - 1); } },
         ].map(q => (
           <button key={q.label} onClick={q.action}
             className="px-2.5 py-1 rounded-md text-xs font-bold transition-all"
@@ -734,23 +245,96 @@ function PeriodPicker({
   );
 }
 
+// ─── Cost Categories ─────────────────────────────────────────────────────────
+
+const COST_COLORS: Record<string, string> = {
+  "燃料費": "#F87171",
+  "交通費": "#92400E",
+  "資材購入": "#FB923C",
+  "工具・消耗品": "#FBBF24",
+  "食費・雑費": "#9CA3AF",
+  "その他": "#CBD5E1",
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { company } = useAppContext();
-  const isTestAccount = company?.adminEmail === "test@kaitai-link.demo";
-
   const now = new Date();
   const [mode, setMode] = useState<ViewMode>("month");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [compare, setCompare] = useState(false);
   const [sortBy, setSortBy] = useState<"profitRate" | "profitAmt">("profitRate");
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedBarIdx, setSelectedBarIdx] = useState<number | null>(null);
+  const [finance, setFinance] = useState<FinanceData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // テストアカウント以外はデータなし画面を表示
-  if (!isTestAccount) {
+  // Fetch finance data
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (mode === "month") {
+      params.set("year", String(year));
+      params.set("month", String(month));
+    } else {
+      params.set("year", String(year));
+    }
+    fetch(`/api/kaitai/finance?${params}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.ok) setFinance(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [mode, year, month]);
+
+  const t = finance?.totals;
+  const sites = finance?.sites ?? [];
+
+  // Sorted sites for ranking
+  const rankedSites = useMemo(() => {
+    const withProfit = sites.map(s => {
+      const totalCost = s.expenseTotal + s.costAmount;
+      const profit = s.paidAmount - totalCost;
+      const profitRate = s.paidAmount > 0 ? Math.round((profit / s.paidAmount) * 100) : (s.contractAmount > 0 ? null : 0);
+      return { ...s, totalCost, profit, profitRate };
+    }).filter(s => s.contractAmount > 0);
+
+    return [...withProfit].sort((a, b) => {
+      if (sortBy === "profitRate") {
+        const ra = a.profitRate ?? 100;
+        const rb = b.profitRate ?? 100;
+        return rb - ra;
+      }
+      return b.profit - a.profit;
+    });
+  }, [sites, sortBy]);
+
+  // Alert sites (low margin)
+  const alertSites = rankedSites.filter(s => {
+    if (s.paidAmount === 0) return false;
+    return s.profitRate != null && s.profitRate < ALERT_THRESHOLD;
+  });
+
+  const periodLabel = mode === "year" ? `${year}年 年間` : `${year}年${month}月`;
+
+  // Cost breakdown for donut
+  const expenseCats = finance?.expenseByCategory ?? {};
+  const pieSlices = Object.entries(expenseCats)
+    .filter(([, v]) => v > 0)
+    .map(([cat, amount]) => ({
+      value: amount,
+      color: COST_COLORS[cat] ?? "#9CA3AF",
+      label: cat,
+    }));
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center" style={{ color: C.sub }}>
+        読み込み中...
+      </div>
+    );
+  }
+
+  // No data state
+  if (!finance || (sites.length === 0 && (t?.contractAmount ?? 0) === 0)) {
     return (
       <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
         <div>
@@ -762,8 +346,8 @@ export default function AdminPage() {
           <BarChart2 size={48} style={{ color: T.muted }} />
           <p style={{ fontSize: 18, fontWeight: 800, color: T.sub }}>まだデータがありません</p>
           <p style={{ fontSize: 14, color: T.muted, textAlign: "center", lineHeight: 1.8 }}>
-            現場・プロジェクトのデータが蓄積されると、<br />
-            売上・原価・利益率などの経営分析が表示されます。
+            現場の契約金額を登録すると見込み受注額として計上され、<br />
+            入金登録で売上額に反映されます。
           </p>
           <div className="flex gap-3 mt-4">
             <Link href="/kaitai/admin/sites"
@@ -782,42 +366,9 @@ export default function AdminPage() {
     );
   }
 
-  const s = mode === "year" ? generateYearStats(year) : generateMonthStats(year, month);
-  const totalCost = s.wasteCost + s.laborCost + s.vehicleCost + s.otherCost;
-  const profit = s.revenue - totalCost;
-  const profitRate = s.revenue > 0 ? Math.round((profit / s.revenue) * 1000) / 10 : 0;
-  const yoyChange = s.yoyProfit > 0 ? Math.round(((profit - s.yoyProfit) / s.yoyProfit) * 1000) / 10 : 0;
-  const isYoyUp = yoyChange >= 0;
-
-  const kpiValue = mode === "month" && s.forecast ? s.forecast : profit;
-  const kpiTarget = s.target;
-  const kpiProgress = kpiTarget ? Math.min(Math.round((kpiValue / kpiTarget) * 100), 100) : null;
-
-  const canCompare = mode === "year";
-
-  const alertSites = SITE_RANKS.filter(r => {
-    if (r.cost === 0) return false;
-    return Math.round(((r.contract - r.cost) / r.contract) * 100) < ALERT_THRESHOLD;
-  });
-
-  const ranked = [...SITE_RANKS].sort((a, b) => {
-    if (sortBy === "profitRate") {
-      const ra = a.cost > 0 ? (a.contract - a.cost) / a.contract : 1;
-      const rb = b.cost > 0 ? (b.contract - b.cost) / b.contract : 1;
-      return rb - ra;
-    }
-    return (b.contract - b.cost) - (a.contract - a.cost);
-  });
-
-  const bars = mode === "year" ? generateYearBars(year) : generateMonthBars(year, month);
-  const pieSlices = [
-    { value: s.wasteCost,   color: "#F87171", label: "産廃費" },
-    { value: s.laborCost,   color: "#FB923C", label: "労務費" },
-    { value: s.vehicleCost, color: "#92400E", label: "車両・燃料" },
-    { value: s.otherCost,   color: T.muted, label: "その他" },
-  ];
-
-  const periodLabel = mode === "year" ? `${year}年 年間` : `${year}年${month}月`;
+  const totalCost = t?.totalCost ?? 0;
+  const profit = (t?.paidAmount ?? 0) - totalCost;
+  const profitRate = (t?.paidAmount ?? 0) > 0 ? Math.round((profit / (t?.paidAmount ?? 1)) * 1000) / 10 : 0;
 
   return (
     <div className="py-6 flex flex-col gap-6 pb-28 md:pb-8">
@@ -828,8 +379,6 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold" style={{ color: C.text }}>経営分析</h1>
           <p className="text-sm mt-1" style={{ color: C.sub }}>収支・利益をリアルタイム集計</p>
         </div>
-
-        {/* Period display + picker toggle */}
         <div className="relative">
           <button
             onClick={() => setShowPicker(v => !v)}
@@ -839,18 +388,16 @@ export default function AdminPage() {
             <Calendar size={15} style={{ color: C.amber }} />
             {periodLabel}
           </button>
-
-          {/* Dropdown picker */}
           {showPicker && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
               <div
                 className="absolute right-0 top-full mt-2 z-50 p-4 rounded-xl"
-                style={{ background: C.card, border: `1.5px solid ${C.border}`, width: 320, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+                style={{ background: C.card, border: `1.5px solid ${C.border}`, width: 320 }}
               >
                 <PeriodPicker
                   mode={mode} year={year} month={month}
-                  onModeChange={m => { setMode(m); if (m === "year") setCompare(false); }}
+                  onModeChange={m => setMode(m)}
                   onYearChange={setYear}
                   onMonthChange={m => { setMonth(m); setShowPicker(false); }}
                 />
@@ -862,97 +409,61 @@ export default function AdminPage() {
 
       {/* ── Alert banner ── */}
       {alertSites.length > 0 && (
-        <div
-          className="flex items-center gap-3 px-5 py-4 rounded-xl"
-          style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}
-        >
+        <div className="flex items-center gap-3 px-5 py-4 rounded-xl" style={{ background: "#FEF2F2", border: "1.5px solid #FECACA" }}>
           <AlertTriangle size={20} style={{ color: C.red, flexShrink: 0 }} />
           <div className="flex-1">
-            <p className="text-sm font-bold" style={{ color: C.red }}>
-              粗利率{ALERT_THRESHOLD}%以下の現場があります
-            </p>
-            <p className="text-sm mt-0.5" style={{ color: C.sub }}>
-              {alertSites.map(s => s.name).join("・")}
-            </p>
+            <p className="text-sm font-bold" style={{ color: C.red }}>粗利率{ALERT_THRESHOLD}%以下の現場があります</p>
+            <p className="text-sm mt-0.5" style={{ color: C.sub }}>{alertSites.map(s => s.name).join("・")}</p>
           </div>
         </div>
       )}
 
-      {/* ── Top: main grid ── */}
+      {/* ── Top KPI Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "見込み受注額", value: t?.contractAmount ?? 0, icon: Banknote, color: C.blue, sub: `${finance?.totalSiteCount ?? 0}現場` },
+          { label: "売上額（入金済）", value: t?.paidAmount ?? 0, icon: Wallet, color: C.green, sub: `未入金: ${fmt(t?.remainingAmount ?? 0)}` },
+          { label: "原価合計", value: totalCost, icon: Receipt, color: "#FB923C", sub: "経費リアルタイム計上" },
+          { label: "粗利", value: profit, icon: profit >= 0 ? TrendingUp : TrendingDown, color: profit >= 0 ? C.green : C.red, sub: `粗利率 ${profitRate}%` },
+        ].map(kpi => (
+          <Card key={kpi.label} className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <kpi.icon size={16} style={{ color: kpi.color }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{kpi.label}</span>
+            </div>
+            <p className="font-bold font-numeric" style={{ fontSize: 22, color: kpi.color, lineHeight: 1.2 }}>
+              {fmt(kpi.value)}
+            </p>
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{kpi.sub}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── Main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Left column (2/3) ── */}
         <div className="lg:col-span-2 flex flex-col gap-6">
 
-          {/* 収支推移グラフ */}
+          {/* 受注→売上フロー */}
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <SectionLabel>収支推移グラフ</SectionLabel>
-              {canCompare && (
-                <button
-                  onClick={() => setCompare(c => !c)}
-                  className="text-sm font-bold px-2.5 py-1 rounded-lg transition-all"
-                  style={compare
-                    ? { background: C.amber, color: "#FFF" }
-                    : { background: T.bg, color: C.sub, border: `1px solid ${C.border}` }}
-                >
-                  昨年比較
-                </button>
-              )}
-            </div>
+            <SectionLabel>受注 → 売上フロー</SectionLabel>
             <Card className="p-5">
-              <BarChart bars={bars} compare={compare && canCompare} selectedIdx={selectedBarIdx} onSelect={setSelectedBarIdx} />
-
-              {/* Legend */}
-              <div className="flex items-center gap-3 mt-3 justify-center flex-wrap">
-                {/* Revenue legend - site colors */}
-                {bars[0]?.siteRevenues.map((sr, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: sr.color }} />
-                    <span style={{ fontSize: 11, color: C.muted }}>{sr.name}</span>
-                  </div>
-                ))}
-                <div style={{ width: 1, height: 14, background: T.border }} />
-                {/* Cost legend - category colors */}
-                {Object.entries(COST_COLORS).map(([key, color]) => (
-                  <div key={key} className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
-                    <span style={{ fontSize: 11, color: C.muted }}>{COST_LABELS[key]}</span>
-                  </div>
-                ))}
-                {compare && (
-                  <>
-                    <div style={{ width: 1, height: 14, background: T.border }} />
-                    <div className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.primaryMd }} />
-                      <span style={{ fontSize: 11, color: C.muted }}>昨年 売上</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(71,85,105,0.2)" }} />
-                      <span style={{ fontSize: 11, color: C.muted }}>昨年 原価</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Click hint */}
-              {selectedBarIdx === null && (
-                <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 6 }}>
-                  棒グラフをクリックすると内訳を表示
-                </p>
-              )}
-
-              {/* Detail panel */}
-              {selectedBarIdx !== null && bars[selectedBarIdx] && (
-                <BarDetail bar={bars[selectedBarIdx]} />
-              )}
+              <RevenueFlowBar
+                contract={t?.contractAmount ?? 0}
+                paid={t?.paidAmount ?? 0}
+                cost={totalCost}
+              />
+              <p style={{ fontSize: 11, color: C.muted, marginTop: 12, lineHeight: 1.6 }}>
+                契約金額の設定 → 見込み受注額として計上 → 入金登録で売上額へ移動 → 経費は報告時にリアルタイム計上
+              </p>
             </Card>
           </section>
 
-          {/* 現場別利益ランキング */}
+          {/* 現場別収支一覧 */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <SectionLabel>現場別利益ランキング</SectionLabel>
+              <SectionLabel>現場別収支一覧</SectionLabel>
               <button
                 onClick={() => setSortBy(s => s === "profitRate" ? "profitAmt" : "profitRate")}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
@@ -963,79 +474,75 @@ export default function AdminPage() {
               </button>
             </div>
             <Card>
+              {/* Header */}
               <div
                 className="grid px-5 py-3"
-                style={{ gridTemplateColumns: "1fr 80px 68px", borderBottom: `1px solid ${C.border}`, background: T.bg }}
+                style={{ gridTemplateColumns: "1fr 90px 90px 70px", borderBottom: `1px solid ${C.border}`, background: T.bg }}
               >
-                <span className="text-sm font-bold" style={{ color: C.muted }}>現場名</span>
-                <span className="text-sm font-bold text-right" style={{ color: C.muted }}>粗利</span>
-                <span className="text-sm font-bold text-right" style={{ color: C.muted }}>粗利率</span>
+                <span className="text-xs font-bold" style={{ color: C.muted }}>現場名</span>
+                <span className="text-xs font-bold text-right" style={{ color: C.muted }}>契約額</span>
+                <span className="text-xs font-bold text-right" style={{ color: C.muted }}>入金額</span>
+                <span className="text-xs font-bold text-right" style={{ color: C.muted }}>粗利率</span>
               </div>
-              {ranked.map((site, rank) => {
-                const siteProfit = site.contract - site.cost;
-                const siteProfitRate = site.cost > 0
-                  ? Math.round((siteProfit / site.contract) * 100)
-                  : null;
-                const isAlert = siteProfitRate != null && siteProfitRate < ALERT_THRESHOLD;
+              {rankedSites.length === 0 && (
+                <div className="py-12 text-center" style={{ color: C.muted, fontSize: 14 }}>
+                  契約金額が登録された現場がありません
+                </div>
+              )}
+              {rankedSites.map((site, rank) => {
+                const isAlert = site.profitRate != null && site.profitRate < ALERT_THRESHOLD && site.paidAmount > 0;
                 const rColor = isAlert ? C.red
-                  : siteProfitRate == null ? C.muted
-                  : siteProfitRate >= 25 ? C.green
+                  : site.profitRate == null ? C.muted
+                  : site.profitRate >= 25 ? C.green
                   : C.amber;
+                const paidPct = site.contractAmount > 0 ? Math.round((site.paidAmount / site.contractAmount) * 100) : 0;
+
                 return (
                   <Link key={site.id} href={`/kaitai/sites/${site.id}`}>
                     <div
                       className="grid px-5 py-4 hover:bg-gray-50 transition-colors"
                       style={{
-                        gridTemplateColumns: "1fr 80px 68px",
+                        gridTemplateColumns: "1fr 90px 90px 70px",
                         borderBottom: `1px solid #F1F5F9`,
                         background: isAlert ? "#FEF2F2" : "transparent",
                       }}
                     >
                       <div className="flex flex-col gap-1 min-w-0 pr-3">
                         <div className="flex items-center gap-2">
-                          <span
-                            className="text-sm font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: rank === 0 ? T.primaryLt : T.bg,
-                              color: rank === 0 ? T.primaryDk : C.muted,
-                            }}
-                          >
+                          <span className="text-xs font-bold w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                            style={{ background: rank === 0 ? T.primaryLt : T.bg, color: rank === 0 ? T.primaryDk : C.muted }}>
                             {rank + 1}
                           </span>
-                          {isAlert && (
-                            <AlertTriangle size={14} style={{ color: C.red, flexShrink: 0 }} />
-                          )}
-                          <span
-                            className="text-sm font-bold px-1.5 py-0.5 rounded-full"
-                            style={site.status === "完工"
-                              ? { background: "#F0FDF4", color: "#16A34A" }
-                              : site.status === "解体中"
+                          {isAlert && <AlertTriangle size={12} style={{ color: C.red, flexShrink: 0 }} />}
+                          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                            style={["着工・内装解体", "上屋解体・基礎", "施工中", "解体中"].includes(site.status)
                               ? { background: T.primaryLt, color: C.amberDk }
-                              : { background: T.bg, color: C.muted }}
-                          >
+                              : site.status.includes("完工") || site.status === "入金確認"
+                              ? { background: "#F0FDF4", color: "#16A34A" }
+                              : { background: T.bg, color: C.muted }}>
                             {site.status}
                           </span>
                         </div>
-                        <p className="text-sm font-semibold truncate" style={{ color: isAlert ? C.red : C.text }}>
-                          {site.name}
-                        </p>
-                        {siteProfitRate != null && (
-                          <div className="h-1 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                            <div
-                              className="h-full rounded-full"
-                              style={{ width: `${Math.min(Math.max(siteProfitRate, 0), 100)}%`, background: rColor }}
-                            />
+                        <p className="text-sm font-semibold truncate" style={{ color: isAlert ? C.red : C.text }}>{site.name}</p>
+                        {/* Mini payment progress bar */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
+                            <div className="h-full rounded-full" style={{ width: `${paidPct}%`, background: C.green }} />
                           </div>
-                        )}
+                          <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{paidPct}%入金</span>
+                        </div>
                       </div>
                       <div className="text-right self-center">
-                        <p className="text-sm font-bold font-numeric" style={{ color: rColor }}>
-                          {site.cost > 0 ? fmt(siteProfit) : "—"}
+                        <p className="text-sm font-bold font-numeric" style={{ color: C.text }}>{fmt(site.contractAmount)}</p>
+                      </div>
+                      <div className="text-right self-center">
+                        <p className="text-sm font-bold font-numeric" style={{ color: site.paidAmount > 0 ? C.green : C.muted }}>
+                          {site.paidAmount > 0 ? fmt(site.paidAmount) : "—"}
                         </p>
                       </div>
                       <div className="flex items-center justify-end gap-1 self-center">
-                        <p className="text-base font-bold font-numeric" style={{ color: rColor }}>
-                          {siteProfitRate != null ? `${siteProfitRate}%` : "—"}
+                        <p className="text-sm font-bold font-numeric" style={{ color: rColor }}>
+                          {site.profitRate != null && site.paidAmount > 0 ? `${site.profitRate}%` : "—"}
                         </p>
                         <ChevronRight size={12} style={{ color: C.muted }} />
                       </div>
@@ -1050,81 +557,54 @@ export default function AdminPage() {
         {/* ── Right column (1/3) ── */}
         <div className="flex flex-col gap-6">
 
-          {/* Hero KPI card */}
+          {/* 収支サマリー */}
           <Card className="p-6">
             <p className="text-sm uppercase tracking-widest font-bold mb-1" style={{ color: C.muted }}>
-              {mode === "month" && s.forecast ? "今月 着地予測粗利" : `${periodLabel} 粗利（実績）`}
+              {periodLabel} 収支サマリー
             </p>
-            <p className="font-bold font-numeric" style={{ fontSize: 40, lineHeight: 1, color: kpiValue >= 0 ? C.green : C.red }}>
-              {fmt(kpiValue)}
-            </p>
-            {mode === "month" && s.forecast && (
-              <p className="text-sm mt-1" style={{ color: C.muted }}>
-                確定粗利 <span style={{ color: C.sub, fontWeight: 700 }}>{fmt(profit)}</span>
-              </p>
-            )}
 
-            {kpiProgress != null && kpiTarget && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Target size={12} style={{ color: C.muted }} />
-                    <span className="text-sm" style={{ color: C.muted }}>目標達成率</span>
-                  </div>
-                  <span className="text-sm font-bold" style={{ color: kpiProgress >= 100 ? C.green : kpiProgress >= 70 ? C.amber : C.red }}>
-                    {kpiProgress}%
-                  </span>
+            {/* Revenue flow visualization */}
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between px-3 py-3 rounded-xl" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
+                <div className="flex items-center gap-2">
+                  <Banknote size={16} style={{ color: C.blue }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>見込み受注額</span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${kpiProgress}%`,
-                      background: kpiProgress >= 100 ? C.green : kpiProgress >= 70
-                        ? `linear-gradient(90deg, ${C.brand} 0%, ${C.amberDk} 100%)`
-                        : C.red,
-                    }}
-                  />
-                </div>
-                <p className="text-sm mt-1 text-right" style={{ color: C.muted }}>
-                  目標 <span className="font-bold" style={{ color: C.sub }}>{fmt(kpiTarget)}</span>
-                </p>
+                <span className="font-bold font-numeric" style={{ fontSize: 16, color: C.blue }}>{fmt(t?.contractAmount ?? 0)}</span>
               </div>
-            )}
 
-            <div className="mt-4 flex items-center justify-between">
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                style={{
-                  background: isYoyUp ? "#F0FDF4" : "#FEF2F2",
-                  border: `1px solid ${isYoyUp ? "#BBF7D0" : "#FECACA"}`,
-                }}
-              >
-                {isYoyUp
-                  ? <TrendingUp size={12} style={{ color: C.green }} />
-                  : <TrendingDown size={12} style={{ color: C.red }} />}
-                <span className="text-sm font-bold" style={{ color: isYoyUp ? C.green : C.red }}>
-                  昨対 {isYoyUp ? "+" : ""}{yoyChange}%
+              <div className="flex items-center justify-center">
+                <div style={{ width: 2, height: 20, background: C.border }} />
+                <span style={{ fontSize: 10, color: C.muted, position: "absolute" }}>入金</span>
+              </div>
+
+              <div className="flex items-center justify-between px-3 py-3 rounded-xl" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)" }}>
+                <div className="flex items-center gap-2">
+                  <Wallet size={16} style={{ color: C.green }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>売上額</span>
+                </div>
+                <span className="font-bold font-numeric" style={{ fontSize: 16, color: C.green }}>{fmt(t?.paidAmount ?? 0)}</span>
+              </div>
+
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: T.bg }}>
+                <span style={{ fontSize: 12, color: C.muted }}>未入金残高</span>
+                <span className="font-bold font-numeric" style={{ fontSize: 14, color: (t?.remainingAmount ?? 0) > 0 ? C.amber : C.muted }}>
+                  {fmt(t?.remainingAmount ?? 0)}
                 </span>
               </div>
-              <p className="text-sm" style={{ color: C.muted }}>
-                粗利率 <span className="font-bold" style={{ color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red }}>
-                  {profitRate}%
-                </span>
-              </p>
             </div>
 
             {/* KPI 4-grid */}
             <div className="grid grid-cols-2 gap-2 mt-4">
               {[
-                { label: "売上高",   value: s.revenue,   color: C.green },
-                { label: "売上原価", value: totalCost,   color: C.slate },
-                { label: "粗利益",   value: profit,      color: profit >= 0 ? C.green : C.red },
-                { label: "粗利率",   value: null,        color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red, strVal: `${profitRate}%` },
+                { label: "売上高", value: t?.paidAmount ?? 0, color: C.green },
+                { label: "売上原価", value: totalCost, color: C.slate },
+                { label: "粗利益", value: profit, color: profit >= 0 ? C.green : C.red },
+                { label: "粗利率", value: null, color: profitRate >= 25 ? C.green : profitRate >= 15 ? C.amber : C.red, strVal: `${profitRate}%` },
               ].map(({ label, value, color, strVal }) => (
                 <div key={label} className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
-                  <p className="text-sm mb-1" style={{ color: C.muted }}>{label}</p>
-                  <p className="font-bold font-numeric" style={{ fontSize: 18, color }}>
+                  <p className="text-xs mb-1" style={{ color: C.muted }}>{label}</p>
+                  <p className="font-bold font-numeric" style={{ fontSize: 16, color }}>
                     {strVal ?? fmt(value!)}
                   </p>
                 </div>
@@ -1136,142 +616,82 @@ export default function AdminPage() {
           <section>
             <SectionLabel>原価構造分析</SectionLabel>
             <Card className="p-5">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <DonutChart slices={pieSlices} size={160} outerR={70} innerR={44} />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-sm" style={{ color: C.muted }}>原価合計</p>
-                    <p className="text-sm font-bold font-numeric" style={{ color: C.text }}>{fmt(totalCost)}</p>
+              {pieSlices.length > 0 ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative">
+                    <DonutChart slices={pieSlices} size={160} outerR={70} innerR={44} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <p className="text-xs" style={{ color: C.muted }}>原価合計</p>
+                      <p className="text-sm font-bold font-numeric" style={{ color: C.text }}>{fmt(totalCost)}</p>
+                    </div>
+                  </div>
+                  <div className="w-full flex flex-col gap-2.5">
+                    {pieSlices.map(({ label, value, color }) => {
+                      const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
+                      return (
+                        <div key={label}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5">
+                              <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+                              <span className="text-sm font-medium" style={{ color: C.sub }}>{label}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold font-numeric" style={{ color: C.muted }}>{fmt(value)}</span>
+                              <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <div className="w-full flex flex-col gap-2.5">
-                  {pieSlices.map(({ label, value, color }) => {
-                    const pct = totalCost > 0 ? Math.round((value / totalCost) * 100) : 0;
-                    return (
-                      <div key={label}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5">
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                            <span className="text-sm font-medium" style={{ color: C.sub }}>{label}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold font-numeric" style={{ color: C.muted }}>{fmt(value)}</span>
-                            <span className="text-sm font-bold" style={{ color }}>{pct}%</span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                        </div>
-                      </div>
-                    );
-                  })}
+              ) : (
+                <div className="py-8 text-center" style={{ color: C.muted, fontSize: 13 }}>
+                  経費データがまだありません<br />
+                  <span style={{ fontSize: 12 }}>報告画面から経費を入力すると自動で反映されます</span>
                 </div>
-              </div>
+              )}
             </Card>
           </section>
-
         </div>
       </div>
 
-      {/* ── Bottom: 3 analysis panels ── */}
-      <div>
-        <h2 className="text-base font-bold mb-4" style={{ color: C.text }}>詳細分析</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* Panel A: 予実ギャップ分析 */}
-          <Card className="p-5">
-            <p className="text-sm font-bold mb-1" style={{ color: C.text }}>予実ギャップ分析</p>
-            <p className="text-sm mb-4" style={{ color: C.muted }}>見積 vs 実績コスト</p>
-            <GapChart />
-            <div className="flex items-center gap-4 mt-3 justify-center">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: `${T.primaryMd}` }} />
-                <span className="text-sm" style={{ color: C.muted }}>見積</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: C.green, opacity: 0.8 }} />
-                <span className="text-sm" style={{ color: C.muted }}>実績（予算内）</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-2 rounded-sm" style={{ background: C.red, opacity: 0.8 }} />
-                <span className="text-sm" style={{ color: C.muted }}>実績（超過）</span>
-              </div>
+      {/* ── Bottom: Revenue flow explanation ── */}
+      <Card className="p-5">
+        <p className="text-sm font-bold mb-3" style={{ color: C.text }}>💡 収支計上の仕組み</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(59,130,246,0.1)" }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.blue }}>1</span>
             </div>
-            <div className="mt-4 flex flex-col gap-2">
-              {GAP_DATA.filter(d => d.actual != null && d.actual > 0).map(d => {
-                const gap = (d.actual ?? 0) - d.estimate;
-                const over = gap > 0;
-                return (
-                  <div key={d.name} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: over ? "#FEF2F2" : "#F0FDF4" }}>
-                    <span className="text-sm font-semibold" style={{ color: C.text }}>{d.name}</span>
-                    <span className="text-sm font-bold font-numeric" style={{ color: over ? C.red : C.green }}>
-                      {over ? "+" : ""}{fmt(gap)}
-                    </span>
-                  </div>
-                );
-              })}
+            <div>
+              <p className="text-sm font-bold" style={{ color: C.text }}>契約金額の登録</p>
+              <p className="text-xs mt-0.5" style={{ color: C.muted }}>現場管理で契約金額を入力すると<br />「見込み受注額」として計上されます</p>
             </div>
-          </Card>
-
-          {/* Panel B: 元請け別利益率ランキング */}
-          <Card className="p-5">
-            <p className="text-sm font-bold mb-1" style={{ color: C.text }}>元請け別 利益率ランキング</p>
-            <p className="text-sm mb-4" style={{ color: C.muted }}>売上・利益率の顧客比較</p>
-            <ClientBars />
-            <div className="mt-4 p-3 rounded-xl" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: C.sub }}>最高利益率顧客</p>
-              {(() => {
-                const top = [...CLIENT_RANKS].sort((a, b) => (b.profit / b.revenue) - (a.profit / a.revenue))[0];
-                const rate = Math.round((top.profit / top.revenue) * 100);
-                return (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold" style={{ color: C.text }}>{top.name}</span>
-                    <span className="text-sm font-bold" style={{ color: C.green }}>{rate}%</span>
-                  </div>
-                );
-              })()}
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.1)" }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.green }}>2</span>
             </div>
-          </Card>
-
-          {/* Panel C: 産廃コスト・トレンド */}
-          <Card className="p-5">
-            <p className="text-sm font-bold mb-1" style={{ color: C.text }}>産廃コスト・トレンド</p>
-            <p className="text-sm mb-4" style={{ color: C.muted }}>月次コスト推移と単価</p>
-            <WasteTrendChart />
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {(() => {
-                const latest = WASTE_TREND[WASTE_TREND.length - 1];
-                const prev = WASTE_TREND[WASTE_TREND.length - 2];
-                const costChg = Math.round(((latest.cost - prev.cost) / prev.cost) * 100);
-                const unitChg = Math.round(((latest.unit - prev.unit) / prev.unit) * 100);
-                return (
-                  <>
-                    <div className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
-                      <p className="text-sm" style={{ color: C.muted }}>最新月コスト</p>
-                      <p className="text-base font-bold font-numeric mt-0.5" style={{ color: C.text }}>
-                        {fmt(latest.cost)}
-                      </p>
-                      <p className="text-sm font-bold" style={{ color: costChg >= 0 ? C.red : C.green }}>
-                        {costChg >= 0 ? "+" : ""}{costChg}% 前月比
-                      </p>
-                    </div>
-                    <div className="rounded-lg p-3" style={{ background: T.bg, border: `1px solid ${C.border}` }}>
-                      <p className="text-sm" style={{ color: C.muted }}>単価（/t）</p>
-                      <p className="text-base font-bold font-numeric mt-0.5" style={{ color: C.text }}>
-                        ¥{latest.unit.toLocaleString("ja-JP")}
-                      </p>
-                      <p className="text-sm font-bold" style={{ color: unitChg >= 0 ? C.red : C.green }}>
-                        {unitChg >= 0 ? "+" : ""}{unitChg}% 前月比
-                      </p>
-                    </div>
-                  </>
-                );
-              })()}
+            <div>
+              <p className="text-sm font-bold" style={{ color: C.text }}>入金の登録</p>
+              <p className="text-xs mt-0.5" style={{ color: C.muted }}>入金があるごとに登録すると<br />見込み受注額 → 売上額へ移動します</p>
             </div>
-          </Card>
-
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(251,146,60,0.1)" }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#FB923C" }}>3</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: C.text }}>経費の報告</p>
+              <p className="text-xs mt-0.5" style={{ color: C.muted }}>報告画面の経費入力は<br />リアルタイムに原価として計上されます</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

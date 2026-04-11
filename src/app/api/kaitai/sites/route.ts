@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 // 財務フィールド（一般ユーザーのレスポンスから除外）
 const FINANCIAL_FIELDS = [
-  "contractAmount", "costAmount", "profit", "profitMargin",
+  "contractAmount", "paidAmount", "costAmount", "profit", "profitMargin",
   "budget", "wasteCost", "laborCost", "breakdown",
 ] as const;
 

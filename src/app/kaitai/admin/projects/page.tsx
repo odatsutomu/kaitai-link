@@ -5,7 +5,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, ChevronLeft, Chev
 import { T } from "../../lib/design-tokens";
 
 type SiteRow = {
-  id: string; name: string; status: string; contract: number; cost: number;
+  id: string; name: string; status: string; contract: number; paid: number; cost: number;
   progressPct: number; endDate: string; startDate: string; type: string; address: string;
 };
 
@@ -185,6 +185,7 @@ export default function AdminProjectsPage() {
           name: s.name as string,
           status: (s.status as string) ?? "",
           contract: (s.contractAmount as number) ?? 0,
+          paid: (s.paidAmount as number) ?? 0,
           cost: (s.costAmount as number) ?? 0,
           progressPct: (s.progressPct as number) ?? 0,
           endDate: (s.endDate as string) ?? "",
@@ -236,9 +237,11 @@ export default function AdminProjectsPage() {
 
   // Totals (from filtered)
   const total     = filteredSites.reduce((s: number, x: SiteRow) => s + x.contract, 0);
+  const totalPaid = filteredSites.reduce((s: number, x: SiteRow) => s + x.paid, 0);
+  const totalRemaining = total - totalPaid;
   const totalCost = filteredSites.reduce((s: number, x: SiteRow) => s + x.cost, 0);
-  const totalProfit = total - totalCost;
-  const avgMargin = total > 0 ? Math.round((totalProfit / total) * 100) : 0;
+  const totalProfit = totalPaid - totalCost;
+  const avgMargin = totalPaid > 0 ? Math.round((totalProfit / totalPaid) * 100) : 0;
   const activeCount = filteredSites.filter((s: SiteRow) =>
     ["着工・内装解体", "上屋解体・基礎", "施工中", "解体中"].includes(s.status)
   ).length;
@@ -307,17 +310,18 @@ export default function AdminProjectsPage() {
       </div>
 
       {/* ── Summary KPIs ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "受注総額",   value: fmt(total),        color: C.blue,    },
-          { label: "原価合計",   value: fmt(totalCost),    color: C.sub,     },
-          { label: "粗利合計",   value: fmt(totalProfit),  color: C.green,   },
-          { label: "平均粗利率", value: `${avgMargin}%`,   color: avgMargin >= 25 ? C.green : avgMargin >= 15 ? C.amberDk : C.red, },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px",
- }}>
-            <p style={{ fontSize: 13, color: C.sub, marginBottom: 6 }}>{label}</p>
-            <p style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
+          { label: "見込み受注額", value: fmt(total),           color: C.blue,    sub: `${filteredSites.length}件` },
+          { label: "売上額（入金済）", value: fmt(totalPaid),   color: C.green,   sub: totalPaid > 0 ? `入金率 ${Math.round((totalPaid / (total || 1)) * 100)}%` : "" },
+          { label: "未入金残高", value: fmt(totalRemaining),    color: totalRemaining > 0 ? C.amberDk : C.muted, sub: "" },
+          { label: "粗利合計",   value: fmt(totalProfit),       color: totalProfit >= 0 ? C.green : C.red, sub: "" },
+          { label: "平均粗利率", value: `${avgMargin}%`,        color: avgMargin >= 25 ? C.green : avgMargin >= 15 ? C.amberDk : C.red, sub: "" },
+        ].map(({ label, value, color, sub }) => (
+          <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px" }}>
+            <p style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{label}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
+            {sub && <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{sub}</p>}
           </div>
         ))}
       </div>
@@ -330,19 +334,20 @@ export default function AdminProjectsPage() {
         <div
           className="grid items-center px-5 py-3"
           style={{
-            gridTemplateColumns: "1fr 120px 130px 130px 110px 80px 90px",
+            gridTemplateColumns: "1fr 100px 110px 100px 100px 90px 70px 80px",
             background: T.bg,
             borderBottom: `1px solid ${C.border}`,
-            gap: 8,
+            gap: 6,
           }}
         >
           <SortBtn k="name"     label="現場名" />
           <SortBtn k="status"   label="ステータス" />
-          <SortBtn k="contract" label="受注額" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>原価（現在）</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>粗利（予測）</span>
+          <SortBtn k="contract" label="契約額" />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>入金額</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>原価</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>粗利</span>
           <SortBtn k="margin"   label="粗利率" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>完工予定</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>完工予定</span>
         </div>
 
         {/* Rows */}
@@ -352,9 +357,10 @@ export default function AdminProjectsPage() {
           </div>
         )}
         {sites.map((site, i) => {
-          const profit = site.cost > 0 ? site.contract - site.cost : null;
-          const pct    = profit && site.contract > 0 ? Math.round((profit / site.contract) * 100) : null;
+          const profit = site.paid > 0 ? site.paid - site.cost : (site.cost > 0 ? site.contract - site.cost : null);
+          const pct    = profit !== null && (site.paid > 0 ? site.paid : site.contract) > 0 ? Math.round((profit / (site.paid > 0 ? site.paid : site.contract)) * 100) : null;
           const mc     = pct !== null ? marginColor(pct) : null;
+          const paidPct = site.contract > 0 ? Math.round((site.paid / site.contract) * 100) : 0;
 
           const statusStyle: Record<string, { bg: string; color: string; dot: string }> = {
             "調査・見積":     { bg: "rgba(107,114,128,0.1)", color: "#4B5563", dot: "#6B7280" },
@@ -380,10 +386,10 @@ export default function AdminProjectsPage() {
               key={site.id}
               className="grid items-center px-5 py-4 transition-colors hover:bg-amber-50/30"
               style={{
-                gridTemplateColumns: "1fr 120px 130px 130px 110px 80px 90px",
+                gridTemplateColumns: "1fr 100px 110px 100px 100px 90px 70px 80px",
                 borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
                 background: isAlert ? "#FFF9F9" : undefined,
-                gap: 8,
+                gap: 6,
               }}
             >
               {/* 現場名 */}
@@ -391,8 +397,8 @@ export default function AdminProjectsPage() {
                 {isAlert && <AlertTriangle size={13} style={{ color: C.red, flexShrink: 0 }} />}
                 {!isAlert && pct !== null && pct >= 30 && <CheckCircle size={13} style={{ color: C.green, flexShrink: 0 }} />}
                 <div className="min-w-0">
-                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{site.name}</p>
-                  <p style={{ fontSize: 12, color: C.muted }}>{site.address}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{site.name}</p>
+                  <p style={{ fontSize: 11, color: C.muted }}>{site.address}</p>
                 </div>
               </div>
 
@@ -405,35 +411,47 @@ export default function AdminProjectsPage() {
                 {site.status}
               </span>
 
-              {/* 受注額 */}
-              <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+              {/* 契約額（見込み受注） */}
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                 {fmt(site.contract)}
               </span>
 
+              {/* 入金額（売上） */}
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: site.paid > 0 ? C.green : C.muted }}>
+                  {site.paid > 0 ? fmt(site.paid) : "—"}
+                </span>
+                {site.paid > 0 && site.contract > 0 && (
+                  <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: T.bg, width: 60 }}>
+                    <div className="h-full rounded-full" style={{ width: `${paidPct}%`, background: C.green }} />
+                  </div>
+                )}
+              </div>
+
               {/* 原価 */}
-              <span style={{ fontSize: 14, color: site.cost > 0 ? C.text : C.muted }}>
-                {site.cost > 0 ? fmt(site.cost) : "未入力"}
+              <span style={{ fontSize: 13, color: site.cost > 0 ? C.text : C.muted }}>
+                {site.cost > 0 ? fmt(site.cost) : "—"}
               </span>
 
               {/* 粗利 */}
-              <span style={{ fontSize: 14, fontWeight: 700, color: profit ? (profit > 0 ? C.green : C.red) : C.muted }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: profit ? (profit > 0 ? C.green : C.red) : C.muted }}>
                 {profit !== null ? fmt(profit) : "—"}
               </span>
 
               {/* 粗利率 */}
               {pct !== null && mc ? (
                 <span
-                  className="px-2.5 py-1 rounded text-xs font-bold w-fit"
+                  className="px-2 py-0.5 rounded text-xs font-bold w-fit"
                   style={{ background: mc.bg, color: mc.text, border: `1px solid ${mc.border}` }}
                 >
                   {pct}%
                 </span>
               ) : (
-                <span style={{ fontSize: 13, color: C.muted }}>—</span>
+                <span style={{ fontSize: 12, color: C.muted }}>—</span>
               )}
 
               {/* 完工予定 */}
-              <span style={{ fontSize: 13, color: C.sub }}>
+              <span style={{ fontSize: 12, color: C.sub }}>
                 {site.endDate.replace(/-/g, "/")}
               </span>
             </div>
@@ -444,18 +462,19 @@ export default function AdminProjectsPage() {
         <div
           className="grid items-center px-5 py-3"
           style={{
-            gridTemplateColumns: "1fr 120px 130px 130px 110px 80px 90px",
+            gridTemplateColumns: "1fr 100px 110px 100px 100px 90px 70px 80px",
             background: T.bg,
             borderTop: `2px solid ${C.border}`,
-            gap: 8,
+            gap: 6,
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>合計 {filteredSites.length}件（稼働中 {activeCount}件）</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>合計 {filteredSites.length}件（稼働中 {activeCount}件）</span>
           <span />
-          <span style={{ fontSize: 14, fontWeight: 800, color: C.blue }}>{fmt(total)}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: C.sub }}>{fmt(totalCost)}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: C.green }}>{fmt(totalProfit)}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: avgMargin >= 25 ? C.green : avgMargin >= 15 ? C.amberDk : C.red }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.blue }}>{fmt(total)}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{fmt(totalPaid)}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.sub }}>{fmt(totalCost)}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: totalProfit >= 0 ? C.green : C.red }}>{fmt(totalProfit)}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: avgMargin >= 25 ? C.green : avgMargin >= 15 ? C.amberDk : C.red }}>
             {avgMargin}%
           </span>
           <span />

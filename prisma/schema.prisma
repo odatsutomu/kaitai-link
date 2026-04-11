@@ -68,6 +68,7 @@ model KaitaiSite {
   startDate      String?
   endDate        String?
   contractAmount Int      @default(0)
+  paidAmount     Int      @default(0)
   costAmount     Int      @default(0)
   progressPct    Int      @default(0)
   lat            Float?
