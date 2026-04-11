@@ -66,3 +66,56 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, log }, { status: 201 });
 }
+
+export async function PATCH(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+  if (session.authLevel !== "admin") {
+    return NextResponse.json({ error: "管理者権限が必要です" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { id, ...patch } = body;
+  if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
+
+  const existing = await prisma.kaitaiExpenseLog.findFirst({
+    where: { id, companyId: session.companyId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "経費ログが見つかりません" }, { status: 404 });
+  }
+
+  // Sanitize numeric fields
+  if (patch.amount != null) patch.amount = Number(patch.amount) || 0;
+  if (patch.liters != null) patch.liters = Number(patch.liters);
+  if (patch.pricePerLiter != null) patch.pricePerLiter = Number(patch.pricePerLiter);
+
+  const updated = await prisma.kaitaiExpenseLog.update({
+    where: { id },
+    data: patch,
+  });
+
+  return NextResponse.json({ ok: true, log: updated });
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "未認証" }, { status: 401 });
+  if (session.authLevel !== "admin") {
+    return NextResponse.json({ error: "管理者権限が必要です" }, { status: 403 });
+  }
+
+  const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: "id が必要です" }, { status: 400 });
+
+  const existing = await prisma.kaitaiExpenseLog.findFirst({
+    where: { id, companyId: session.companyId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "経費ログが見つかりません" }, { status: 404 });
+  }
+
+  await prisma.kaitaiExpenseLog.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

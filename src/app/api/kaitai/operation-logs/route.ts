@@ -84,6 +84,35 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "ログが見つかりません" }, { status: 404 });
   }
 
+  // Cascade-delete related records based on action type
+  const action = existing.action;
+  const ts = existing.createdAt;
+  const windowMs = 120_000; // ±2 minutes for timestamp matching
+  const tMin = new Date(ts.getTime() - windowMs);
+  const tMax = new Date(ts.getTime() + windowMs);
+
+  if (action.startsWith("expense_log:") || action.startsWith("fuel_log:")) {
+    // Delete related KaitaiExpenseLog matched by timestamp + reporter + company
+    await prisma.kaitaiExpenseLog.deleteMany({
+      where: {
+        companyId: session.companyId,
+        reporter: existing.user,
+        createdAt: { gte: tMin, lte: tMax },
+        ...(existing.siteId ? { siteId: existing.siteId } : {}),
+      },
+    });
+  } else if (action.startsWith("waste_dispatch:")) {
+    // Delete related KaitaiWasteDispatch matched by timestamp + reporter + company
+    await prisma.kaitaiWasteDispatch.deleteMany({
+      where: {
+        companyId: session.companyId,
+        reporter: existing.user,
+        createdAt: { gte: tMin, lte: tMax },
+        ...(existing.siteId ? { siteId: existing.siteId } : {}),
+      },
+    });
+  }
+
   await prisma.kaitaiOperationLog.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });
