@@ -61,6 +61,7 @@ type Stroke = {
   penId: string;
   color: string;
   points: { x: number; y: number }[];
+  comment?: string; // Only for caution pen
 };
 
 // ─── Legend renderer ────────────────────────────────────────────────────────
@@ -70,52 +71,81 @@ function drawLegend(
   canvasW: number,
   canvasH: number,
   usedPenIds: Set<string>,
+  cautionComments: string[],
 ) {
   const usedPens = PENS.filter(p => usedPenIds.has(p.id));
   if (usedPens.length === 0) return;
 
-  const padding = 12;
-  const rowHeight = 22;
+  const padding = 14;
+  const rowHeight = 24;
   const dotSize = 10;
   const fontSize = 14;
-  const legendW = 200;
-  const legendH = padding * 2 + usedPens.length * rowHeight;
-
-  const x = canvasW - legendW - 16;
-  const y = canvasH - legendH - 16;
+  const descFontSize = 12;
+  const margin = 16;
 
   ctx.save();
-  ctx.globalAlpha = 0.82;
+
+  // ── Measure required width ──
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  let maxW = 0;
+  const rows: { pen: PenDef; desc: string }[] = [];
+  for (const pen of usedPens) {
+    let desc = pen.description;
+    if (pen.id === "caution" && cautionComments.length > 0) {
+      desc = cautionComments.join("、");
+    }
+    rows.push({ pen, desc });
+    const labelW = ctx.measureText(pen.shortLabel).width;
+    ctx.font = `${descFontSize}px sans-serif`;
+    const descW = ctx.measureText(desc).width;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    const totalW = padding + dotSize + 8 + labelW + 10 + descW + padding;
+    if (totalW > maxW) maxW = totalW;
+  }
+
+  const legendW = Math.min(Math.max(maxW, 180), canvasW - margin * 2);
+  const legendH = padding * 2 + rows.length * rowHeight;
+
+  // Position: bottom-left
+  const x = margin;
+  const y = canvasH - legendH - margin;
+
+  ctx.globalAlpha = 0.85;
   ctx.fillStyle = "#1E293B";
   ctx.beginPath();
   ctx.roundRect(x, y, legendW, legendH, 8);
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  usedPens.forEach((pen, i) => {
+  rows.forEach((row, i) => {
     const ry = y + padding + i * rowHeight;
 
-    ctx.fillStyle = pen.legendColor;
+    // Dot
+    ctx.fillStyle = row.pen.legendColor;
     ctx.beginPath();
     ctx.arc(x + padding + dotSize / 2, ry + rowHeight / 2, dotSize / 2, 0, Math.PI * 2);
     ctx.fill();
 
+    // Label
     ctx.fillStyle = "#FFFFFF";
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textBaseline = "middle";
-    ctx.fillText(`${pen.shortLabel}`, x + padding + dotSize + 8, ry + rowHeight / 2);
+    const labelX = x + padding + dotSize + 8;
+    ctx.fillText(row.pen.shortLabel, labelX, ry + rowHeight / 2);
 
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.font = `${fontSize - 2}px sans-serif`;
-    const descX = x + padding + dotSize + 8 + ctx.measureText(pen.shortLabel).width + 8;
-    if (descX + 20 < x + legendW) {
-      let desc = pen.description;
-      while (ctx.measureText(desc).width > legendW - (descX - x) - padding && desc.length > 0) {
+    // Description (full text, word-wrapped if needed)
+    const descX = labelX + ctx.measureText(row.pen.shortLabel).width + 10;
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = `${descFontSize}px sans-serif`;
+    const availW = legendW - (descX - x) - padding;
+    let desc = row.desc;
+    if (ctx.measureText(desc).width > availW && availW > 30) {
+      while (ctx.measureText(desc + "…").width > availW && desc.length > 0) {
         desc = desc.slice(0, -1);
       }
-      if (desc.length < pen.description.length) desc += "…";
-      ctx.fillText(desc, descX, ry + rowHeight / 2);
+      desc += "…";
     }
+    ctx.fillText(desc, descX, ry + rowHeight / 2);
   });
 
   ctx.restore();
@@ -174,6 +204,9 @@ export default function PhotoMarkingOverlay({
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
   const [saving, setSaving] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [cautionComment, setCautionComment] = useState("");
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [pendingCautionStroke, setPendingCautionStroke] = useState<Stroke | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const imgDims = useRef({ w: 0, h: 0, displayW: 0, displayH: 0, offsetX: 0, offsetY: 0 });
@@ -228,7 +261,11 @@ export default function PhotoMarkingOverlay({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, offsetX, offsetY, displayW, displayH);
 
-    const allStrokes = currentStroke ? [...strokes, currentStroke] : strokes;
+    const allStrokes = [
+      ...strokes,
+      ...(pendingCautionStroke ? [pendingCautionStroke] : []),
+      ...(currentStroke ? [currentStroke] : []),
+    ];
     for (const stroke of allStrokes) {
       if (stroke.points.length < 2) continue;
       ctx.save();
@@ -245,7 +282,7 @@ export default function PhotoMarkingOverlay({
       ctx.stroke();
       ctx.restore();
     }
-  }, [strokes, currentStroke]);
+  }, [strokes, currentStroke, pendingCautionStroke]);
 
   useEffect(() => {
     if (imgLoaded) {
@@ -304,9 +341,31 @@ export default function PhotoMarkingOverlay({
   function handleDrawEnd(e: React.TouchEvent | React.MouseEvent) {
     e.preventDefault();
     if (currentStroke && currentStroke.points.length >= 2) {
-      setStrokes(prev => [...prev, currentStroke]);
+      if (currentStroke.penId === "caution") {
+        // Show comment input for caution pen
+        setPendingCautionStroke(currentStroke);
+        setCautionComment("");
+        setShowCommentInput(true);
+      } else {
+        setStrokes(prev => [...prev, currentStroke]);
+      }
     }
     setCurrentStroke(null);
+  }
+
+  function handleConfirmCaution() {
+    if (pendingCautionStroke) {
+      setStrokes(prev => [...prev, { ...pendingCautionStroke, comment: cautionComment || undefined }]);
+    }
+    setPendingCautionStroke(null);
+    setShowCommentInput(false);
+    setCautionComment("");
+  }
+
+  function handleCancelCaution() {
+    setPendingCautionStroke(null);
+    setShowCommentInput(false);
+    setCautionComment("");
   }
 
   function handleUndo() {
@@ -368,7 +427,10 @@ export default function PhotoMarkingOverlay({
       }
 
       if (usedPenIds.size > 0) {
-        drawLegend(ctx, img.width, img.height, usedPenIds);
+        const cautionComments = strokes
+          .filter(s => s.penId === "caution" && s.comment)
+          .map(s => s.comment!);
+        drawLegend(ctx, img.width, img.height, usedPenIds, cautionComments);
       }
 
       // Export as Blob (not data URL — no base64 overhead)
@@ -507,6 +569,64 @@ export default function PhotoMarkingOverlay({
                 <Trash2 size={15} /> 全消去
               </button>
             </div>
+
+            {/* Caution comment input overlay */}
+            {showCommentInput && (
+              <div
+                className="absolute inset-0 flex items-end justify-center"
+                style={{ background: "rgba(0,0,0,0.5)", zIndex: 10 }}
+              >
+                <div
+                  className="w-full rounded-t-2xl"
+                  style={{
+                    background: "#fff",
+                    padding: "20px 16px calc(16px + env(safe-area-inset-bottom, 0px))",
+                    maxWidth: 480,
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="rounded-full" style={{ width: 12, height: 12, background: "#EAB308" }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+                      注意コメントを入力
+                    </span>
+                    <span style={{ fontSize: 12, color: T.muted }}>（任意）</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={cautionComment}
+                    onChange={(e) => setCautionComment(e.target.value)}
+                    placeholder="例: 隣家の壁に近い、養生必要"
+                    autoFocus
+                    className="w-full rounded-xl outline-none mb-3"
+                    style={{
+                      height: 48,
+                      fontSize: 15,
+                      padding: "0 14px",
+                      border: `2px solid #EAB308`,
+                      color: T.text,
+                      background: "#FEFCE8",
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleConfirmCaution(); }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCancelCaution}
+                      className="flex-1 py-3 rounded-xl font-bold"
+                      style={{ fontSize: 14, background: T.bg, color: T.sub, border: `1px solid ${T.border}` }}
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleConfirmCaution}
+                      className="flex-1 py-3 rounded-xl font-bold"
+                      style={{ fontSize: 14, background: "#EAB308", color: "#fff", minHeight: 48 }}
+                    >
+                      {cautionComment ? "コメント付きで確定" : "コメントなしで確定"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Pen toolbar ── */}
