@@ -188,13 +188,13 @@ function parseOperationLog(log: OperationLog): ParsedLog {
 
   if (action.startsWith("start:")) {
     type = "start";
-    typeLabel = "作業開始";
+    typeLabel = "出勤打刻";
     typeColor = "#10B981";
     typeBg = "rgba(16,185,129,0.08)";
     detail = action.replace("start:", "").trim();
   } else if (action.startsWith("clockout:")) {
     type = "clockout";
-    typeLabel = "退勤";
+    typeLabel = "退勤打刻";
     typeColor = "#6366F1";
     typeBg = "rgba(99,102,241,0.08)";
     detail = action.replace("clockout:", "").trim();
@@ -206,7 +206,7 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     detail = action.replace(/break_(in|out):/, "").trim();
   } else if (action.startsWith("waste_dispatch:")) {
     type = "waste";
-    typeLabel = "廃材報告";
+    typeLabel = "廃材搬出";
     typeColor = T.primary;
     typeBg = T.primaryLt;
     detail = action.replace("waste_dispatch:", "").trim();
@@ -218,14 +218,14 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     detail = action.replace(/^(expense_log|fuel_log):/, "").trim();
   } else if (action.startsWith("daily_report:")) {
     type = "daily";
-    typeLabel = "日報";
+    typeLabel = "機材チェック";
     typeColor = "#3B82F6";
     typeBg = "rgba(59,130,246,0.08)";
     detail = action.replace("daily_report:", "").trim();
     isHandover = detail.includes("引き継ぎ") || detail.includes("引継ぎ") || detail.includes("申し送り");
   } else if (action.startsWith("finish:")) {
     type = "finish";
-    typeLabel = "終了報告";
+    typeLabel = "作業終了報告";
     typeColor = "#059669";
     typeBg = "rgba(5,150,105,0.08)";
     detail = action.replace("finish:", "").trim();
@@ -234,7 +234,13 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     typeLabel = "異常報告";
     typeColor = "#EF4444";
     typeBg = "rgba(239,68,68,0.08)";
-    detail = action.replace(/^irregular[_:]?/, "").trim();
+    // Handle irregular[要対応]: format
+    const irregMatch = action.match(/^irregular\[(.+?)\]:\s*(.+)/);
+    if (irregMatch) {
+      detail = irregMatch[2];
+    } else {
+      detail = action.replace(/^irregular[_:]?/, "").trim();
+    }
   } else if (action.startsWith("site_create:")) {
     type = "system";
     typeLabel = "現場登録";
@@ -254,6 +260,9 @@ function parseOperationLog(log: OperationLog): ParsedLog {
     typeBg = "rgba(107,114,128,0.08)";
     detail = action.replace(/^(site_update|site_edit):/, "").trim();
   }
+
+  // Strip site name prefix from detail (e.g. "ジョーズ / 機材チェック完了" → "機材チェック完了")
+  detail = detail.replace(/^[^\s/]+\s*\/\s*/, "");
 
   return { id: log.id, date: dateStr, dateLabel, time, user: log.user, type, typeLabel, typeColor, typeBg, detail, isHandover, imageIds: Array.isArray(log.imageIds) ? log.imageIds : [] };
 }
@@ -1359,7 +1368,7 @@ export default function SiteDetailPage() {
         // Parallel fetches
         const [contractRes, logsRes, imagesRes, clientsRes] = await Promise.all([
           fetch(`/api/kaitai/sites/contract?siteId=${id}`, { credentials: "include" }),
-          fetch(`/api/kaitai/operation-logs?type=reports&siteId=${id}&limit=500`, { credentials: "include" }),
+          fetch(`/api/kaitai/operation-logs?type=reports&limit=500`, { credentials: "include" }),
           fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" }),
           siteObj.clientId
             ? fetch("/api/kaitai/clients", { credentials: "include" })
@@ -1379,10 +1388,13 @@ export default function SiteDetailPage() {
           }
         }
 
-        // Operation logs (already filtered by siteId server-side)
+        // Operation logs — filter by siteId OR site name in action text
         if (logsRes.ok) {
           const ld = await logsRes.json();
-          const rawLogs = (ld?.logs ?? []) as OperationLog[];
+          const siteName = siteObj.name;
+          const rawLogs = ((ld?.logs ?? []) as OperationLog[]).filter(
+            (l) => l.siteId === id || (siteName && l.action.includes(siteName))
+          );
           const siteLogs = rawLogs.map(parseOperationLog);
           setLogs(siteLogs);
 
