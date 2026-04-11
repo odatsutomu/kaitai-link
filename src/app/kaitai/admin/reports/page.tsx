@@ -278,31 +278,37 @@ function DetailModal({
           )}
 
           {/* 関連廃材搬出 */}
-          {relatedWastes.length > 0 && (
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: C.sub, marginBottom: 6 }}>廃材搬出詳細</p>
-              {relatedWastes.map(w => (
-                <div key={w.id} className="rounded-xl p-4 mb-2" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold" style={{ color: C.text }}>{w.wasteType}</span>
-                    <span className="text-base font-bold" style={{ color: w.direction === "buyback" ? C.green : C.teal }}>
-                      {w.direction === "buyback" ? "+" : ""}{fmt(w.cost)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm" style={{ color: C.sub }}>
-                    <span>{w.quantity}{w.unit}</span>
-                    {w.processorName && <span>→ {w.processorName}</span>}
-                  </div>
-                  {w.siteName && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <MapPin size={12} style={{ color: C.muted }} />
-                      <span style={{ fontSize: 12, color: C.muted }}>{w.siteName}</span>
-                    </div>
-                  )}
+          {relatedWastes.length > 0 && (() => {
+            const wasteTotal = relatedWastes.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p style={{ fontSize: 12, fontWeight: 700, color: C.sub }}>廃材搬出詳細（{relatedWastes.length}品目）</p>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: C.teal }}>合計 {fmt(Math.abs(wasteTotal))}</span>
                 </div>
-              ))}
-            </div>
-          )}
+                {relatedWastes.map(w => (
+                  <div key={w.id} className="rounded-xl p-4 mb-2" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold" style={{ color: C.text }}>{w.wasteType}</span>
+                      <span className="text-base font-bold" style={{ color: w.direction === "buyback" ? C.green : C.teal }}>
+                        {w.direction === "buyback" ? "+" : ""}{fmt(w.cost)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm" style={{ color: C.sub }}>
+                      <span>{w.quantity}{w.unit}</span>
+                      {w.processorName && <span>→ {w.processorName}</span>}
+                    </div>
+                    {w.siteName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <MapPin size={12} style={{ color: C.muted }} />
+                        <span style={{ fontSize: 12, color: C.muted }}>{w.siteName}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* デバイス情報 */}
           {log.device && (
@@ -417,6 +423,30 @@ export default function AdminReportsPage() {
     }
     return groups;
   }, [filteredLogs]);
+
+  // Compute waste cost for each waste_dispatch log
+  const wasteLogCostMap = useMemo(() => {
+    const map = new Map<string, { total: number; items: WasteDispatch[] }>();
+    for (const log of logs) {
+      if (!log.action.startsWith("waste_dispatch:")) continue;
+      const logTime = new Date(log.createdAt).getTime();
+      const related = wastes.filter(w => {
+        const wTime = new Date(w.createdAt).getTime();
+        return Math.abs(wTime - logTime) < 120000 && w.reporter === log.user;
+      });
+      if (related.length > 0) {
+        const total = related.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
+        map.set(log.id, { total, items: related });
+      }
+    }
+    return map;
+  }, [logs, wastes]);
+
+  // Total waste cost in date range
+  const wasteTotalCost = useMemo(() => {
+    const inRange = wastes.filter(w => w.date >= dateFrom && w.date <= dateTo);
+    return inRange.reduce((sum, w) => sum + (w.direction === "buyback" ? -w.cost : w.cost), 0);
+  }, [wastes, dateFrom, dateTo]);
 
   // Selected log parsed
   const selectedParsed = selectedLog ? parseAction(selectedLog.action) : null;
@@ -539,6 +569,11 @@ export default function AdminReportsPage() {
             {categoryCounts.waste}
             <span style={{ fontSize: 13, fontWeight: 500, color: C.muted, marginLeft: 2 }}>件</span>
           </p>
+          {wasteTotalCost !== 0 && (
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.sub, marginTop: 4 }}>
+              合計 {fmt(Math.abs(wasteTotalCost))}
+            </p>
+          )}
         </div>
       </div>
 
@@ -610,9 +645,21 @@ export default function AdminReportsPage() {
                       {parsed.amount && parsed.amount > 0 && (
                         <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>{fmt(parsed.amount)}</span>
                       )}
+                      {parsed.category === "waste" && (() => {
+                        const wc = wasteLogCostMap.get(log.id);
+                        if (!wc || wc.total === 0) return null;
+                        return (
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{fmt(wc.total)}</span>
+                        );
+                      })()}
                     </div>
                     <p className="truncate" style={{ fontSize: 13, color: C.sub, maxWidth: "100%" }}>
                       {parsed.detail}
+                      {parsed.category === "waste" && (() => {
+                        const wc = wasteLogCostMap.get(log.id);
+                        if (!wc) return null;
+                        return ` （${wc.items.length}品目）`;
+                      })()}
                     </p>
                   </div>
 
