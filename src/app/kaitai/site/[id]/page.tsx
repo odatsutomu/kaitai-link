@@ -361,7 +361,7 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
 // ─── Tab 1: Basic & Safety ──────────────────────────────────────────────────
 
 function TabBasic({
-  site, contract, client, notes, reactions, logs,
+  site, contract, client, notes, reactions, logs, docIssues,
 }: {
   site: SiteData;
   contract: ContractData | null;
@@ -369,6 +369,7 @@ function TabBasic({
   notes: SiteNotes;
   reactions: Map<string, ReactionData>;
   logs: ParsedLog[];
+  docIssues: { docType: string; issuedAt: string }[];
 }) {
   const cfg = getStatusCfg(site.status);
   const lifelines = notes.lifelines ?? {};
@@ -1646,6 +1647,7 @@ export default function SiteDetailPage() {
               notes={siteNotes}
               reactions={reactions}
               logs={logs}
+              docIssues={docIssues}
             />
           )}
           {activeTab === "history" && (
