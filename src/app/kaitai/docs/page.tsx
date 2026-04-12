@@ -71,7 +71,7 @@ const ALL_DOC_TYPES: { key: string; label: string; emoji: string }[] = [
 
 // ─── Period filter helpers ───────────────────────────────────────────────────
 
-function toYM(dateStr: string): number {
+function dateToYM(dateStr: string): number {
   // "2026-04-12" → 202604
   const [y, m] = dateStr.split("-").map(Number);
   return y * 100 + m;
@@ -84,12 +84,12 @@ function monthLabel(ym: number): string {
 }
 
 /** Check if a site's date range overlaps with [fromYM, toYM] */
-function siteInPeriod(site: SiteItem, fromYM: number, toYM: number): boolean {
+function siteInPeriod(site: SiteItem, rangeFrom: number, rangeTo: number): boolean {
   if (!site.startDate && !site.endDate) return true; // no dates → always show
-  const sStart = site.startDate ? toYM(site.startDate) : 0;
-  const sEnd   = site.endDate   ? toYM(site.endDate)   : 999999;
-  // Overlap: sStart <= toYM && sEnd >= fromYM
-  return sStart <= toYM && sEnd >= fromYM;
+  const sStart = site.startDate ? dateToYM(site.startDate) : 0;
+  const sEnd   = site.endDate   ? dateToYM(site.endDate)   : 999999;
+  // Overlap: sStart <= rangeTo && sEnd >= rangeFrom
+  return sStart <= rangeTo && sEnd >= rangeFrom;
 }
 
 /** Generate month options for last 24 months + next 6 months */
