@@ -619,19 +619,17 @@ export default function PhotoAlbumClient({ siteId }: Props) {
               </div>
             </div>
 
-            {/* Photo grid — 2 columns for clear visibility */}
+            {/* Photo list — full image display, no cropping */}
             <div style={{
               flex: 1,
               overflowY: "auto",
               padding: 10,
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              display: "flex",
+              flexDirection: "column",
               gap: 8,
-              alignContent: "start",
             }}>
               {poolPhotos.length === 0 && (
                 <div style={{
-                  gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: 40,
                   color: C.muted,
@@ -655,52 +653,56 @@ export default function PhotoAlbumClient({ siteId }: Props) {
                     onDoubleClick={() => addSinglePhoto(photo)}
                     style={{
                       position: "relative",
-                      borderRadius: 8,
+                      borderRadius: 10,
                       overflow: "hidden",
                       border: isSelected ? `3px solid ${C.amber}` : `1.5px solid ${C.border}`,
                       cursor: "pointer",
-                      aspectRatio: "4/3",
-                      background: "#F3F4F6",
+                      background: "#F8F9FA",
+                      boxShadow: isSelected ? `0 0 0 1px ${C.amber}` : "none",
+                      transition: "border 0.1s, box-shadow 0.1s",
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.url}
                       alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }}
                       loading="lazy"
                     />
-                    {/* Checkbox overlay */}
+                    {/* Bottom info bar */}
                     <div style={{
-                      position: "absolute", top: 6, left: 6,
-                      width: 24, height: 24, borderRadius: 6,
-                      background: isSelected ? C.amber : "rgba(255,255,255,0.9)",
-                      border: isSelected ? "none" : "2px solid #bbb",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "6px 10px",
+                      background: isSelected ? T.primaryLt : "#F3F4F6",
+                      borderTop: `1px solid ${isSelected ? T.primaryMd : C.border}`,
                     }}>
-                      {isSelected && <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span>}
-                    </div>
-                    {/* Date badge */}
-                    <div style={{
-                      position: "absolute", bottom: 5, left: 5,
-                      fontSize: 11, color: "#fff",
-                      background: "rgba(0,0,0,0.55)",
-                      padding: "2px 7px", borderRadius: 5,
-                    }}>
-                      {dateStr}
-                    </div>
-                    {/* Tag badge */}
-                    {photo.reportType && (
-                      <div style={{
-                        position: "absolute", top: 6, right: 6,
-                        fontSize: 10, color: "#fff", fontWeight: 700,
-                        background: tagColor(photo.reportType),
-                        padding: "2px 7px", borderRadius: 5,
-                      }}>
-                        {tagLabel(photo.reportType)}
+                      <div className="flex items-center gap-2">
+                        {/* Checkbox */}
+                        <div style={{
+                          width: 22, height: 22, borderRadius: 5,
+                          background: isSelected ? C.amber : "#fff",
+                          border: isSelected ? "none" : "2px solid #ccc",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                        }}>
+                          {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
+                        </div>
+                        {/* Date */}
+                        <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+                          {dateStr}
+                        </span>
                       </div>
-                    )}
+                      {/* Tag */}
+                      {photo.reportType && (
+                        <span style={{
+                          fontSize: 10, color: "#fff", fontWeight: 700,
+                          background: tagColor(photo.reportType),
+                          padding: "2px 8px", borderRadius: 5,
+                        }}>
+                          {tagLabel(photo.reportType)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

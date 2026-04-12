@@ -538,18 +538,18 @@ export function PhotoAttachmentPanel({
                 </div>
               </div>
 
-              {/* Photo grid — 3 columns for clear visibility */}
+              {/* Photo list — full image display, no cropping */}
               <div style={{
                 padding: 10,
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
+                display: "flex",
+                flexDirection: "column",
                 gap: 8,
-                maxHeight: 420,
+                maxHeight: 520,
                 overflowY: "auto",
               }}>
                 {poolPhotos.length === 0 && !loading && (
                   <div style={{
-                    gridColumn: "1 / -1", textAlign: "center",
+                    textAlign: "center",
                     padding: 24, color: C.muted, fontSize: 12,
                   }}>
                     {allPhotos.length === 0 ? "写真がありません" : "すべて添付済みです"}
@@ -565,45 +565,54 @@ export function PhotoAttachmentPanel({
                       onClick={() => toggleSelect(photo.id)}
                       onDoubleClick={() => addSingle(photo)}
                       style={{
-                        position: "relative", borderRadius: 8, overflow: "hidden",
+                        position: "relative", borderRadius: 10, overflow: "hidden",
                         border: isSelected ? `3px solid ${C.amber}` : `1.5px solid ${C.border}`,
-                        cursor: "pointer", aspectRatio: "4/3", background: "#F3F4F6",
+                        cursor: "pointer", background: "#F8F9FA",
+                        boxShadow: isSelected ? `0 0 0 1px ${C.amber}` : "none",
+                        transition: "border 0.1s, box-shadow 0.1s",
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt="" loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      {/* Checkbox */}
+                        style={{
+                          width: "100%", height: "auto",
+                          display: "block",
+                          objectFit: "contain",
+                        }} />
+                      {/* Bottom info bar */}
                       <div style={{
-                        position: "absolute", top: 5, left: 5,
-                        width: 22, height: 22, borderRadius: 5,
-                        background: isSelected ? C.amber : "rgba(255,255,255,0.9)",
-                        border: isSelected ? "none" : "2px solid #bbb",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "6px 10px",
+                        background: isSelected ? T.primaryLt : "#F3F4F6",
+                        borderTop: `1px solid ${isSelected ? T.primaryMd : C.border}`,
                       }}>
-                        {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
-                      </div>
-                      {/* Date */}
-                      <div style={{
-                        position: "absolute", bottom: 4, left: 4,
-                        fontSize: 10, color: "#fff",
-                        background: "rgba(0,0,0,0.55)",
-                        padding: "1px 6px", borderRadius: 4,
-                      }}>
-                        {dateStr}
-                      </div>
-                      {/* Tag */}
-                      {photo.reportType && (
-                        <div style={{
-                          position: "absolute", top: 5, right: 5,
-                          fontSize: 9, color: "#fff", fontWeight: 700,
-                          background: tagColor(photo.reportType),
-                          padding: "1px 6px", borderRadius: 4,
-                        }}>
-                          {tagLabel(photo.reportType)}
+                        <div className="flex items-center gap-2">
+                          {/* Checkbox */}
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 5,
+                            background: isSelected ? C.amber : "#fff",
+                            border: isSelected ? "none" : "2px solid #ccc",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                          }}>
+                            {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
+                          </div>
+                          {/* Date */}
+                          <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+                            {dateStr}
+                          </span>
                         </div>
-                      )}
+                        {/* Tag */}
+                        {photo.reportType && (
+                          <span style={{
+                            fontSize: 10, color: "#fff", fontWeight: 700,
+                            background: tagColor(photo.reportType),
+                            padding: "2px 8px", borderRadius: 5,
+                          }}>
+                            {tagLabel(photo.reportType)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
