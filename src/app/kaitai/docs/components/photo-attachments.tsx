@@ -52,23 +52,38 @@ export const LAYOUT_META: Record<PhotoLayoutType, { label: string; cols: number;
 // ─── Tag helpers ─────────────────────────────────────────────────────────────
 
 const TAG_MAP: Record<string, { label: string; color: string }> = {
-  daily_report:    { label: "日報",       color: "#3B82F6" },
-  start_report:    { label: "作業開始",   color: "#10B981" },
-  finish_report:   { label: "作業終了",   color: "#F59E0B" },
-  marked_photo:    { label: "マーキング", color: "#EF4444" },
-  irregular:       { label: "イレギュラー", color: "#8B5CF6" },
-  equipment_check: { label: "機材",       color: "#6B7280" },
-  misc:            { label: "その他",     color: "#9CA3AF" },
+  // 現場写真カテゴリ
+  before:          { label: "着工前写真",     color: "#06B6D4" },
+  progress:        { label: "施工中写真",     color: "#3B82F6" },
+  finish:          { label: "作業完了",       color: "#10B981" },
+  asbestos:        { label: "アスベスト調査", color: "#F97316" },
+  plan:            { label: "届出・図面",     color: "#8B5CF6" },
+  remaining:       { label: "残置物",         color: "#D97706" },
+  // 報告カテゴリ
+  daily_report:    { label: "日報",           color: "#3B82F6" },
+  start_report:    { label: "作業開始報告",   color: "#10B981" },
+  finish_report:   { label: "作業終了報告",   color: "#F59E0B" },
+  expense:         { label: "経費報告",       color: "#EC4899" },
+  irregular:       { label: "イレギュラー",   color: "#EF4444" },
+  // マーキング・機材
+  marked_photo:    { label: "マーキング済",   color: "#EF4444" },
+  equipment_check: { label: "機材点検",       color: "#6B7280" },
+  misc:            { label: "その他",         color: "#9CA3AF" },
 };
 
 export function tagLabel(reportType: string | null): string {
   if (!reportType) return "その他";
-  return TAG_MAP[reportType]?.label ?? reportType;
+  if (TAG_MAP[reportType]) return TAG_MAP[reportType].label;
+  // equipment_xxxxx → 機材点検
+  if (reportType.startsWith("equipment_")) return "機材点検";
+  return "その他";
 }
 
 export function tagColor(reportType: string | null): string {
   if (!reportType) return "#9CA3AF";
-  return TAG_MAP[reportType]?.color ?? "#9CA3AF";
+  if (TAG_MAP[reportType]) return TAG_MAP[reportType].color;
+  if (reportType.startsWith("equipment_")) return "#6B7280";
+  return "#9CA3AF";
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -324,11 +339,20 @@ export function PhotoAttachmentPanel({
 
   // Pool photos (exclude already attached)
   const attachedIdSet = useMemo(() => new Set(attachedPhotos.map(p => p.photoId)), [attachedPhotos]);
+  // Normalize reportType for grouping (equipment_xxx → equipment)
+  function normalizeTag(rt: string | null): string {
+    if (!rt) return "misc";
+    if (rt.startsWith("equipment_")) return "equipment";
+    return rt;
+  }
+
   const poolPhotos = useMemo(() => {
     let filtered = allPhotos.filter(p => !attachedIdSet.has(p.id));
     if (filterTag !== "all") {
       if (filterTag === "marked") {
         filtered = filtered.filter(p => p.reportType === "marked_photo");
+      } else if (filterTag === "equipment") {
+        filtered = filtered.filter(p => (p.reportType ?? "").startsWith("equipment_") || p.reportType === "equipment_check");
       } else {
         filtered = filtered.filter(p => p.reportType === filterTag);
       }
@@ -338,7 +362,7 @@ export function PhotoAttachmentPanel({
   }, [allPhotos, attachedIdSet, filterTag]);
 
   const availableTags = useMemo(() => {
-    const tags = new Set(allPhotos.map(p => p.reportType ?? "misc"));
+    const tags = new Set(allPhotos.map(p => normalizeTag(p.reportType)));
     return Array.from(tags);
   }, [allPhotos]);
 
@@ -545,22 +569,42 @@ export function PhotoAttachmentPanel({
                   </div>
                 </div>
 
-                {showFilter && (
-                  <select
-                    value={filterTag}
-                    onChange={e => setFilterTag(e.target.value)}
-                    style={{
-                      fontSize: 11, padding: "3px 8px", borderRadius: 6,
-                      border: `1px solid ${C.border}`, color: C.text, background: "#fff",
-                    }}
-                  >
-                    <option value="all">すべて</option>
-                    <option value="marked">マーキングあり</option>
-                    {availableTags.filter(t => t !== "marked_photo").map(t => (
-                      <option key={t} value={t}>{tagLabel(t)}</option>
-                    ))}
-                  </select>
-                )}
+                {showFilter && (() => {
+                  // Ordered categories for display
+                  const sitePhotoTags = ["before", "progress", "finish", "remaining", "asbestos", "plan"];
+                  const reportTags = ["daily_report", "start_report", "finish_report", "expense", "irregular"];
+                  const otherTags = ["marked_photo", "equipment", "misc"];
+                  const tagSet = new Set(availableTags);
+
+                  return (
+                    <select
+                      value={filterTag}
+                      onChange={e => setFilterTag(e.target.value)}
+                      style={{
+                        fontSize: 13, padding: "6px 10px", borderRadius: 8,
+                        border: `1px solid ${C.border}`, color: C.text, background: "#fff",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="all">📷 すべての写真</option>
+                      <optgroup label="── 現場写真 ──">
+                        {sitePhotoTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="── 報告写真 ──">
+                        {reportTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="── その他 ──">
+                        {otherTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t === "marked_photo" ? "marked" : t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  );
+                })()}
 
                 <div className="flex items-center justify-between">
                   <button

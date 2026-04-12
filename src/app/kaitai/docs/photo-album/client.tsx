@@ -250,11 +250,20 @@ export default function PhotoAlbumClient({ siteId }: Props) {
     const albumIdSet = new Set(albumPhotos.map(p => p.photoId));
     let filtered = allPhotos.filter(p => !albumIdSet.has(p.id));
 
+    // Normalize reportType for grouping (equipment_xxx → equipment)
+    function normalizeTag(rt: string | null): string {
+      if (!rt) return "misc";
+      if (rt.startsWith("equipment_")) return "equipment";
+      return rt;
+    }
+
     if (filterTag !== "all") {
       if (filterTag === "marked") {
         filtered = filtered.filter(p => p.reportType === "marked_photo");
+      } else if (filterTag === "equipment") {
+        filtered = filtered.filter(p => (p.reportType ?? "").startsWith("equipment_") || p.reportType === "equipment_check");
       } else {
-        filtered = filtered.filter(p => p.reportType === filterTag);
+        filtered = filtered.filter(p => normalizeTag(p.reportType) === filterTag);
       }
     }
 
@@ -269,7 +278,10 @@ export default function PhotoAlbumClient({ siteId }: Props) {
 
   // ─ Available tags ─
   const availableTags = useMemo(() => {
-    const tags = new Set(allPhotos.map(p => p.reportType ?? "misc"));
+    const tags = new Set(allPhotos.map(p => {
+      const rt = p.reportType ?? "misc";
+      return rt.startsWith("equipment_") ? "equipment" : rt;
+    }));
     return Array.from(tags);
   }, [allPhotos]);
 
@@ -610,37 +622,55 @@ export default function PhotoAlbumClient({ siteId }: Props) {
               </div>
 
               {/* Filters */}
-              {showFilter && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select
-                    value={filterTag}
-                    onChange={e => setFilterTag(e.target.value)}
-                    style={{
-                      fontSize: 11, padding: "4px 8px", borderRadius: 6,
-                      border: `1px solid ${C.border}`, color: C.text,
-                      background: T.bg,
-                    }}
-                  >
-                    <option value="all">すべて</option>
-                    <option value="marked">マーキングあり</option>
-                    {availableTags.filter(t => t !== "marked_photo").map(t => (
-                      <option key={t} value={t}>{tagLabel(t)}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={filterSort}
-                    onChange={e => setFilterSort(e.target.value as "newest" | "oldest")}
-                    style={{
-                      fontSize: 11, padding: "4px 8px", borderRadius: 6,
-                      border: `1px solid ${C.border}`, color: C.text,
-                      background: T.bg,
-                    }}
-                  >
-                    <option value="newest">新しい順</option>
-                    <option value="oldest">古い順</option>
-                  </select>
-                </div>
-              )}
+              {showFilter && (() => {
+                const sitePhotoTags = ["before", "progress", "finish", "remaining", "asbestos", "plan"];
+                const reportTags = ["daily_report", "start_report", "finish_report", "expense", "irregular"];
+                const otherTags = ["marked_photo", "equipment", "misc"];
+                const tagSet = new Set(availableTags);
+
+                return (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={filterTag}
+                      onChange={e => setFilterTag(e.target.value)}
+                      style={{
+                        fontSize: 13, padding: "6px 10px", borderRadius: 8,
+                        border: `1px solid ${C.border}`, color: C.text,
+                        background: T.bg, flex: 1,
+                      }}
+                    >
+                      <option value="all">📷 すべての写真</option>
+                      <optgroup label="── 現場写真 ──">
+                        {sitePhotoTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="── 報告写真 ──">
+                        {reportTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="── その他 ──">
+                        {otherTags.filter(t => tagSet.has(t)).map(t => (
+                          <option key={t} value={t === "marked_photo" ? "marked" : t}>{tagLabel(t)}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    <select
+                      value={filterSort}
+                      onChange={e => setFilterSort(e.target.value as "newest" | "oldest")}
+                      style={{
+                        fontSize: 13, padding: "6px 10px", borderRadius: 8,
+                        border: `1px solid ${C.border}`, color: C.text,
+                        background: T.bg,
+                      }}
+                    >
+                      <option value="newest">新しい順</option>
+                      <option value="oldest">古い順</option>
+                    </select>
+                  </div>
+                );
+              })()}
 
               {/* Select all + add */}
               <div className="flex items-center justify-between">
