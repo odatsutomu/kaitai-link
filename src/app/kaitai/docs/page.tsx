@@ -282,10 +282,22 @@ export default function DocsPage() {
   const getSiteIssues = (siteId: string) => {
     const siteIssues = issues.filter(i => i.siteId === siteId);
     if (siteIssues.length === 0) return null;
-    const latest = siteIssues[0];
-    const d = new Date(latest.issuedAt);
-    const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    return { count: siteIssues.length, latestDate: dateStr };
+
+    // Group by docType with latest date
+    const byType = new Map<string, { count: number; latestAt: string }>();
+    for (const iss of siteIssues) {
+      const existing = byType.get(iss.docType);
+      if (!existing || new Date(iss.issuedAt) > new Date(existing.latestAt)) {
+        byType.set(iss.docType, {
+          count: (existing?.count ?? 0) + 1,
+          latestAt: iss.issuedAt,
+        });
+      } else {
+        byType.set(iss.docType, { ...existing, count: existing.count + 1 });
+      }
+    }
+
+    return { total: siteIssues.length, byType };
   };
 
   // ── Filtered sites ──
@@ -605,16 +617,42 @@ export default function DocsPage() {
                       </p>
                     )}
 
-                    {/* Issue history badge */}
+                    {/* Issued doc type badges */}
                     {(() => {
                       const info = getSiteIssues(site.id);
                       if (!info) return null;
                       return (
-                        <div className="flex items-center gap-1.5 mb-2" style={{
-                          fontSize: 12, color: "#10B981", fontWeight: 600,
-                        }}>
-                          <History size={12} />
-                          <span>{info.count}回発行済み · 最終 {info.latestDate}</span>
+                        <div style={{ marginBottom: 10 }}>
+                          <div className="flex items-center gap-1.5 mb-1.5" style={{
+                            fontSize: 11, color: "#10B981", fontWeight: 600,
+                          }}>
+                            <History size={11} />
+                            <span>{info.total}回発行済み</span>
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {Array.from(info.byType.entries()).map(([docType, typeInfo]) => {
+                              const meta = ALL_DOC_TYPES.find(d => d.key === docType);
+                              const d = new Date(typeInfo.latestAt);
+                              const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+                              return (
+                                <span
+                                  key={docType}
+                                  style={{
+                                    fontSize: 11, fontWeight: 600,
+                                    background: "#F0FDF4",
+                                    color: "#16A34A",
+                                    border: "1px solid rgba(22,163,106,0.2)",
+                                    borderRadius: 8,
+                                    padding: "2px 8px",
+                                  }}
+                                >
+                                  {meta?.emoji ?? "📄"} {meta?.label ?? docType}
+                                  {typeInfo.count > 1 && <span style={{ marginLeft: 2 }}>×{typeInfo.count}</span>}
+                                  <span style={{ color: "#9CA3AF", marginLeft: 4, fontSize: 10, fontWeight: 500 }}>{dateStr}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })()}

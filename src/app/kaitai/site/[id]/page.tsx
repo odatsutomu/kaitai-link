@@ -91,6 +91,16 @@ type SiteNotes = {
   handoverNote?: string;
 };
 
+const DOC_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
+  estimate:    { label: "見積書",         emoji: "📋" },
+  invoice:     { label: "請求書",         emoji: "💴" },
+  receipt:     { label: "領収書",         emoji: "🧾" },
+  completion:  { label: "工事完了報告書", emoji: "✅" },
+  report:      { label: "作業報告書",     emoji: "📊" },
+  demolition:  { label: "建物滅失証明書", emoji: "🏚" },
+  photo_album: { label: "写真台帳",       emoji: "📸" },
+};
+
 function parseSiteNotes(raw: string | null | undefined): SiteNotes {
   if (!raw) return {};
   try {
@@ -439,6 +449,56 @@ function TabBasic({
           </div>
         )}
       </div>
+
+      {/* ── 📄 Issued documents ── */}
+      {docIssues.length > 0 && (
+        <div style={{ padding: "0 20px", marginBottom: 16 }}>
+          <div className="flex items-center gap-2 mb-2">
+            <FileText size={14} style={{ color: T.sub }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>発行済み帳票</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {(() => {
+              // Group by docType, show latest date for each
+              const byType = new Map<string, { count: number; latestAt: string }>();
+              for (const iss of docIssues) {
+                const existing = byType.get(iss.docType);
+                if (!existing || new Date(iss.issuedAt) > new Date(existing.latestAt)) {
+                  byType.set(iss.docType, {
+                    count: (existing?.count ?? 0) + 1,
+                    latestAt: iss.issuedAt,
+                  });
+                } else {
+                  byType.set(iss.docType, { ...existing, count: existing.count + 1 });
+                }
+              }
+              return Array.from(byType.entries()).map(([docType, info]) => {
+                const meta = DOC_TYPE_LABELS[docType] ?? { label: docType, emoji: "📄" };
+                const d = new Date(info.latestAt);
+                const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                return (
+                  <div
+                    key={docType}
+                    style={{
+                      fontSize: 12, fontWeight: 600,
+                      background: "#F0FDF4",
+                      color: "#16A34A",
+                      border: "1px solid rgba(22,163,106,0.2)",
+                      borderRadius: 10,
+                      padding: "6px 10px",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <span>{meta.emoji} {meta.label}</span>
+                    {info.count > 1 && <span style={{ color: "#15803D", marginLeft: 3 }}>×{info.count}</span>}
+                    <span style={{ color: "#6B7280", marginLeft: 6, fontSize: 11, fontWeight: 500 }}>{dateStr}</span>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* ── 🚨 Alert notices from admin reactions (until next finish report) ── */}
       {(() => {
@@ -1329,6 +1389,10 @@ export default function SiteDetailPage() {
   const [viewImageUrl, setViewImageUrl] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Map<string, ReactionData>>(new Map());
 
+  // Doc issue history
+  type DocIssueInfo = { docType: string; issuedAt: string };
+  const [docIssues, setDocIssues] = useState<DocIssueInfo[]>([]);
+
   // Swipe handling
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -1460,6 +1524,19 @@ export default function SiteDetailPage() {
             });
           }
         }
+        // Doc issues
+        try {
+          const issuesRes = await fetch(`/api/kaitai/docs/issues?siteId=${id}`, { credentials: "include" });
+          if (issuesRes.ok) {
+            const issuesData = await issuesRes.json();
+            setDocIssues(
+              (issuesData?.issues ?? []).map((i: Record<string, unknown>) => ({
+                docType: i.docType as string,
+                issuedAt: i.issuedAt as string,
+              }))
+            );
+          }
+        } catch { /* best effort */ }
       } catch (e) {
         console.error("Failed to load site detail:", e);
       } finally {
