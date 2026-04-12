@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
-  ChevronLeft, Printer, Save,
+  ChevronLeft, Download, Save,
   CheckSquare, Square, Filter, GripVertical,
   Plus, Trash2, Pencil,
 } from "lucide-react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { T } from "../../lib/design-tokens";
 import { todayStr } from "../../lib/doc-types";
 import {
@@ -355,13 +357,43 @@ export default function PhotoAlbumClient({ siteId }: Props) {
     }
   }
 
-  function handlePrint() {
-    const filename = `写真台帳_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}`;
-    const prev = document.title;
-    document.title = filename;
-    window.print();
-    document.title = prev;
-  }
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const papers = document.querySelectorAll<HTMLElement>(".doc-paper");
+      if (papers.length === 0) return;
+
+      const A4_W_MM = 210;
+      const A4_H_MM = 297;
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      for (let i = 0; i < papers.length; i++) {
+        const el = papers[i];
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, 0, A4_W_MM, A4_H_MM);
+      }
+
+      const filename = `写真台帳_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("PDF生成に失敗しました。もう一度お試しください。");
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [pdfBusy, site?.name]);
 
   // ─ Drag & Drop ─
   const dragItem = useRef<number | null>(null);
@@ -504,16 +536,19 @@ export default function PhotoAlbumClient({ siteId }: Props) {
           </button>
 
           <button
-            onClick={handlePrint}
+            onClick={handleDownloadPdf}
+            disabled={pdfBusy}
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: T.primary, color: "#fff",
+              background: pdfBusy ? T.sub : T.primary, color: "#fff",
               border: "none", borderRadius: 8, padding: "7px 14px",
-              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontSize: 13, fontWeight: 700,
+              cursor: pdfBusy ? "wait" : "pointer",
+              opacity: pdfBusy ? 0.7 : 1,
             }}
           >
-            <Printer size={14} />
-            印刷 / PDF
+            <Download size={14} />
+            {pdfBusy ? "PDF生成中..." : "PDF保存"}
           </button>
         </div>
 

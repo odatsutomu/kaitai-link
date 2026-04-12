@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { ChevronLeft, Printer, Plus, X, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, Download, Plus, X, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { DOC_META, genDocNo, todayStr, DocType, SELF_COMPANY } from "../../lib/doc-types";
 import type { DocSite, LineItem, CompanyInfo } from "../../lib/doc-types";
 import { EstimateDoc }       from "../templates/estimate";
@@ -476,13 +478,44 @@ export default function PreviewClient({ type, siteId }: Props) {
       };
     });
 
-  function handlePrint() {
-    const filename = `${meta.label}_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}`;
-    const prev = document.title;
-    document.title = filename;
-    window.print();
-    document.title = prev;
-  }
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const papers = document.querySelectorAll<HTMLElement>(".doc-paper");
+      if (papers.length === 0) return;
+
+      // A4 mm
+      const A4_W_MM = 210;
+      const A4_H_MM = 297;
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      for (let i = 0; i < papers.length; i++) {
+        const el = papers[i];
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, 0, A4_W_MM, A4_H_MM);
+      }
+
+      const filename = `${meta.label}_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("PDF生成に失敗しました。もう一度お試しください。");
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [pdfBusy, meta.label, site?.name]);
 
   // Helper to update site fields
   function updateSite(partial: Partial<DocSite>) {
@@ -557,16 +590,19 @@ export default function PreviewClient({ type, siteId }: Props) {
         </button>
 
         <button
-          onClick={handlePrint}
+          onClick={handleDownloadPdf}
+          disabled={pdfBusy}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: T.primary, color: "#fff",
+            background: pdfBusy ? T.sub : T.primary, color: "#fff",
             border: "none", borderRadius: 8, padding: "8px 16px",
-            fontSize: 14, fontWeight: 700, cursor: "pointer",
+            fontSize: 14, fontWeight: 700,
+            cursor: pdfBusy ? "wait" : "pointer",
+            opacity: pdfBusy ? 0.7 : 1,
           }}
         >
-          <Printer size={15} />
-          印刷 / PDF保存
+          <Download size={15} />
+          {pdfBusy ? "PDF生成中..." : "PDF保存"}
         </button>
       </div>
 
