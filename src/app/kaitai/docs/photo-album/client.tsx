@@ -619,17 +619,19 @@ export default function PhotoAlbumClient({ siteId }: Props) {
               </div>
             </div>
 
-            {/* Photo list — full image display, no cropping */}
+            {/* Photo grid — full image display, no cropping */}
             <div style={{
               flex: 1,
               overflowY: "auto",
               padding: 10,
-              display: "flex",
-              flexDirection: "column",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
               gap: 8,
+              alignContent: "start",
             }}>
               {poolPhotos.length === 0 && (
                 <div style={{
+                  gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: 40,
                   color: C.muted,
@@ -652,52 +654,60 @@ export default function PhotoAlbumClient({ siteId }: Props) {
                     onClick={() => toggleSelect(photo.id)}
                     onDoubleClick={() => addSinglePhoto(photo)}
                     style={{
-                      position: "relative",
-                      borderRadius: 10,
+                      borderRadius: 8,
                       overflow: "hidden",
                       border: isSelected ? `3px solid ${C.amber}` : `1.5px solid ${C.border}`,
                       cursor: "pointer",
                       background: "#F8F9FA",
                       boxShadow: isSelected ? `0 0 0 1px ${C.amber}` : "none",
                       transition: "border 0.1s, box-shadow 0.1s",
+                      display: "flex", flexDirection: "column",
                     }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.url}
-                      alt=""
-                      style={{ width: "100%", height: "auto", display: "block", objectFit: "contain" }}
-                      loading="lazy"
-                    />
+                    {/* Image container — fixed aspect ratio with contain */}
+                    <div style={{
+                      width: "100%", aspectRatio: "4/3",
+                      background: "#E5E7EB",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      overflow: "hidden",
+                    }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt=""
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                        loading="lazy"
+                      />
+                    </div>
                     {/* Bottom info bar */}
                     <div style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "6px 10px",
+                      padding: "5px 8px",
                       background: isSelected ? T.primaryLt : "#F3F4F6",
                       borderTop: `1px solid ${isSelected ? T.primaryMd : C.border}`,
                     }}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {/* Checkbox */}
                         <div style={{
-                          width: 22, height: 22, borderRadius: 5,
+                          width: 18, height: 18, borderRadius: 4,
                           background: isSelected ? C.amber : "#fff",
                           border: isSelected ? "none" : "2px solid #ccc",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           flexShrink: 0,
                         }}>
-                          {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
+                          {isSelected && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
                         </div>
                         {/* Date */}
-                        <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+                        <span style={{ fontSize: 10, color: C.sub, fontWeight: 600 }}>
                           {dateStr}
                         </span>
                       </div>
                       {/* Tag */}
                       {photo.reportType && (
                         <span style={{
-                          fontSize: 10, color: "#fff", fontWeight: 700,
+                          fontSize: 9, color: "#fff", fontWeight: 700,
                           background: tagColor(photo.reportType),
-                          padding: "2px 8px", borderRadius: 5,
+                          padding: "1px 6px", borderRadius: 4,
                         }}>
                           {tagLabel(photo.reportType)}
                         </span>
