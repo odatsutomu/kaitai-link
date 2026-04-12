@@ -1235,11 +1235,21 @@ function classifyImage(img: SiteImage): string {
 
 function TabDocs({
   images,
+  siteId,
+  onImagesChange,
+  siteNotes,
+  onNotesChange,
 }: {
   images: SiteImage[];
+  siteId: string;
+  onImagesChange: () => void;
+  siteNotes: SiteNotes;
+  onNotesChange: (notes: SiteNotes) => void;
 }) {
   const [viewUrl, setViewUrl] = useState<string | null>(null);
   const [openFolder, setOpenFolder] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null); // folder key
+  const [newItem, setNewItem] = useState("");
 
   // Group images into folders
   const folders = FOLDER_CONFIG.map(cfg => ({
@@ -1249,12 +1259,91 @@ function TabDocs({
 
   const hasAnyImages = images.length > 0;
 
+  // Remaining items (text list)
+  const remainingItems: string[] = Array.isArray(siteNotes.remainingItems)
+    ? siteNotes.remainingItems.map(item =>
+        typeof item === "string" ? item : (item as { text: string }).text ?? ""
+      )
+    : [];
+
+  // Upload handler
+  async function handleUpload(folderKey: string, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(folderKey);
+
+    // Map folder key to reportType
+    const reportTypeMap: Record<string, string> = {
+      before: "before", progress: "progress", asbestos: "asbestos",
+      plan: "plan", remaining: "remaining", other: "misc",
+    };
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 10 * 1024 * 1024) {
+          alert(`${file.name} は10MBを超えています。スキップします。`);
+          continue;
+        }
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("siteId", siteId);
+        formData.append("reportType", reportTypeMap[folderKey] ?? "misc");
+
+        await fetch("/api/kaitai/upload", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+      }
+      onImagesChange(); // Refresh image list
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("アップロードに失敗しました");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  // Add remaining item
+  function addRemainingItem() {
+    const text = newItem.trim();
+    if (!text) return;
+    const updated = [...remainingItems, text];
+    const updatedNotes: SiteNotes = {
+      ...siteNotes,
+      remainingItems: updated.map(t => ({ text: t, imageUrl: null })),
+    };
+    onNotesChange(updatedNotes);
+    setNewItem("");
+  }
+
+  function removeRemainingItem(idx: number) {
+    const updated = remainingItems.filter((_, i) => i !== idx);
+    const updatedNotes: SiteNotes = {
+      ...siteNotes,
+      remainingItems: updated.map(t => ({ text: t, imageUrl: null })),
+    };
+    onNotesChange(updatedNotes);
+  }
+
+  // Accepted file types per folder
+  const acceptMap: Record<string, string> = {
+    before: "image/*",
+    progress: "image/*",
+    other: "image/*",
+    asbestos: "image/*,.pdf",
+    plan: "image/*,.pdf",
+    remaining: "image/*",
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {folders.map(folder => {
         const isOpen = openFolder === folder.key;
         const Icon = folder.icon;
         const count = folder.images.length;
+        const isUploading = uploading === folder.key;
+        const isRemaining = folder.key === "remaining";
 
         return (
           <div
@@ -1278,7 +1367,9 @@ function TabDocs({
                   {folder.label}
                 </p>
                 <p style={{ fontSize: 13, color: T.muted }}>
-                  {count > 0 ? `${count}件` : "ファイルなし"}
+                  {isRemaining
+                    ? `写真${count}件 · リスト${remainingItems.length}件`
+                    : count > 0 ? `${count}件` : "ファイルなし"}
                 </p>
               </div>
               {count > 0 && (
@@ -1299,62 +1390,146 @@ function TabDocs({
               }
             </button>
 
-            {isOpen && count > 0 && (
-              <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${T.border}` }}>
-                <div className="grid grid-cols-3 gap-2 pt-3">
-                  {folder.images.map(img => (
-                    <button
-                      key={img.id}
-                      onClick={() => setViewUrl(img.url)}
-                      className="relative rounded-lg overflow-hidden"
-                      style={{
-                        aspectRatio: "1",
-                        background: T.bg,
-                        border: `1px solid ${T.border}`,
-                      }}
-                    >
-                      <img
-                        src={img.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                      <div
-                        className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                        style={{ background: "rgba(0,0,0,0.3)" }}
-                      >
-                        <ZoomIn size={24} style={{ color: "#fff" }} />
-                      </div>
-                      <div
-                        className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded"
-                        style={{ background: "rgba(0,0,0,0.6)", fontSize: 10, color: "#fff" }}
-                      >
-                        {new Date(img.createdAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {isOpen && (
+              <div style={{ borderTop: `1px solid ${T.border}` }}>
+                {/* Image grid */}
+                {count > 0 && (
+                  <div style={{ padding: "12px 16px 0" }}>
+                    <div className="grid grid-cols-3 gap-2">
+                      {folder.images.map(img => (
+                        <button
+                          key={img.id}
+                          onClick={() => setViewUrl(img.url)}
+                          className="relative rounded-lg overflow-hidden"
+                          style={{
+                            aspectRatio: "1",
+                            background: T.bg,
+                            border: `1px solid ${T.border}`,
+                          }}
+                        >
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                          <div
+                            className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                            style={{ background: "rgba(0,0,0,0.3)" }}
+                          >
+                            <ZoomIn size={24} style={{ color: "#fff" }} />
+                          </div>
+                          <div
+                            className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded"
+                            style={{ background: "rgba(0,0,0,0.6)", fontSize: 10, color: "#fff" }}
+                          >
+                            {new Date(img.createdAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {isOpen && count === 0 && (
-              <div
-                className="text-center py-8"
-                style={{ borderTop: `1px solid ${T.border}` }}
-              >
-                <ImageIcon size={28} style={{ color: T.muted, margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 14, color: T.muted }}>まだファイルがありません</p>
+                {/* Remaining items text list */}
+                {isRemaining && (
+                  <div style={{ padding: "12px 16px 0" }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: T.sub, marginBottom: 8 }}>
+                      残置物・不用品リスト
+                    </p>
+                    {remainingItems.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        {remainingItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 mb-1.5"
+                            style={{
+                              padding: "8px 12px", borderRadius: 10,
+                              background: T.bg, border: `1px solid ${T.border}`,
+                            }}
+                          >
+                            <Package size={14} style={{ color: "#F59E0B", flexShrink: 0 }} />
+                            <span style={{ flex: 1, fontSize: 14, color: T.text }}>{item}</span>
+                            <button
+                              onClick={() => removeRemainingItem(idx)}
+                              style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, flexShrink: 0 }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mb-3">
+                      <input
+                        type="text"
+                        placeholder="例: 植木鉢、仏壇、タンス..."
+                        value={newItem}
+                        onChange={e => setNewItem(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addRemainingItem(); }}
+                        className="flex-1 rounded-lg outline-none"
+                        style={{
+                          height: 40, fontSize: 14, padding: "0 12px",
+                          border: `1.5px solid ${T.border}`, color: T.text,
+                          background: "#fff",
+                        }}
+                      />
+                      <button
+                        onClick={addRemainingItem}
+                        style={{
+                          height: 40, padding: "0 14px", borderRadius: 10,
+                          background: "#F59E0B", color: "#fff",
+                          border: "none", fontSize: 13, fontWeight: 700,
+                          cursor: "pointer", flexShrink: 0,
+                        }}
+                      >
+                        追加
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <div style={{ padding: "8px 16px 14px" }}>
+                  <label
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      height: 44, borderRadius: 10,
+                      background: isUploading ? T.bg : `${folder.color}0D`,
+                      color: isUploading ? T.muted : folder.color,
+                      border: `1.5px dashed ${isUploading ? T.border : folder.color}40`,
+                      fontSize: 14, fontWeight: 700,
+                      cursor: isUploading ? "wait" : "pointer",
+                      opacity: isUploading ? 0.6 : 1,
+                    }}
+                  >
+                    <Camera size={16} />
+                    {isUploading ? "アップロード中..." : (
+                      folder.key === "asbestos" || folder.key === "plan"
+                        ? "写真・PDFを追加"
+                        : "写真を追加"
+                    )}
+                    <input
+                      type="file"
+                      accept={acceptMap[folder.key] ?? "image/*"}
+                      multiple
+                      style={{ display: "none" }}
+                      disabled={isUploading}
+                      onChange={e => handleUpload(folder.key, e.target.files)}
+                    />
+                  </label>
+                </div>
               </div>
             )}
           </div>
         );
       })}
 
-      {!hasAnyImages && (
+      {!hasAnyImages && remainingItems.length === 0 && (
         <div className="py-12 text-center">
           <Camera size={36} style={{ color: T.muted, margin: "0 auto 12px" }} />
           <p style={{ fontSize: 16, color: T.sub }}>写真・資料はまだ登録されていません</p>
           <p style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>
-            報告時にアップロードされた写真がここに表示されます
+            各フォルダを開いて写真やファイルをアップロードできます
           </p>
         </div>
       )}
@@ -1393,6 +1568,38 @@ export default function SiteDetailPage() {
   // Doc issue history
   type DocIssueInfo = { docType: string; issuedAt: string };
   const [docIssues, setDocIssues] = useState<DocIssueInfo[]>([]);
+
+  // Refresh images from API
+  const refreshImages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/kaitai/upload?siteId=${id}`, { credentials: "include" });
+      if (res.ok) {
+        const imgData = await res.json();
+        setImages(
+          (imgData?.images ?? []).map((img: Record<string, unknown>) => ({
+            id: img.id as string,
+            url: img.url as string,
+            reportType: (img.reportType as string) ?? "",
+            uploadedBy: (img.uploadedBy as string) ?? "",
+            createdAt: (img.createdAt as string) ?? "",
+          }))
+        );
+      }
+    } catch { /* best effort */ }
+  }, [id]);
+
+  // Save notes (remainingItems etc) to API
+  const handleNotesChange = useCallback(async (notes: SiteNotes) => {
+    setSiteNotes(notes);
+    try {
+      await fetch("/api/kaitai/sites/notes", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notes: JSON.stringify(notes) }),
+      });
+    } catch { /* best effort */ }
+  }, [id]);
 
   // Swipe handling
   const touchStartX = useRef(0);
@@ -1660,7 +1867,13 @@ export default function SiteDetailPage() {
             />
           )}
           {activeTab === "docs" && (
-            <TabDocs images={images} />
+            <TabDocs
+              images={images}
+              siteId={id}
+              onImagesChange={refreshImages}
+              siteNotes={siteNotes}
+              onNotesChange={handleNotesChange}
+            />
           )}
         </div>
       </div>
