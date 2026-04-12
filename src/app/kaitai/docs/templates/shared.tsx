@@ -73,7 +73,7 @@ export function HR({ thick }: { thick?: boolean }) {
 
 // ─── Client + Issuer two-column ───────────────────────────────────────────────
 
-export function ClientIssuerRow({ site, company }: { site: DocSite; company?: CompanyInfo }) {
+export function ClientIssuerRow({ site, company, stampUrl }: { site: DocSite; company?: CompanyInfo; stampUrl?: string | null }) {
   const co = company ?? DEFAULT_COMPANY;
   return (
     <div style={{ display: "flex", gap: 20, marginBottom: 18 }}>
@@ -102,13 +102,32 @@ export function ClientIssuerRow({ site, company }: { site: DocSite; company?: Co
           <div style={{ marginTop: 3, fontWeight: 600 }}>{co.rep}</div>
           <div style={{ fontSize: 9, color: "#888" }}>適格請求書 登録番号：{co.invoiceNo}</div>
         </div>
-        <div style={{
-          width: 44, height: 44, border: "1.5px solid #aaa", borderRadius: 3,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 10, color: "#bbb", marginTop: 6,
-        }}>印</div>
+        <StampSeal stampUrl={stampUrl} />
       </div>
     </div>
+  );
+}
+
+/** Shared stamp/seal component for all document templates */
+export function StampSeal({ stampUrl, size = 44 }: { stampUrl?: string | null; size?: number }) {
+  if (stampUrl) {
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: 3,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginTop: 6, overflow: "hidden",
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={stampUrl} alt="印" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      </div>
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, border: "1.5px solid #aaa", borderRadius: 3,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 10, color: "#bbb", marginTop: 6,
+    }}>印</div>
   );
 }
 

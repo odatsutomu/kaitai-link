@@ -22,6 +22,8 @@ model KaitaiCompany {
   plan             String   @default("free")
   stripeCustomerId String?
   featureToggles   Json?
+  profile          Json?
+  stampUrl         String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

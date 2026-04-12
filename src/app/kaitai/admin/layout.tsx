@@ -31,6 +31,7 @@ const EXTERNAL_NAV = [
   { href: "/kaitai/admin/processors", label: "処理場管理",     icon: Factory        },
   { href: "/kaitai/admin/docs",       label: "帳票出力",       icon: LayoutDashboard },
   { href: "/kaitai/admin/clients",    label: "元請け管理",     icon: Settings       },
+  { href: "/kaitai/admin/company",    label: "自社情報設定",   icon: Building2      },
   { href: "/kaitai/admin/app-config", label: "アプリ機能設定", icon: Smartphone     },
   { href: "/kaitai/admin/master",     label: "設定・権限",     icon: Settings       },
 ] as const;

@@ -1,7 +1,7 @@
 import React from "react";
 import { DocSite, calcTotals, yen, todayStr, SELF_COMPANY, FOOTER_BRANDING } from "../../lib/doc-types";
 import type { CompanyInfo } from "../../lib/doc-types";
-import { PrintStyles } from "./shared";
+import { PrintStyles, StampSeal } from "./shared";
 import { T } from "../../lib/design-tokens";
 
 interface Props {
@@ -9,9 +9,10 @@ interface Props {
   docNo: string;
   issueDate?: string;
   company?: CompanyInfo;
+  stampUrl?: string | null;
 }
 
-export function ReceiptDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
+export function ReceiptDoc({ site, docNo, issueDate = todayStr(), company, stampUrl }: Props) {
   const co = company ?? SELF_COMPANY;
   const { subtotal, tax, total } = calcTotals(site.contractAmount);
 
@@ -108,11 +109,7 @@ export function ReceiptDoc({ site, docNo, issueDate = todayStr(), company }: Pro
               <div style={{ marginTop: 3, fontWeight: 600 }}>{co.rep}</div>
               <div style={{ fontSize: 9, color: "#888" }}>登録番号：{co.invoiceNo}</div>
             </div>
-            <div style={{
-              width: 56, height: 56, border: "1.5px solid #aaa", borderRadius: 4,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, color: "#bbb", marginTop: 8,
-            }}>印</div>
+            <StampSeal stampUrl={stampUrl} size={56} />
           </div>
         </div>
 

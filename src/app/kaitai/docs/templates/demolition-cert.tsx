@@ -1,7 +1,7 @@
 import React from "react";
 import { DocSite, SELF_COMPANY, todayStr } from "../../lib/doc-types";
 import type { CompanyInfo } from "../../lib/doc-types";
-import { DocPaper, DocTitle, HR, DocFooter, PrintStyles } from "./shared";
+import { DocPaper, DocTitle, HR, DocFooter, PrintStyles, StampSeal } from "./shared";
 
 export interface DemolitionCertData {
   landAddress:   string;   // 所在地
@@ -18,6 +18,7 @@ interface Props {
   docNo:       string;
   issueDate?:  string;
   company?:    CompanyInfo;
+  stampUrl?:   string | null;
 }
 
 const ROW_STYLE: React.CSSProperties = {
@@ -41,7 +42,7 @@ const VALUE_STYLE: React.CSSProperties = {
   color: "#111",
 };
 
-export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr(), company }: Props) {
+export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr(), company, stampUrl }: Props) {
   const co = company ?? SELF_COMPANY;
   const totalArea = [certData.floor1Area, certData.floor2Area, certData.floor3Area]
     .filter(Boolean)
@@ -164,13 +165,20 @@ export function DemolitionCertDoc({ site, certData, docNo, issueDate = todayStr(
 
         {/* Seal box */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
-          <div style={{
-            width: 64, height: 64, border: "2px solid #aaa", borderRadius: 32,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, color: "#bbb", fontWeight: 700,
-          }}>
-            印
-          </div>
+          {stampUrl ? (
+            <div style={{ width: 64, height: 64, overflow: "hidden" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={stampUrl} alt="印" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            </div>
+          ) : (
+            <div style={{
+              width: 64, height: 64, border: "2px solid #aaa", borderRadius: 32,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, color: "#bbb", fontWeight: 700,
+            }}>
+              印
+            </div>
+          )}
         </div>
 
         <HR />

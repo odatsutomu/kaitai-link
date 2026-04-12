@@ -11,6 +11,7 @@ interface Props {
   wasteDisposals?: WasteDisposalItem[];
   photoUrls?:      string[];
   company?:        CompanyInfo;
+  stampUrl?:       string | null;
 }
 
 export interface WasteDisposalItem {
@@ -32,7 +33,7 @@ const WORK_ITEMS = [
   "清掃・後片付け",
 ];
 
-export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDisposals = [], photoUrls = [], company }: Props) {
+export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDisposals = [], photoUrls = [], company, stampUrl }: Props) {
   const co = company ?? SELF_COMPANY;
   const totalWasteCost = wasteDisposals.reduce((s, w) => s + w.quantity * w.unitPrice, 0);
 

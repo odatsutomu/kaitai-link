@@ -9,6 +9,7 @@ interface Props {
   docNo: string;
   issueDate?: string;
   company?: CompanyInfo;
+  stampUrl?: string | null;
 }
 
 const WASTE_RECORDS = [
@@ -28,7 +29,7 @@ const DAILY_WORK = [
   { date: "3/26", work: "残土処分・清掃・完了確認",        crew: 3 },
 ];
 
-export function ReportDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
+export function ReportDoc({ site, docNo, issueDate = todayStr(), company, stampUrl }: Props) {
   const co = company ?? SELF_COMPANY;
   return (
     <>

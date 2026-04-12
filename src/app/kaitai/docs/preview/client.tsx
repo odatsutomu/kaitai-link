@@ -375,6 +375,7 @@ export default function PreviewClient({ type, siteId }: Props) {
   // Site + contract data from API
   const [site,         setSite]         = useState<DocSite | null>(null);
   const [company,      setCompany]      = useState<CompanyInfo>({ ...SELF_COMPANY });
+  const [stampUrl,     setStampUrl]     = useState<string | null>(null);
   const [certData,     setCertData]     = useState<DemolitionCertData>({
     landAddress: "", houseNo: "", structureKind: "",
     floor1Area: "", floor2Area: "", floor3Area: "",
@@ -465,6 +466,35 @@ export default function PreviewClient({ type, siteId }: Props) {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [siteId, docType]);
+
+  // Auto-load company profile
+  useEffect(() => {
+    fetch("/api/kaitai/company/profile", { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const p = data.profile as Partial<CompanyInfo> | null;
+        const defaults = data.defaults ?? {};
+        if (p && Object.values(p).some(v => v)) {
+          setCompany({
+            name: p.name || defaults.name || "",
+            rep: p.rep || "",
+            zip: p.zip || "",
+            address: p.address || defaults.address || "",
+            tel: p.tel || defaults.tel || "",
+            fax: p.fax || "",
+            email: p.email || "",
+            invoiceNo: p.invoiceNo || "",
+            bank: p.bank || "",
+            bankType: p.bankType || "",
+            bankNo: p.bankNo || "",
+            bankHolder: p.bankHolder || "",
+          });
+        }
+        if (data.stampUrl) setStampUrl(data.stampUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   // Load processors for completion doc
   useEffect(() => {
@@ -578,12 +608,12 @@ export default function PreviewClient({ type, siteId }: Props) {
   }
 
   const DocComponent = site ? {
-    estimate:   <EstimateDoc   site={site} docNo={docNo} issueDate={issueDate} company={company} />,
-    invoice:    <InvoiceDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} />,
-    receipt:    <ReceiptDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} />,
-    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} photoUrls={photoUrls} company={company} />,
-    report:     <ReportDoc     site={site} docNo={docNo} issueDate={issueDate} company={company} />,
-    demolition: <DemolitionCertDoc site={site} certData={certData} docNo={docNo} issueDate={issueDate} company={company} />,
+    estimate:   <EstimateDoc   site={site} docNo={docNo} issueDate={issueDate} company={company} stampUrl={stampUrl} />,
+    invoice:    <InvoiceDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} stampUrl={stampUrl} />,
+    receipt:    <ReceiptDoc    site={site} docNo={docNo} issueDate={issueDate} company={company} stampUrl={stampUrl} />,
+    completion: <CompletionDoc site={site} docNo={docNo} issueDate={issueDate} wasteDisposals={wasteDisposals} photoUrls={photoUrls} company={company} stampUrl={stampUrl} />,
+    report:     <ReportDoc     site={site} docNo={docNo} issueDate={issueDate} company={company} stampUrl={stampUrl} />,
+    demolition: <DemolitionCertDoc site={site} certData={certData} docNo={docNo} issueDate={issueDate} company={company} stampUrl={stampUrl} />,
   }[docType] : null;
 
   if (loading) {

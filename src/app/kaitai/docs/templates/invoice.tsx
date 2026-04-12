@@ -11,9 +11,10 @@ interface Props {
   docNo: string;
   issueDate?: string;
   company?: CompanyInfo;
+  stampUrl?: string | null;
 }
 
-export function InvoiceDoc({ site, docNo, issueDate = todayStr(), company }: Props) {
+export function InvoiceDoc({ site, docNo, issueDate = todayStr(), company, stampUrl }: Props) {
   // Payment due: end of next month
   const dueDate = (() => {
     const d = new Date();
@@ -30,7 +31,7 @@ export function InvoiceDoc({ site, docNo, issueDate = todayStr(), company }: Pro
         <DocTitle title="請　求　書" docNo={docNo} issueDate={issueDate} />
         <HR thick />
 
-        <ClientIssuerRow site={site} company={company} />
+        <ClientIssuerRow site={site} company={company} stampUrl={stampUrl} />
 
         <div style={{ fontSize: 11, color: "#444", marginBottom: 14 }}>
           下記の通り御請求申し上げます。何卒よろしくお願いいたします。
