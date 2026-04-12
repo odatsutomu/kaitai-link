@@ -110,123 +110,174 @@ export function AttachedPhotoPage({
   const meta = LAYOUT_META[layout];
   const { cols, rows } = meta;
   const perPage = cols * rows;
-  const GAP = 12;
+  const GAP = 10;
+  const HEADER_MB = 10;
+  const FOOTER_MT = 10;
+
+  // Explicit height calculation — guarantees fit within A4
+  const gridH = CONTENT_H - HEADER_MB - FOOTER_MT;
+  const totalGapH = GAP * (rows - 1);
+  const slotH = Math.floor((gridH - totalGapH) / rows);
+  const captionH = layout === "3" ? 0 : layout === "4" ? 36 : 28;
+  const imgH = slotH - captionH;
 
   return (
     <div className="doc-paper" style={{
-      width: A4_W, minHeight: A4_H,
+      width: A4_W, height: A4_H,
       background: "#fff",
       padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px`,
       fontFamily: "'Hiragino Kaku Gothic Pro','Yu Gothic Medium','Meiryo',sans-serif",
       color: "#111",
       boxSizing: "border-box",
-      display: "flex", flexDirection: "column",
+      overflow: "hidden",
       pageBreakAfter: "always",
     }}>
       {/* Header */}
       <div style={{
         height: HEADER_H,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "2px solid #111", paddingBottom: 6, marginBottom: 10,
+        borderBottom: "2px solid #111", paddingBottom: 6, marginBottom: HEADER_MB,
       }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: "#333" }}>{headerLeft}</span>
         <span style={{ fontSize: 10, color: "#666" }}>{headerRight}</span>
       </div>
 
-      {/* Photo grid */}
-      <div style={{
-        flex: 1,
-        display: layout === "6" ? "grid" : "flex",
-        flexDirection: layout !== "6" ? "column" : undefined,
-        gridTemplateColumns: layout === "6" ? "1fr 1fr" : undefined,
-        gap: GAP,
-      }}>
-        {Array.from({ length: perPage }).map((_, slotIdx) => {
-          const photo = photos[slotIdx];
-          const photoNo = startNo + slotIdx;
-
-          if (!photo && slotIdx >= photos.length) {
-            return <div key={slotIdx} style={{ flex: layout !== "6" ? 1 : undefined }} />;
-          }
-
-          if (layout === "3") {
-            const imgW = Math.floor(CONTENT_W * 0.55);
+      {/* Photo grid — explicit heights, no flex overflow */}
+      {layout === "6" ? (
+        /* 2-col × 3-row grid */
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gridTemplateRows: `repeat(${rows}, ${slotH}px)`,
+          gap: GAP,
+        }}>
+          {Array.from({ length: perPage }).map((_, slotIdx) => {
+            const photo = photos[slotIdx];
+            const photoNo = startNo + slotIdx;
             return (
               <div key={photo?.id ?? slotIdx} style={{
-                flex: 1, display: "flex", gap: 10,
+                height: slotH,
                 border: "1px solid #D1D5DB", borderRadius: 3,
-                overflow: "hidden", minHeight: 0,
+                overflow: "hidden", display: "flex", flexDirection: "column",
               }}>
                 <div style={{
-                  width: imgW, flexShrink: 0, background: "#F3F4F6",
+                  height: imgH, background: "#F3F4F6",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   overflow: "hidden",
                 }}>
                   {photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={photo.url} alt={photo.caption || "写真"}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
                   ) : (
                     <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
                   )}
                 </div>
                 <div style={{
-                  flex: 1, padding: "10px 10px 10px 0",
+                  height: captionH, padding: "3px 6px",
+                  fontSize: 8, lineHeight: 1.4, color: "#333",
+                  borderTop: "1px solid #E5E7EB", overflow: "hidden",
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontWeight: 700, color: "#888", marginRight: 4, fontSize: 8 }}>
+                    No.{photoNo}
+                  </span>
+                  {photo?.caption || ""}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : layout === "3" ? (
+        /* 1-col × 3-row: landscape photo left + caption right */
+        <div style={{ display: "flex", flexDirection: "column", gap: GAP }}>
+          {Array.from({ length: 3 }).map((_, slotIdx) => {
+            const photo = photos[slotIdx];
+            const photoNo = startNo + slotIdx;
+            const imgW = Math.floor(CONTENT_W * 0.55);
+            return (
+              <div key={photo?.id ?? slotIdx} style={{
+                height: slotH, display: "flex", gap: 0,
+                border: "1px solid #D1D5DB", borderRadius: 3,
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  width: imgW, height: slotH, flexShrink: 0, background: "#F3F4F6",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  overflow: "hidden",
+                }}>
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photo.url} alt={photo.caption || "写真"}
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
+                  )}
+                </div>
+                <div style={{
+                  flex: 1, padding: "10px 12px",
                   display: "flex", flexDirection: "column",
                   fontSize: 10, lineHeight: 1.7, color: "#333",
+                  borderLeft: "1px solid #E5E7EB",
                 }}>
                   <div style={{ fontWeight: 700, fontSize: 9, color: "#888", marginBottom: 4 }}>
                     No.{photoNo}
                   </div>
-                  <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                  <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", overflow: "hidden" }}>
                     {photo?.caption || ""}
                   </div>
                 </div>
               </div>
             );
-          }
-
-          // Layout 4 or 6
-          const captionH = layout === "4" ? 40 : 30;
-          return (
-            <div key={photo?.id ?? slotIdx} style={{
-              flex: layout !== "6" ? 1 : undefined,
-              border: "1px solid #D1D5DB", borderRadius: 3,
-              overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0,
-            }}>
-              <div style={{
-                flex: 1, background: "#F3F4F6",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                overflow: "hidden", minHeight: 0,
+          })}
+        </div>
+      ) : (
+        /* Layout 4: 1-col × 4-row */
+        <div style={{ display: "flex", flexDirection: "column", gap: GAP }}>
+          {Array.from({ length: 4 }).map((_, slotIdx) => {
+            const photo = photos[slotIdx];
+            const photoNo = startNo + slotIdx;
+            return (
+              <div key={photo?.id ?? slotIdx} style={{
+                height: slotH,
+                border: "1px solid #D1D5DB", borderRadius: 3,
+                overflow: "hidden", display: "flex", flexDirection: "column",
               }}>
-                {photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photo.url} alt={photo.caption || "写真"}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
-                )}
+                <div style={{
+                  height: imgH, background: "#F3F4F6",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  overflow: "hidden",
+                }}>
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photo.url} alt={photo.caption || "写真"}
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
+                  )}
+                </div>
+                <div style={{
+                  height: captionH, padding: "4px 8px",
+                  fontSize: 9, lineHeight: 1.4, color: "#333",
+                  borderTop: "1px solid #E5E7EB", overflow: "hidden",
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontWeight: 700, color: "#888", marginRight: 6, fontSize: 8 }}>
+                    No.{photoNo}
+                  </span>
+                  {photo?.caption || ""}
+                </div>
               </div>
-              <div style={{
-                height: captionH, padding: "4px 8px",
-                fontSize: layout === "6" ? 8 : 9, lineHeight: 1.5, color: "#333",
-                borderTop: "1px solid #E5E7EB", overflow: "hidden",
-              }}>
-                <span style={{ fontWeight: 700, color: "#888", marginRight: 6, fontSize: 8 }}>
-                  No.{photoNo}
-                </span>
-                {photo?.caption || ""}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{
         height: FOOTER_H,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderTop: "1px solid #D1D5DB", paddingTop: 6, marginTop: 10,
+        borderTop: "1px solid #D1D5DB", paddingTop: 6, marginTop: FOOTER_MT,
         fontSize: 9, color: "#888",
       }}>
         <span>{footerLeft}</span>
