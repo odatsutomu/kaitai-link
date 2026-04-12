@@ -387,13 +387,33 @@ export default function PhotoAlbumClient({ siteId }: Props) {
 
       const filename = `写真台帳_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(filename);
+
+      // Record issue in DB
+      try {
+        const snapshot = {
+          albumPhotos,
+          layout,
+          coverTitle,
+        };
+        await fetch("/api/kaitai/docs/issues", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId,
+            docType: "photo_album",
+            docNo: `PA-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
+            snapshot,
+          }),
+        });
+      } catch { /* non-critical */ }
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("PDF生成に失敗しました。もう一度お試しください。");
     } finally {
       setPdfBusy(false);
     }
-  }, [pdfBusy, site?.name]);
+  }, [pdfBusy, site?.name, albumPhotos, layout, coverTitle, siteId]);
 
   // ─ Drag & Drop ─
   const dragItem = useRef<number | null>(null);

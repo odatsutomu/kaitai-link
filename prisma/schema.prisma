@@ -43,6 +43,7 @@ model KaitaiCompany {
   wasteCategories  KaitaiWasteCategory[]
   wasteDispatches  KaitaiWasteDispatch[]
   reportReactions  KaitaiReportReaction[]
+  docIssues        KaitaiDocIssue[]
 }
 
 model KaitaiSession {
@@ -425,6 +426,25 @@ model KaitaiContractData {
   site    KaitaiSite    @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+}
+
+model KaitaiDocIssue {
+  id          String   @id @default(cuid())
+  companyId   String
+  siteId      String
+  docType     String                          // "estimate" | "invoice" | "receipt" | "completion" | "report" | "demolition" | "photo_album"
+  docNo       String
+  issuedAt    DateTime @default(now())
+
+  // Snapshot of document content at time of issue
+  snapshot    Json                             // { site, company, issueDate, lineItems, certData, wasteDisposals, photoLayout, attachedPhotos, coverTitle?, ... }
+
+  company KaitaiCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([siteId])
+  @@index([docType])
+  @@index([issuedAt])
 }
 
 // ─── 清掃LINK Models ──────────────────────────────────────────────────────────

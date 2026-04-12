@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText, X, Building2, ChevronRight, Search, Loader2,
-  MapPin, Calendar,
+  MapPin, Calendar, History,
 } from "lucide-react";
 import { DOC_META, DocType, yen, calcTotals } from "../lib/doc-types";
 import { T } from "../lib/design-tokens";
@@ -171,20 +171,29 @@ function DocTypeModal({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type IssueRecord = {
+  id: string;
+  siteId: string;
+  docType: string;
+  issuedAt: string;
+};
+
 export default function DocsPage() {
   const [sites, setSites] = useState<SiteItem[]>([]);
   const [clients, setClients] = useState<ClientItem[]>([]);
+  const [issues, setIssues] = useState<IssueRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSite, setSelectedSite] = useState<SiteItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Fetch real sites + clients
+  // Fetch real sites + clients + issues
   useEffect(() => {
     Promise.all([
       fetch("/api/kaitai/sites", { credentials: "include" }).then(r => r.ok ? r.json() : null),
       fetch("/api/kaitai/clients", { credentials: "include" }).then(r => r.ok ? r.json() : null),
-    ]).then(([sitesData, clientsData]) => {
+      fetch("/api/kaitai/docs/issues", { credentials: "include" }).then(r => r.ok ? r.json() : null),
+    ]).then(([sitesData, clientsData, issuesData]) => {
       if (sitesData?.sites) {
         setSites(
           (sitesData.sites as SiteItem[]).map(s => ({
@@ -205,6 +214,9 @@ export default function DocsPage() {
             id: c.id, name: c.name ?? "", contactName: c.contactName ?? "",
           }))
         );
+      }
+      if (issuesData?.issues) {
+        setIssues(issuesData.issues as IssueRecord[]);
       }
     }).catch(() => {})
       .finally(() => setLoading(false));
@@ -231,6 +243,16 @@ export default function DocsPage() {
   const getClientName = (clientId: string | null) => {
     if (!clientId) return undefined;
     return clients.find(c => c.id === clientId)?.name;
+  };
+
+  // Get latest issue info for a site
+  const getSiteIssues = (siteId: string) => {
+    const siteIssues = issues.filter(i => i.siteId === siteId);
+    if (siteIssues.length === 0) return null;
+    const latest = siteIssues[0]; // already sorted desc
+    const d = new Date(latest.issuedAt);
+    const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    return { count: siteIssues.length, latestDate: dateStr };
   };
 
   if (loading) {
@@ -410,6 +432,20 @@ export default function DocsPage() {
                     発注者：{clientName}
                   </p>
                 )}
+
+                {/* Issue history badge */}
+                {(() => {
+                  const info = getSiteIssues(site.id);
+                  if (!info) return null;
+                  return (
+                    <div className="flex items-center gap-1.5 mb-2" style={{
+                      fontSize: 12, color: "#10B981", fontWeight: 600,
+                    }}>
+                      <History size={12} />
+                      <span>{info.count}回発行済み · 最終 {info.latestDate}</span>
+                    </div>
+                  );
+                })()}
 
                 {/* 帳票出力 button */}
                 <button

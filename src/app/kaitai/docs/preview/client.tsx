@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, Download, Plus, X, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { ChevronLeft, Download, Plus, X, Trash2, ChevronDown, ChevronUp, Pencil, History, RotateCcw } from "lucide-react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { DOC_META, genDocNo, todayStr, DocType, SELF_COMPANY } from "../../lib/doc-types";
@@ -392,6 +392,17 @@ export default function PreviewClient({ type, siteId }: Props) {
   const [processors, setProcessors] = useState<Processor[]>([]);
   const [wasteRows,  setWasteRows]  = useState<WasteRow[]>([]);
 
+  // Issue history
+  interface DocIssue {
+    id: string;
+    docType: string;
+    docNo: string;
+    issuedAt: string;
+    snapshot: Record<string, unknown>;
+  }
+  const [issues, setIssues]           = useState<DocIssue[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const docNo = genDocNo(docType, siteId);
 
   // Load site data + contract data
@@ -464,6 +475,30 @@ export default function PreviewClient({ type, siteId }: Props) {
       .catch(() => {});
   }, [docType]);
 
+  // Load issue history
+  const loadIssues = useCallback(() => {
+    if (!siteId) return;
+    fetch(`/api/kaitai/docs/issues?siteId=${siteId}&docType=${docType}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.issues) setIssues(data.issues); })
+      .catch(() => {});
+  }, [siteId, docType]);
+
+  useEffect(() => { loadIssues(); }, [loadIssues]);
+
+  // Restore from issue snapshot
+  function restoreIssue(issue: DocIssue) {
+    const s = issue.snapshot as Record<string, unknown>;
+    if (s.issueDate) setIssueDate(s.issueDate as string);
+    if (s.company) setCompany(s.company as CompanyInfo);
+    if (s.site) setSite(s.site as DocSite);
+    if (s.certData) setCertData(s.certData as DemolitionCertData);
+    if (s.wasteRows) setWasteRows(s.wasteRows as WasteRow[]);
+    if (s.attachedPhotos) setAttachedPhotos(s.attachedPhotos as AlbumPhoto[]);
+    if (s.photoLayout) setPhotoLayout(s.photoLayout as PhotoLayoutType);
+    setShowHistory(false);
+  }
+
   const wasteDisposals: WasteDisposalItem[] = wasteRows
     .filter(r => r.wasteType && r.processorId && r.quantity > 0)
     .map(r => {
@@ -509,13 +544,33 @@ export default function PreviewClient({ type, siteId }: Props) {
 
       const filename = `${meta.label}_${site?.name ?? ""}_${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(filename);
+
+      // Record issue in DB
+      try {
+        const snapshot = {
+          site,
+          company,
+          issueDate,
+          certData,
+          wasteRows,
+          attachedPhotos,
+          photoLayout,
+        };
+        await fetch("/api/kaitai/docs/issues", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ siteId, docType, docNo, snapshot }),
+        });
+        loadIssues();
+      } catch { /* non-critical */ }
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("PDF生成に失敗しました。もう一度お試しください。");
     } finally {
       setPdfBusy(false);
     }
-  }, [pdfBusy, meta.label, site?.name]);
+  }, [pdfBusy, meta.label, site, company, issueDate, certData, wasteRows, attachedPhotos, photoLayout, siteId, docType, docNo, loadIssues]);
 
   // Helper to update site fields
   function updateSite(partial: Partial<DocSite>) {
@@ -604,7 +659,127 @@ export default function PreviewClient({ type, siteId }: Props) {
           <Download size={15} />
           {pdfBusy ? "PDF生成中..." : "PDF保存"}
         </button>
+
+        {/* History button */}
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: showHistory ? "#334155" : "transparent",
+            color: showHistory ? T.bg : T.muted,
+            border: `1px solid #475569`,
+            borderRadius: 8, padding: "8px 12px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+            position: "relative",
+          }}
+        >
+          <History size={14} />
+          履歴
+          {issues.length > 0 && (
+            <span style={{
+              position: "absolute", top: -6, right: -6,
+              width: 18, height: 18, borderRadius: 9,
+              background: T.primary, color: "#fff",
+              fontSize: 10, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {issues.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* ── Issue history panel ── */}
+      {showHistory && (
+        <div className="no-print" style={{
+          maxWidth: 794, margin: "0 auto",
+          padding: "16px 16px 0",
+        }}>
+          <div style={{
+            background: C.card, border: `1px solid ${C.border}`,
+            borderRadius: 12, overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "12px 16px",
+              background: T.bg, borderBottom: `1px solid ${C.border}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <span className="flex items-center gap-2" style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                <History size={15} color={C.amber} />
+                発行履歴
+              </span>
+              <span style={{ fontSize: 12, color: C.muted }}>{issues.length}件</span>
+            </div>
+            {issues.length === 0 ? (
+              <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 13 }}>
+                まだ発行履歴はありません。PDF保存すると履歴が記録されます。
+              </div>
+            ) : (
+              <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                {issues.map((issue, idx) => {
+                  const d = new Date(issue.issuedAt);
+                  const dateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+                  const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                  const snap = issue.snapshot as Record<string, unknown>;
+                  const photos = Array.isArray(snap.attachedPhotos) ? snap.attachedPhotos.length : 0;
+                  const items = (snap.site as Record<string, unknown>)?.items;
+                  const lineCount = Array.isArray(items) ? items.length : 0;
+
+                  return (
+                    <div
+                      key={issue.id}
+                      style={{
+                        padding: "12px 16px",
+                        borderBottom: idx < issues.length - 1 ? `1px solid ${C.border}` : "none",
+                        display: "flex", alignItems: "center", gap: 12,
+                      }}
+                    >
+                      {/* Issue number badge */}
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: T.primaryLt,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, fontWeight: 700, color: C.amberDk,
+                        flexShrink: 0,
+                      }}>
+                        #{issues.length - idx}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {dateStr} {timeStr} 発行済み
+                        </div>
+                        <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>
+                          {issue.docNo}
+                          {lineCount > 0 && ` · 明細${lineCount}行`}
+                          {photos > 0 && ` · 写真${photos}枚`}
+                        </div>
+                      </div>
+
+                      {/* Restore button */}
+                      <button
+                        onClick={() => restoreIssue(issue)}
+                        className="flex items-center gap-1.5"
+                        style={{
+                          fontSize: 12, fontWeight: 600,
+                          color: C.amber, background: T.primaryLt,
+                          border: `1px solid ${T.primaryMd}`,
+                          borderRadius: 8, padding: "6px 12px",
+                          cursor: "pointer", flexShrink: 0,
+                        }}
+                      >
+                        <RotateCcw size={12} />
+                        復元
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Edit panels (hidden on print) ── */}
       {showEdit && site && (
