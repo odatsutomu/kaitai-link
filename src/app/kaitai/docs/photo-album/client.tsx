@@ -1,16 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
-  ChevronLeft, Printer, Save, Image as ImageIcon,
+  ChevronLeft, Printer, Save,
   CheckSquare, Square, Filter, GripVertical,
-  Plus, Trash2, ChevronDown, Columns, Layout,
-  X, Calendar, Tag, Pencil, Download,
+  Plus, Trash2, Pencil,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
-import { SELF_COMPANY, todayStr } from "../../lib/doc-types";
-import type { CompanyInfo } from "../../lib/doc-types";
+import { todayStr } from "../../lib/doc-types";
+import {
+  AttachedPhotoPage,
+  paginatePhotos,
+  LAYOUT_META,
+  tagLabel,
+  tagColor,
+} from "../components/photo-attachments";
+import type {
+  PhotoItem,
+  AlbumPhoto,
+  PhotoLayoutType,
+} from "../components/photo-attachments";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -20,40 +30,13 @@ const C = {
   amber: T.primary, amberDk: T.primaryDk,
 };
 
-// A4 preview dimensions (scale for screen)
+// A4 preview dimensions
 const A4_W = 794;
 const A4_H = 1122;
 const PAGE_PAD_X = 48;
 const PAGE_PAD_Y = 40;
-const HEADER_H = 36;
-const FOOTER_H = 28;
-const CONTENT_W = A4_W - PAGE_PAD_X * 2;
-const CONTENT_H = A4_H - PAGE_PAD_Y * 2 - HEADER_H - FOOTER_H;
 
-type LayoutType = "3" | "4" | "6";
-
-const LAYOUT_META: Record<LayoutType, { label: string; cols: number; rows: number; desc: string }> = {
-  "3": { label: "1ページ3枚（大）", cols: 1, rows: 3, desc: "標準 — 横に説明文" },
-  "4": { label: "1ページ4枚（中）", cols: 1, rows: 4, desc: "やや小さめ" },
-  "6": { label: "1ページ6枚（小）", cols: 2, rows: 3, desc: "2列×3段" },
-};
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface PhotoItem {
-  id: string;
-  url: string;
-  reportType: string | null;
-  uploadedBy: string;
-  createdAt: string;
-}
-
-interface AlbumPhoto {
-  id: string;
-  photoId: string;
-  url: string;
-  caption: string;
-}
+type LayoutType = PhotoLayoutType;
 
 interface SiteInfo {
   id: string;
@@ -76,28 +59,6 @@ interface DraftData {
   layout: LayoutType;
   coverTitle: string;
   savedAt: string;
-}
-
-// ─── Photo tag helpers ───────────────────────────────────────────────────────
-
-const TAG_MAP: Record<string, { label: string; color: string }> = {
-  daily_report:    { label: "日報",       color: "#3B82F6" },
-  start_report:    { label: "作業開始",   color: "#10B981" },
-  finish_report:   { label: "作業終了",   color: "#F59E0B" },
-  marked_photo:    { label: "マーキング", color: "#EF4444" },
-  irregular:       { label: "イレギュラー", color: "#8B5CF6" },
-  equipment_check: { label: "機材",       color: "#6B7280" },
-  misc:            { label: "その他",     color: "#9CA3AF" },
-};
-
-function tagLabel(reportType: string | null): string {
-  if (!reportType) return "その他";
-  return TAG_MAP[reportType]?.label ?? reportType;
-}
-
-function tagColor(reportType: string | null): string {
-  if (!reportType) return "#9CA3AF";
-  return TAG_MAP[reportType]?.color ?? "#9CA3AF";
 }
 
 // ─── Cover Page Component ────────────────────────────────────────────────────
@@ -204,210 +165,6 @@ function CoverPage({
         textAlign: "center", fontSize: 8, color: "#AAA",
       }}>
         本帳票は 解体LINK により作成されています。
-      </div>
-    </div>
-  );
-}
-
-// ─── Photo Page Component ────────────────────────────────────────────────────
-
-function PhotoPage({
-  photos,
-  layout,
-  siteName,
-  pageNum,
-  totalPages,
-}: {
-  photos: AlbumPhoto[];
-  layout: LayoutType;
-  siteName: string;
-  pageNum: number;
-  totalPages: number;
-}) {
-  const meta = LAYOUT_META[layout];
-  const { cols, rows } = meta;
-  const perPage = cols * rows;
-  const GAP = 12;
-
-  // Calculate slot dimensions
-  const slotW = layout === "6"
-    ? Math.floor((CONTENT_W - GAP) / 2)
-    : CONTENT_W;
-  const slotH = Math.floor((CONTENT_H - GAP * (rows - 1)) / rows);
-
-  // For layout 3 (side caption): image takes 55%, caption takes 45%
-  // For layout 4: image on top, caption below
-  // For layout 6: image on top, small caption below
-
-  return (
-    <div className="doc-paper" style={{
-      width: A4_W,
-      minHeight: A4_H,
-      background: "#fff",
-      padding: `${PAGE_PAD_Y}px ${PAGE_PAD_X}px`,
-      fontFamily: "'Hiragino Kaku Gothic Pro','Yu Gothic Medium','Meiryo',sans-serif",
-      color: "#111",
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      pageBreakAfter: "always",
-    }}>
-      {/* Header */}
-      <div style={{
-        height: HEADER_H,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderBottom: "2px solid #111",
-        paddingBottom: 6,
-        marginBottom: 10,
-      }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#333" }}>
-          工事写真台帳
-        </span>
-        <span style={{ fontSize: 10, color: "#666" }}>
-          {siteName}
-        </span>
-      </div>
-
-      {/* Photo grid */}
-      <div style={{
-        flex: 1,
-        display: layout === "6" ? "grid" : "flex",
-        flexDirection: layout !== "6" ? "column" : undefined,
-        gridTemplateColumns: layout === "6" ? "1fr 1fr" : undefined,
-        gap: GAP,
-      }}>
-        {Array.from({ length: perPage }).map((_, slotIdx) => {
-          const photo = photos[slotIdx];
-          if (!photo && slotIdx >= photos.length) {
-            // Empty slot — render placeholder only if within first page or if there's content
-            if (slotIdx >= photos.length) return <div key={slotIdx} style={{ flex: layout !== "6" ? 1 : undefined }} />;
-          }
-
-          if (layout === "3") {
-            // Side-by-side: image left, caption right
-            const imgW = Math.floor(slotW * 0.55);
-            return (
-              <div key={photo?.id ?? slotIdx} style={{
-                flex: 1,
-                display: "flex",
-                gap: 10,
-                border: "1px solid #D1D5DB",
-                borderRadius: 3,
-                overflow: "hidden",
-                minHeight: 0,
-              }}>
-                {/* Photo */}
-                <div style={{
-                  width: imgW,
-                  flexShrink: 0,
-                  background: "#F3F4F6",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}>
-                  {photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || "写真"}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
-                  )}
-                </div>
-                {/* Caption */}
-                <div style={{
-                  flex: 1,
-                  padding: "10px 10px 10px 0",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  fontSize: 10,
-                  lineHeight: 1.7,
-                  color: "#333",
-                }}>
-                  <div style={{ fontWeight: 700, fontSize: 9, color: "#888", marginBottom: 4 }}>
-                    No.{(pageNum - 1) * perPage + slotIdx + 1}
-                  </div>
-                  <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-                    {photo?.caption || ""}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Layout 4 or 6: image on top, caption below
-          const captionH = layout === "4" ? 40 : 30;
-          return (
-            <div key={photo?.id ?? slotIdx} style={{
-              flex: layout !== "6" ? 1 : undefined,
-              border: "1px solid #D1D5DB",
-              borderRadius: 3,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
-            }}>
-              {/* Photo */}
-              <div style={{
-                flex: 1,
-                background: "#F3F4F6",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-                minHeight: 0,
-              }}>
-                {photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={photo.url}
-                    alt={photo.caption || "写真"}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <div style={{ color: "#CCC", fontSize: 24 }}>📷</div>
-                )}
-              </div>
-              {/* Caption */}
-              <div style={{
-                height: captionH,
-                padding: "4px 8px",
-                fontSize: layout === "6" ? 8 : 9,
-                lineHeight: 1.5,
-                color: "#333",
-                borderTop: "1px solid #E5E7EB",
-                overflow: "hidden",
-              }}>
-                <span style={{ fontWeight: 700, color: "#888", marginRight: 6, fontSize: 8 }}>
-                  No.{(pageNum - 1) * perPage + slotIdx + 1}
-                </span>
-                {photo?.caption || ""}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        height: FOOTER_H,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderTop: "1px solid #D1D5DB",
-        paddingTop: 6,
-        marginTop: 10,
-        fontSize: 9,
-        color: "#888",
-      }}>
-        <span>株式会社良心</span>
-        <span>{pageNum} / {totalPages}</span>
       </div>
     </div>
   );
@@ -520,14 +277,7 @@ export default function PhotoAlbumClient({ siteId }: Props) {
   const totalPages = totalPhotoPages; // cover page is separate
 
   // ─ Pages data ─
-  const pages = useMemo(() => {
-    const result: AlbumPhoto[][] = [];
-    for (let i = 0; i < albumPhotos.length; i += perPage) {
-      result.push(albumPhotos.slice(i, i + perPage));
-    }
-    if (result.length === 0) result.push([]);
-    return result;
-  }, [albumPhotos, perPage]);
+  const pages = useMemo(() => paginatePhotos(albumPhotos, perPage), [albumPhotos, perPage]);
 
   // ─ Handlers ─
 
@@ -1031,12 +781,15 @@ export default function PhotoAlbumClient({ siteId }: Props) {
               <div key={pageIdx} style={{ maxWidth: A4_W, margin: "0 auto 24px" }}>
                 {/* Page paper */}
                 <div style={{ boxShadow: "0 2px 16px rgba(0,0,0,0.12)" }}>
-                  <PhotoPage
+                  <AttachedPhotoPage
                     photos={pagePhotos}
                     layout={layout}
-                    siteName={site.name}
+                    headerLeft="工事写真台帳"
+                    headerRight={site.name}
+                    footerLeft="株式会社良心"
                     pageNum={pageIdx + 1}
                     totalPages={totalPages}
+                    startNo={pageIdx * perPage + 1}
                   />
                 </div>
 
@@ -1146,13 +899,16 @@ export default function PhotoAlbumClient({ siteId }: Props) {
           totalPages={totalPages}
         />
         {pages.map((pagePhotos, pageIdx) => (
-          <PhotoPage
+          <AttachedPhotoPage
             key={pageIdx}
             photos={pagePhotos}
             layout={layout}
-            siteName={site.name}
+            headerLeft="工事写真台帳"
+            headerRight={site.name}
+            footerLeft="株式会社良心"
             pageNum={pageIdx + 1}
             totalPages={totalPages}
+            startNo={pageIdx * perPage + 1}
           />
         ))}
       </div>

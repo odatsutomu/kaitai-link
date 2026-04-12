@@ -13,6 +13,12 @@ import { ReportDoc }         from "../templates/report";
 import { DemolitionCertDoc } from "../templates/demolition-cert";
 import type { DemolitionCertData } from "../templates/demolition-cert";
 import { T } from "../../lib/design-tokens";
+import {
+  PhotoAttachmentPanel,
+  AttachedPhotoPage,
+  paginatePhotos,
+} from "../components/photo-attachments";
+import type { AlbumPhoto, PhotoLayoutType } from "../components/photo-attachments";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,6 +382,10 @@ export default function PreviewClient({ type, siteId }: Props) {
   const [issueDate,    setIssueDate]    = useState(todayStr());
   const [showEdit,     setShowEdit]     = useState(true);
 
+  // Photo attachments (available for all doc types)
+  const [attachedPhotos, setAttachedPhotos] = useState<AlbumPhoto[]>([]);
+  const [photoLayout,    setPhotoLayout]    = useState<PhotoLayoutType>("3");
+
   // Waste disposal state (completion doc only)
   const [processors, setProcessors] = useState<Processor[]>([]);
   const [wasteRows,  setWasteRows]  = useState<WasteRow[]>([]);
@@ -632,16 +642,45 @@ export default function PreviewClient({ type, siteId }: Props) {
               <FieldRow label="3階面積(㎡)" value={certData.floor3Area} onChange={v => setCertData({ ...certData, floor3Area: v })} />
             </EditSection>
           )}
+
+          {/* Photo attachments — available for all doc types */}
+          <PhotoAttachmentPanel
+            siteId={siteId}
+            attachedPhotos={attachedPhotos}
+            setAttachedPhotos={setAttachedPhotos}
+            layout={photoLayout}
+            setLayout={setPhotoLayout}
+          />
         </div>
       )}
 
       {/* ── Document preview ── */}
-      <div style={{ padding: "24px 16px", display: "flex", justifyContent: "center" }}>
+      <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
         {DocComponent ?? (
           <div style={{ color: T.sub, fontSize: 14, padding: 40 }}>
             現場データが見つかりません。ログインしてから再度お試しください。
           </div>
         )}
+
+        {/* Attached photo pages (shown inline in preview) */}
+        {attachedPhotos.length > 0 && (() => {
+          const perPage = parseInt(photoLayout) as 3 | 4 | 6;
+          const photoPages = paginatePhotos(attachedPhotos, perPage);
+          const docLabel = meta.label;
+          return photoPages.map((pagePhotos, pageIdx) => (
+            <AttachedPhotoPage
+              key={`photo-page-${pageIdx}`}
+              photos={pagePhotos}
+              layout={photoLayout}
+              headerLeft={`${docLabel} — 添付写真`}
+              headerRight={site?.name ?? ""}
+              footerLeft="株式会社良心"
+              pageNum={pageIdx + 1}
+              totalPages={photoPages.length}
+              startNo={pageIdx * perPage + 1}
+            />
+          ));
+        })()}
       </div>
     </div>
   );
