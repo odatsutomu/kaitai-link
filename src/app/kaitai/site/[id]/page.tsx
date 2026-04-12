@@ -14,6 +14,7 @@ import {
   CheckCircle, DollarSign, Wrench,
 } from "lucide-react";
 import { T } from "../../lib/design-tokens";
+import PhotoMarkingOverlay from "../../components/photo-marking-overlay";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1251,6 +1252,11 @@ function TabDocs({
   const [uploading, setUploading] = useState<string | null>(null); // folder key
   const [newItem, setNewItem] = useState("");
 
+  // ── Marking queue state ──
+  type MarkingQueueItem = { blob: Blob; folderKey: string };
+  const [markingQueue, setMarkingQueue] = useState<MarkingQueueItem[]>([]);
+  const [currentMarking, setCurrentMarking] = useState<MarkingQueueItem | null>(null);
+
   // Group images into folders
   const folders = FOLDER_CONFIG.map(cfg => ({
     ...cfg,
@@ -1266,41 +1272,133 @@ function TabDocs({
       )
     : [];
 
-  // Upload handler
+  // Map folder key to reportType
+  const reportTypeMap: Record<string, string> = {
+    before: "before", progress: "progress", asbestos: "asbestos",
+    plan: "plan", remaining: "remaining", other: "misc",
+  };
+
+  // Compress image for marking overlay
+  function compressForMarking(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const MAX_DIM = 1024;
+      const QUALITY = 0.6;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          const r = Math.min(MAX_DIM / w, MAX_DIM / h);
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        c.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("圧縮失敗")),
+          "image/jpeg", QUALITY,
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("読み込み失敗")); };
+      img.src = url;
+    });
+  }
+
+  // Upload a single blob
+  async function uploadBlob(blob: Blob, folderKey: string) {
+    const formData = new FormData();
+    formData.append("file", blob, "photo.jpg");
+    formData.append("siteId", siteId);
+    formData.append("reportType", reportTypeMap[folderKey] ?? "misc");
+    await fetch("/api/kaitai/upload", {
+      method: "POST", credentials: "include", body: formData,
+    });
+  }
+
+  // File input handler → separate images (→ marking queue) from PDFs (→ direct upload)
   async function handleUpload(folderKey: string, files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploading(folderKey);
 
-    // Map folder key to reportType
-    const reportTypeMap: Record<string, string> = {
-      before: "before", progress: "progress", asbestos: "asbestos",
-      plan: "plan", remaining: "remaining", other: "misc",
-    };
+    const imageFiles: File[] = [];
+    const otherFiles: File[] = [];
 
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.size > 10 * 1024 * 1024) {
-          alert(`${file.name} は10MBを超えています。スキップします。`);
-          continue;
-        }
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("siteId", siteId);
-        formData.append("reportType", reportTypeMap[folderKey] ?? "misc");
-
-        await fetch("/api/kaitai/upload", {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`${file.name} は10MBを超えています。スキップします。`);
+        continue;
       }
-      onImagesChange(); // Refresh image list
-    } catch (err) {
-      console.error("Upload failed:", err);
-      alert("アップロードに失敗しました");
-    } finally {
-      setUploading(null);
+      if (file.type.startsWith("image/")) {
+        imageFiles.push(file);
+      } else {
+        otherFiles.push(file);
+      }
+    }
+
+    // Upload non-image files (PDFs etc) directly
+    if (otherFiles.length > 0) {
+      setUploading(folderKey);
+      try {
+        for (const file of otherFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("siteId", siteId);
+          formData.append("reportType", reportTypeMap[folderKey] ?? "misc");
+          await fetch("/api/kaitai/upload", {
+            method: "POST", credentials: "include", body: formData,
+          });
+        }
+        onImagesChange();
+      } catch { alert("アップロードに失敗しました"); }
+      finally { setUploading(null); }
+    }
+
+    // Queue image files for marking
+    if (imageFiles.length > 0) {
+      try {
+        const items: MarkingQueueItem[] = [];
+        for (const file of imageFiles) {
+          const blob = await compressForMarking(file);
+          items.push({ blob, folderKey });
+        }
+        // Start marking flow: first item → current, rest → queue
+        setCurrentMarking(items[0]);
+        setMarkingQueue(items.slice(1));
+      } catch {
+        alert("画像の読み込みに失敗しました");
+      }
+    }
+  }
+
+  // Marking complete → upload result, advance queue
+  async function handleMarkingComplete(resultBlob: Blob) {
+    if (!currentMarking) return;
+    const folderKey = currentMarking.folderKey;
+    setCurrentMarking(null);
+
+    // Upload the marked image
+    setUploading(folderKey);
+    try {
+      await uploadBlob(resultBlob, folderKey);
+      onImagesChange();
+    } catch { alert("アップロードに失敗しました"); }
+    finally { setUploading(null); }
+
+    // Advance to next in queue
+    if (markingQueue.length > 0) {
+      setCurrentMarking(markingQueue[0]);
+      setMarkingQueue(prev => prev.slice(1));
+    }
+  }
+
+  // Marking cancelled → skip this image, advance queue
+  function handleMarkingCancel() {
+    setCurrentMarking(null);
+    if (markingQueue.length > 0) {
+      setCurrentMarking(markingQueue[0]);
+      setMarkingQueue(prev => prev.slice(1));
     }
   }
 
@@ -1536,6 +1634,15 @@ function TabDocs({
 
       {/* Fullscreen viewer */}
       {viewUrl && <ImageViewer url={viewUrl} onClose={() => setViewUrl(null)} />}
+
+      {/* Marking overlay */}
+      {currentMarking && (
+        <PhotoMarkingOverlay
+          imageBlob={currentMarking.blob}
+          onComplete={handleMarkingComplete}
+          onCancel={handleMarkingCancel}
+        />
+      )}
     </div>
   );
 }
