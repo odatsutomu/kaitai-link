@@ -119,23 +119,6 @@ export function ReportDoc({ site, docNo, issueDate = todayStr(), company }: Prop
           </table>
         </div>
 
-        {/* Photos */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#333", marginBottom: 5, letterSpacing: 1 }}>現場写真</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
-            {["着工前", "解体中①", "解体中②", "完了後"].map((l) => (
-              <div key={l} style={{
-                border: "1px dashed #bbb", borderRadius: 3, height: 70,
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                background: "#FAFAFA",
-              }}>
-                <div style={{ fontSize: 14, color: "#ddd" }}>📷</div>
-                <div style={{ fontSize: 8, color: "#bbb", marginTop: 2 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <NotesBox memo={site.memo} />
 
         {/* Sign-off */}

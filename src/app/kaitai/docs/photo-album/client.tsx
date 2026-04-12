@@ -619,14 +619,14 @@ export default function PhotoAlbumClient({ siteId }: Props) {
               </div>
             </div>
 
-            {/* Photo grid */}
+            {/* Photo grid — 2 columns for clear visibility */}
             <div style={{
               flex: 1,
               overflowY: "auto",
               padding: 10,
               display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 6,
+              gridTemplateColumns: "1fr 1fr",
+              gap: 8,
               alignContent: "start",
             }}>
               {poolPhotos.length === 0 && (
@@ -657,9 +657,9 @@ export default function PhotoAlbumClient({ siteId }: Props) {
                       position: "relative",
                       borderRadius: 8,
                       overflow: "hidden",
-                      border: isSelected ? `2px solid ${C.amber}` : `1px solid ${C.border}`,
+                      border: isSelected ? `3px solid ${C.amber}` : `1.5px solid ${C.border}`,
                       cursor: "pointer",
-                      aspectRatio: "1",
+                      aspectRatio: "4/3",
                       background: "#F3F4F6",
                     }}
                   >
@@ -672,30 +672,31 @@ export default function PhotoAlbumClient({ siteId }: Props) {
                     />
                     {/* Checkbox overlay */}
                     <div style={{
-                      position: "absolute", top: 4, left: 4,
-                      width: 20, height: 20, borderRadius: 4,
-                      background: isSelected ? C.amber : "rgba(255,255,255,0.85)",
-                      border: isSelected ? "none" : "1.5px solid #ccc",
+                      position: "absolute", top: 6, left: 6,
+                      width: 24, height: 24, borderRadius: 6,
+                      background: isSelected ? C.amber : "rgba(255,255,255,0.9)",
+                      border: isSelected ? "none" : "2px solid #bbb",
                       display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
                     }}>
-                      {isSelected && <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>✓</span>}
+                      {isSelected && <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span>}
                     </div>
                     {/* Date badge */}
                     <div style={{
-                      position: "absolute", bottom: 3, left: 3,
-                      fontSize: 9, color: "#fff",
+                      position: "absolute", bottom: 5, left: 5,
+                      fontSize: 11, color: "#fff",
                       background: "rgba(0,0,0,0.55)",
-                      padding: "1px 5px", borderRadius: 4,
+                      padding: "2px 7px", borderRadius: 5,
                     }}>
                       {dateStr}
                     </div>
                     {/* Tag badge */}
                     {photo.reportType && (
                       <div style={{
-                        position: "absolute", top: 4, right: 4,
-                        fontSize: 8, color: "#fff", fontWeight: 700,
+                        position: "absolute", top: 6, right: 6,
+                        fontSize: 10, color: "#fff", fontWeight: 700,
                         background: tagColor(photo.reportType),
-                        padding: "1px 5px", borderRadius: 4,
+                        padding: "2px 7px", borderRadius: 5,
                       }}>
                         {tagLabel(photo.reportType)}
                       </div>

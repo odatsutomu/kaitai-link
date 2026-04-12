@@ -138,36 +138,6 @@ export function CompletionDoc({ site, docNo, issueDate = todayStr(), wasteDispos
           </div>
         )}
 
-        {/* Photo area */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#333", marginBottom: 6, letterSpacing: 1 }}>
-            現場写真（完了確認）
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {photoUrls.length > 0
-              ? photoUrls.slice(0, 6).map((url, i) => (
-                  <div key={i} style={{
-                    border: "1px solid #bbb", borderRadius: 4, height: 120,
-                    overflow: "hidden", background: "#FAFAFA",
-                  }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`現場写真 ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                ))
-              : ["施工前", "施工中", "完了後"].map((label) => (
-                  <div key={label} style={{
-                    border: "1px dashed #bbb", borderRadius: 4, height: 90,
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    background: "#FAFAFA",
-                  }}>
-                    <div style={{ fontSize: 16, color: "#ddd" }}>📷</div>
-                    <div style={{ fontSize: 9, color: "#bbb", marginTop: 4 }}>{label}</div>
-                  </div>
-                ))
-            }
-          </div>
-        </div>
-
         <NotesBox memo={site.memo} />
 
         {/* Confirmation signatures */}

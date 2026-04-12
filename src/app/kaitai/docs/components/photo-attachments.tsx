@@ -410,27 +410,27 @@ export function PhotoAttachmentPanel({
                     }
                     dragItem.current = null;
                   }}
-                  className="flex items-start gap-2 mb-2 p-2 rounded-lg"
-                  style={{ background: T.bg, cursor: "grab" }}
+                  className="flex items-start gap-3 mb-2 p-2.5 rounded-xl"
+                  style={{ background: T.bg, cursor: "grab", border: `1px solid ${C.border}` }}
                 >
-                  <GripVertical size={13} color={C.muted} style={{ marginTop: 4, flexShrink: 0 }} />
+                  <GripVertical size={14} color={C.muted} style={{ marginTop: 20, flexShrink: 0 }} />
                   <div style={{
-                    width: 44, height: 44, borderRadius: 6,
+                    width: 72, height: 54, borderRadius: 8,
                     overflow: "hidden", flexShrink: 0,
-                    border: `1px solid ${C.border}`,
+                    border: `1.5px solid ${C.border}`,
                   }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={ap.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>No.{idx + 1}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 3, fontWeight: 600 }}>No.{idx + 1}</div>
                     <input
-                      className="w-full px-2 py-1 rounded text-xs outline-none"
+                      className="w-full px-2.5 py-1.5 rounded-lg text-sm outline-none"
                       style={{
-                        border: `1px solid ${C.border}`, background: "#fff",
-                        color: C.text, fontSize: 11,
+                        border: `1.5px solid ${C.border}`, background: "#fff",
+                        color: C.text, fontSize: 12,
                       }}
-                      placeholder="キャプション..."
+                      placeholder="キャプションを入力..."
                       value={ap.caption}
                       onChange={e => updateCaption(ap.id, e.target.value)}
                     />
@@ -438,13 +438,13 @@ export function PhotoAttachmentPanel({
                   <button
                     onClick={() => removePhoto(ap.id)}
                     style={{
-                      width: 26, height: 26, borderRadius: 6,
+                      width: 30, height: 30, borderRadius: 8,
                       background: "none", border: "none", cursor: "pointer",
-                      color: C.muted, marginTop: 2, flexShrink: 0,
+                      color: C.muted, marginTop: 12, flexShrink: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               ))}
@@ -538,13 +538,13 @@ export function PhotoAttachmentPanel({
                 </div>
               </div>
 
-              {/* Photo grid */}
+              {/* Photo grid — 3 columns for clear visibility */}
               <div style={{
-                padding: 8,
+                padding: 10,
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                gap: 5,
-                maxHeight: 300,
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: 8,
+                maxHeight: 420,
                 overflowY: "auto",
               }}>
                 {poolPhotos.length === 0 && !loading && (
@@ -565,9 +565,9 @@ export function PhotoAttachmentPanel({
                       onClick={() => toggleSelect(photo.id)}
                       onDoubleClick={() => addSingle(photo)}
                       style={{
-                        position: "relative", borderRadius: 6, overflow: "hidden",
-                        border: isSelected ? `2px solid ${C.amber}` : `1px solid ${C.border}`,
-                        cursor: "pointer", aspectRatio: "1", background: "#F3F4F6",
+                        position: "relative", borderRadius: 8, overflow: "hidden",
+                        border: isSelected ? `3px solid ${C.amber}` : `1.5px solid ${C.border}`,
+                        cursor: "pointer", aspectRatio: "4/3", background: "#F3F4F6",
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -575,30 +575,31 @@ export function PhotoAttachmentPanel({
                         style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       {/* Checkbox */}
                       <div style={{
-                        position: "absolute", top: 3, left: 3,
-                        width: 16, height: 16, borderRadius: 3,
-                        background: isSelected ? C.amber : "rgba(255,255,255,0.85)",
-                        border: isSelected ? "none" : "1.5px solid #ccc",
+                        position: "absolute", top: 5, left: 5,
+                        width: 22, height: 22, borderRadius: 5,
+                        background: isSelected ? C.amber : "rgba(255,255,255,0.9)",
+                        border: isSelected ? "none" : "2px solid #bbb",
                         display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
                       }}>
-                        {isSelected && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>✓</span>}
+                        {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
                       </div>
                       {/* Date */}
                       <div style={{
-                        position: "absolute", bottom: 2, left: 2,
-                        fontSize: 8, color: "#fff",
-                        background: "rgba(0,0,0,0.5)",
-                        padding: "0 4px", borderRadius: 3,
+                        position: "absolute", bottom: 4, left: 4,
+                        fontSize: 10, color: "#fff",
+                        background: "rgba(0,0,0,0.55)",
+                        padding: "1px 6px", borderRadius: 4,
                       }}>
                         {dateStr}
                       </div>
                       {/* Tag */}
                       {photo.reportType && (
                         <div style={{
-                          position: "absolute", top: 3, right: 3,
-                          fontSize: 7, color: "#fff", fontWeight: 700,
+                          position: "absolute", top: 5, right: 5,
+                          fontSize: 9, color: "#fff", fontWeight: 700,
                           background: tagColor(photo.reportType),
-                          padding: "0 4px", borderRadius: 3,
+                          padding: "1px 6px", borderRadius: 4,
                         }}>
                           {tagLabel(photo.reportType)}
                         </div>
